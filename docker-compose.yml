@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: market-ai-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: marketai
+      POSTGRES_PASSWORD: marketai_password
+      POSTGRES_DB: market_ai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: market-ai-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
