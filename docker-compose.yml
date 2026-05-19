@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: marketai_password
       POSTGRES_DB: market_ai_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -20,4 +20,5 @@ services:
       - "6379:6379"
 
 volumes:
+
   postgres_data:
