@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Heart,
   MapPin,
@@ -26,7 +27,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-[76px] max-w-[1440px] items-center gap-5 px-8">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <Image
             src="/logo.webp"
             alt="MarketAI logo"
@@ -37,7 +38,7 @@ export function Header() {
           <span className="text-2xl font-bold tracking-tight">
             Market<span className="text-[#6D4AFF]">AI</span>
           </span>
-        </div>
+        </Link>
 
         <div className="relative">
           <button
@@ -120,7 +121,10 @@ export function Header() {
             Избранное
           </button>
 
-          <button className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]">
+          <Link
+            href="/cart"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          >
             {cartCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
                 {cartCount}
@@ -128,7 +132,7 @@ export function Header() {
             )}
             <ShoppingCart size={20} />
             Корзина
-          </button>
+          </Link>
 
           <button className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]">
             <User size={20} />
