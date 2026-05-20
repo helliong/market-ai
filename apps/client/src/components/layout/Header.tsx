@@ -111,7 +111,10 @@ export function Header() {
             Сравнить
           </button>
 
-          <button className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]">
+          <Link
+            href="/favorites"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          >
             {favoritesCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
                 {favoritesCount}
@@ -119,7 +122,7 @@ export function Header() {
             )}
             <Heart size={20} />
             Избранное
-          </button>
+          </Link>
 
           <Link
             href="/cart"

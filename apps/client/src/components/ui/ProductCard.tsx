@@ -35,7 +35,7 @@ export function ProductCard({
       )}
 
       <button
-        onClick={() => dispatch(toggleFavorite(Date.now()))}
+        onClick={() => dispatch(toggleFavorite(id))}
         className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#6B7280] shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#EF4444]"
       >
         <Heart size={18} />
