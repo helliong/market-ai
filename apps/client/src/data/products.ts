@@ -1,0 +1,38 @@
+export const products = [
+  {
+    id: 1,
+    title: "Ноутбук Lenovo IdeaPad 15",
+    price: "59 990 ₽",
+    oldPrice: "69 990 ₽",
+    rating: 4.8,
+    reviews: 234,
+    badge: "Хит",
+  },
+  {
+    id: 2,
+    title: "Смартфон Galaxy A55 256GB",
+    price: "39 990 ₽",
+    oldPrice: "44 990 ₽",
+    rating: 4.7,
+    reviews: 412,
+    badge: "Скидка",
+  },
+  {
+    id: 3,
+    title: "Наушники Sony WH-CH720N",
+    price: "12 990 ₽",
+    oldPrice: "15 990 ₽",
+    rating: 4.9,
+    reviews: 128,
+    badge: "AI choice",
+  },
+  {
+    id: 4,
+    title: "Умная колонка с ассистентом",
+    price: "7 490 ₽",
+    oldPrice: "9 990 ₽",
+    rating: 4.6,
+    reviews: 89,
+    badge: "Новинка",
+  },
+];
