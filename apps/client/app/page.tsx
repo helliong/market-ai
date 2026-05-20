@@ -4,6 +4,8 @@ import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductSection } from "@/components/home/ProductSection";
 import { AIWidget } from "@/components/home/AIWidget";
 
+
+
 export default function Home() {
   return (
     <main>
