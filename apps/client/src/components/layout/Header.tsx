@@ -101,7 +101,10 @@ export function Header() {
         </div>
 
         <nav className="flex items-center gap-2">
-          <button className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]">
+          <Link
+            href="/compare"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          >
             {compareCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
                 {compareCount}
@@ -109,7 +112,7 @@ export function Header() {
             )}
             <Scale size={20} />
             Сравнить
-          </button>
+          </Link>
 
           <Link
             href="/favorites"
