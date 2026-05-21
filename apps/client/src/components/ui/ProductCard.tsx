@@ -1,9 +1,11 @@
 "use client";
 
-import { Heart, ShoppingCart, Star } from "lucide-react";
+import Link from "next/link";
+import { Heart, Scale, ShoppingCart, Star } from "lucide-react";
 import { addToCart } from "@/store/cartSlice";
+import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 type ProductCardProps = {
   id: number;
@@ -25,6 +27,8 @@ export function ProductCard({
   badge,
 }: ProductCardProps) {
   const dispatch = useAppDispatch();
+  const isFavorite = useAppSelector((state) => state.favorites.ids.includes(id));
+  const isCompared = useAppSelector((state) => state.compare.ids.includes(id));
 
   return (
     <article className="group relative rounded-[24px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(109,74,255,0.14)]">
@@ -34,21 +38,47 @@ export function ProductCard({
         </span>
       )}
 
-      <button
-        onClick={() => dispatch(toggleFavorite(id))}
-        className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#6B7280] shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#EF4444]"
-      >
-        <Heart size={18} />
-      </button>
+      <div className="absolute right-4 top-4 z-10 flex gap-2">
+        <button
+          type="button"
+          onClick={() => dispatch(toggleCompare(id))}
+          aria-label="Добавить в сравнение"
+          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#6D4AFF] ${
+            isCompared ? "text-[#6D4AFF]" : "text-[#6B7280]"
+          }`}
+        >
+          <Scale size={18} />
+        </button>
 
-      <div className="flex h-[190px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
-        <div className="h-24 w-32 rounded-[22px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105" />
+        <button
+          type="button"
+          onClick={() => dispatch(toggleFavorite(id))}
+          aria-label="Добавить в избранное"
+          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#EF4444] ${
+            isFavorite ? "text-[#EF4444]" : "text-[#6B7280]"
+          }`}
+        >
+          <Heart
+            size={18}
+            className={isFavorite ? "fill-[#EF4444]" : undefined}
+          />
+        </button>
       </div>
 
+      <Link
+        href={`/products/${id}`}
+        className="flex h-[190px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]"
+      >
+        <div className="h-24 w-32 rounded-[22px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105" />
+      </Link>
+
       <div className="mt-4">
-        <h3 className="line-clamp-2 min-h-[44px] text-[15px] font-bold leading-[1.45] text-[#111827]">
+        <Link
+          href={`/products/${id}`}
+          className="line-clamp-2 min-h-[44px] text-[15px] font-bold leading-[1.45] text-[#111827] transition hover:text-[#6D4AFF]"
+        >
           {title}
-        </h3>
+        </Link>
 
         <div className="mt-3 flex items-center gap-1 text-sm">
           <Star size={16} className="fill-[#F59E0B] text-[#F59E0B]" />
@@ -72,7 +102,7 @@ export function ProductCard({
           onClick={() =>
             dispatch(
               addToCart({
-                id: Date.now(),
+                id,
                 title,
                 price,
               }),

@@ -15,3 +15,21 @@ body {
   background: var(--bg-main);
   color: var(--text-main);
 }
+
+@keyframes catalogFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes catalogSlideIn {
+  from {
+    transform: translateX(-24px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
