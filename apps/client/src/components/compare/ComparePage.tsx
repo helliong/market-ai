@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Scale, ShoppingCart, Trash2 } from "lucide-react";
+import { Minus, Plus, Scale, ShoppingCart, Trash2 } from "lucide-react";
 import { products } from "@/data/products";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { toggleCompare } from "@/store/compareSlice";
-import { addToCart } from "@/store/cartSlice";
+import { COMPARE_LIMIT, toggleCompare } from "@/store/compareSlice";
+import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 
 export function ComparePage() {
   const dispatch = useAppDispatch();
   const compareIds = useAppSelector((state) => state.compare.ids);
+  const cartItems = useAppSelector((state) => state.cart.items);
 
   const compareProducts = products.filter((product) =>
     compareIds.includes(product.id)
@@ -23,7 +24,8 @@ export function ComparePage() {
             Сравнение товаров
           </h1>
           <p className="mt-2 text-[#6B7280]">
-            Сравните товары по цене, рейтингу и отзывам
+            Сравните товары по цене, рейтингу и отзывам. Добавлено{" "}
+            {compareProducts.length}/{COMPARE_LIMIT}
           </p>
         </div>
 
@@ -71,21 +73,24 @@ export function ComparePage() {
                 <p className="mt-3 text-2xl font-black">{product.price}</p>
 
                 <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() =>
+                  <CompareCartAction
+                    product={product}
+                    quantity={
+                      cartItems.find((item) => item.id === product.id)
+                        ?.quantity
+                    }
+                    onAdd={() =>
                       dispatch(
                         addToCart({
                           id: product.id,
                           title: product.title,
                           price: product.price,
-                        })
+                        }),
                       )
                     }
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-xs font-bold text-white"
-                  >
-                    <ShoppingCart size={16} />
-                    В корзину
-                  </button>
+                    onDecrease={() => dispatch(decreaseQuantity(product.id))}
+                    onIncrease={() => dispatch(increaseQuantity(product.id))}
+                  />
 
                   <button
                     onClick={() => dispatch(toggleCompare(product.id))}
@@ -106,6 +111,57 @@ export function ComparePage() {
         </div>
       )}
     </section>
+  );
+}
+
+function CompareCartAction({
+  product,
+  quantity,
+  onAdd,
+  onDecrease,
+  onIncrease,
+}: {
+  product: { title: string };
+  quantity?: number;
+  onAdd: () => void;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  if (quantity) {
+    return (
+      <div className="grid h-10 flex-1 grid-cols-[36px_1fr_36px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
+        <button
+          type="button"
+          onClick={onDecrease}
+          className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+          aria-label={`Уменьшить количество ${product.title}`}
+        >
+          <Minus size={15} />
+        </button>
+        <div className="flex items-center justify-center text-xs font-black">
+          {quantity} в корзине
+        </div>
+        <button
+          type="button"
+          onClick={onIncrease}
+          className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+          aria-label={`Увеличить количество ${product.title}`}
+        >
+          <Plus size={15} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-xs font-bold text-white transition hover:bg-[#4F32D9]"
+    >
+      <ShoppingCart size={16} />
+      В корзину
+    </button>
   );
 }
 

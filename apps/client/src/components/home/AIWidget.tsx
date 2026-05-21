@@ -9,7 +9,17 @@ export function AIWidget() {
   return (
     <>
       {isOpen && (
-        <div className="fixed bottom-28 right-8 z-50 w-[380px] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)]">
+        <div
+          className="fixed inset-0 z-40 cursor-default"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {isOpen && (
+        <div
+          className="fixed bottom-28 right-8 z-50 w-[380px] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)]"
+          onClick={(event) => event.stopPropagation()}
+        >
           <div className="flex items-center justify-between bg-gradient-to-r from-[#6D4AFF] to-[#4F32D9] p-5 text-white">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
@@ -65,7 +75,7 @@ export function AIWidget() {
       )}
 
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => setIsOpen((prev) => !prev)}
         className="fixed bottom-8 right-8 z-50 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white shadow-[0_18px_50px_rgba(79,50,217,0.32)] transition hover:scale-105"
       >
         <MessageCircle size={28} />

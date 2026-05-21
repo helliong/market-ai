@@ -35,7 +35,7 @@ export const products = [
     reviews: 89,
     badge: "Новинка",
   },
-   {
+  {
     id: 5,
     title: "Микрофон Shure SM7B для подкастов",
     price: "69 990 ₽",
@@ -44,7 +44,7 @@ export const products = [
     reviews: 89,
     badge: "Выбор блогеров",
   },
-   {
+  {
     id: 6,
     title: "Планшет Apple iPad Air 5",
     price: "39 990 ₽",
@@ -52,5 +52,14 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Лучший планшет",
+  },
+  {
+    id: 7,
+    title: "Планшет Samsung Galaxy Tab S8",
+    price: "39 990 ₽",
+    oldPrice: "49 990 ₽",
+    rating: 4.6,
+    reviews: 89,
+    badge: "Выбор Samsung",
   },
 ];

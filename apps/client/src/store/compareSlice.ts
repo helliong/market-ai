@@ -8,6 +8,8 @@ const initialState: CompareState = {
   ids: [],
 };
 
+export const COMPARE_LIMIT = 6;
+
 export const compareSlice = createSlice({
   name: "compare",
   initialState,
@@ -15,8 +17,10 @@ export const compareSlice = createSlice({
     toggleCompare: (state, action: PayloadAction<number>) => {
       if (state.ids.includes(action.payload)) {
         state.ids = state.ids.filter((id) => id !== action.payload);
-      } else {
+      } else if (state.ids.length < COMPARE_LIMIT) {
         state.ids.push(action.payload);
+      } else {
+        return;
       }
     },
   },

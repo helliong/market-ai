@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, Mail, User } from "lucide-react";
+import { Check, LockKeyhole, Mail, User } from "lucide-react";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
@@ -18,10 +18,12 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
+    agreement?: string;
   }>({});
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -43,6 +45,10 @@ export function AuthPage({ mode }: AuthPageProps) {
 
     if (!trimmedPassword) {
       nextErrors.password = "В поле ничего нет";
+    }
+
+    if (isRegister && !isAgreementAccepted) {
+      nextErrors.agreement = "Подтвердите пользовательское соглашение";
     }
 
     setErrors(nextErrors);
@@ -149,6 +155,48 @@ export function AuthPage({ mode }: AuthPageProps) {
             type="password"
             error={errors.password}
           />
+
+          {isRegister && (
+            <label className="block">
+              <span className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition hover:border-[#6D4AFF]">
+                <span
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                    isAgreementAccepted
+                      ? "border-[#6D4AFF] bg-[#6D4AFF] text-white"
+                      : "border-[#D1D5DB] bg-white text-transparent"
+                  }`}
+                >
+                  <Check size={14} />
+                </span>
+                <input
+                  type="checkbox"
+                  checked={isAgreementAccepted}
+                  onChange={(event) => {
+                    setIsAgreementAccepted(event.target.checked);
+                    setErrors((current) => ({
+                      ...current,
+                      agreement: undefined,
+                    }));
+                  }}
+                  className="sr-only"
+                />
+                <span className="text-sm font-semibold leading-6 text-[#6B7280]">
+                  Я принимаю{" "}
+                  <Link
+                    href="/agreement"
+                    className="font-black text-[#6D4AFF] transition hover:text-[#4F32D9]"
+                  >
+                    пользовательское соглашение
+                  </Link>
+                </span>
+              </span>
+              {errors.agreement && (
+                <span className="mt-2 block text-sm font-bold text-[#EF4444]">
+                  {errors.agreement}
+                </span>
+              )}
+            </label>
+          )}
         </div>
 
         <button

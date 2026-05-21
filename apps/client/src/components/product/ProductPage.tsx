@@ -4,6 +4,8 @@ import Link from "next/link";
 import {
   CheckCircle2,
   Heart,
+  Minus,
+  Plus,
   RotateCcw,
   Scale,
   ShieldCheck,
@@ -11,7 +13,7 @@ import {
   Star,
   Truck,
 } from "lucide-react";
-import { addToCart } from "@/store/cartSlice";
+import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -39,12 +41,19 @@ const specs = [
 
 export function ProductPage({ product }: ProductPageProps) {
   const dispatch = useAppDispatch();
+  const cartItem = useAppSelector((state) =>
+    state.cart.items.find((item) => item.id === product.id),
+  );
   const isFavorite = useAppSelector((state) =>
     state.favorites.ids.includes(product.id),
   );
   const isCompared = useAppSelector((state) =>
     state.compare.ids.includes(product.id),
   );
+  const isCompareLimitReached = useAppSelector(
+    (state) => state.compare.ids.length >= 6,
+  );
+  const isCompareDisabled = !isCompared && isCompareLimitReached;
 
   return (
     <section className="mx-auto max-w-[1440px] px-8 py-10">
@@ -92,22 +101,46 @@ export function ProductPage({ product }: ProductPageProps) {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                dispatch(
-                  addToCart({
-                    id: product.id,
-                    title: product.title,
-                    price: product.price,
-                  }),
-                )
-              }
-              className="col-span-2 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
-            >
-              <ShoppingCart size={19} />
-              В корзину
-            </button>
+            {cartItem ? (
+              <div className="col-span-2 grid h-13 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
+                <button
+                  type="button"
+                  onClick={() => dispatch(decreaseQuantity(product.id))}
+                  className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+                  aria-label="Уменьшить количество"
+                >
+                  <Minus size={19} />
+                </button>
+                <div className="flex items-center justify-center text-sm font-black">
+                  {cartItem.quantity} в корзине
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dispatch(increaseQuantity(product.id))}
+                  className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+                  aria-label="Увеличить количество"
+                >
+                  <Plus size={19} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch(
+                    addToCart({
+                      id: product.id,
+                      title: product.title,
+                      price: product.price,
+                    }),
+                  )
+                }
+                className="col-span-2 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
+              >
+                <ShoppingCart size={19} />
+                В корзину
+              </button>
+            )}
 
             <button
               type="button"
@@ -128,10 +161,16 @@ export function ProductPage({ product }: ProductPageProps) {
             <button
               type="button"
               onClick={() => dispatch(toggleCompare(product.id))}
+              disabled={isCompareDisabled}
+              title={
+                isCompareDisabled
+                  ? "В сравнении может быть не больше 6 товаров"
+                  : "Добавить в сравнение"
+              }
               className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${
                 isCompared
                   ? "bg-[#F1EDFF] text-[#6D4AFF]"
-                  : "bg-[#F6F7FB] text-[#111827] hover:text-[#6D4AFF]"
+                  : "bg-[#F6F7FB] text-[#111827] hover:text-[#6D4AFF] disabled:opacity-50"
               }`}
             >
               <Scale size={18} />

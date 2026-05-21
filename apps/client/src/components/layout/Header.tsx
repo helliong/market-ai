@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -24,6 +24,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function Header() {
   const dispatch = useAppDispatch();
+  const addressRef = useRef<HTMLDivElement>(null);
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -37,6 +38,27 @@ export function Header() {
 
   const compareCount = useAppSelector((state) => state.compare.ids.length);
   const user = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    if (!isAddressOpen) {
+      return;
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (
+        addressRef.current &&
+        !addressRef.current.contains(event.target as Node)
+      ) {
+        setIsAddressOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleDocumentClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+    };
+  }, [isAddressOpen]);
 
   return (
     <>
@@ -55,7 +77,7 @@ export function Header() {
             </span>
           </Link>
 
-        <div className="relative">
+        <div ref={addressRef} className="relative">
           <button
             onClick={() => {
               setIsAddressOpen((prev) => !prev);

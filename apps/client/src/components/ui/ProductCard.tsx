@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Scale, ShoppingCart, Star } from "lucide-react";
-import { addToCart } from "@/store/cartSlice";
+import { Heart, Minus, Plus, Scale, ShoppingCart, Star } from "lucide-react";
+import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -27,8 +27,15 @@ export function ProductCard({
   badge,
 }: ProductCardProps) {
   const dispatch = useAppDispatch();
+  const cartItem = useAppSelector((state) =>
+    state.cart.items.find((item) => item.id === id),
+  );
   const isFavorite = useAppSelector((state) => state.favorites.ids.includes(id));
   const isCompared = useAppSelector((state) => state.compare.ids.includes(id));
+  const isCompareLimitReached = useAppSelector(
+    (state) => state.compare.ids.length >= 6,
+  );
+  const isCompareDisabled = !isCompared && isCompareLimitReached;
 
   return (
     <article className="group relative rounded-[24px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(109,74,255,0.14)]">
@@ -42,8 +49,14 @@ export function ProductCard({
         <button
           type="button"
           onClick={() => dispatch(toggleCompare(id))}
+          disabled={isCompareDisabled}
           aria-label="Добавить в сравнение"
-          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#6D4AFF] ${
+          title={
+            isCompareDisabled
+              ? "В сравнении может быть не больше 6 товаров"
+              : "Добавить в сравнение"
+          }
+          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition hover:text-[#6D4AFF] disabled:opacity-50 ${
             isCompared ? "text-[#6D4AFF]" : "text-[#6B7280]"
           }`}
         >
@@ -98,20 +111,44 @@ export function ProductCard({
           )}
         </div>
 
-        <button
-          onClick={() =>
-            dispatch(
-              addToCart({
-                id,
-                title,
-                price,
-              }),
-            )
-          }
-          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
-        >
-          <ShoppingCart size={18} />В корзину
-        </button>
+        {cartItem ? (
+          <div className="mt-4 grid h-11 grid-cols-[44px_1fr_44px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
+            <button
+              type="button"
+              onClick={() => dispatch(decreaseQuantity(id))}
+              className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+              aria-label="Уменьшить количество"
+            >
+              <Minus size={17} />
+            </button>
+            <div className="flex items-center justify-center text-sm font-black">
+              {cartItem.quantity} в корзине
+            </div>
+            <button
+              type="button"
+              onClick={() => dispatch(increaseQuantity(id))}
+              className="flex items-center justify-center transition hover:bg-[#4F32D9]"
+              aria-label="Увеличить количество"
+            >
+              <Plus size={17} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() =>
+              dispatch(
+                addToCart({
+                  id,
+                  title,
+                  price,
+                }),
+              )
+            }
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
+          >
+            <ShoppingCart size={18} />В корзину
+          </button>
+        )}
       </div>
     </article>
   );
