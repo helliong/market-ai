@@ -16,6 +16,20 @@ body {
   color: var(--text-main);
 }
 
+button,
+a,
+select,
+summary,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 @keyframes catalogFadeIn {
   from {
     opacity: 0;
