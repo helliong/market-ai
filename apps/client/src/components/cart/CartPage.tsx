@@ -23,9 +23,9 @@ export function CartPage() {
   );
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
-        <h1 className="text-4xl font-black tracking-[-0.04em]">Корзина</h1>
+        <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">Корзина</h1>
         <p className="mt-2 text-[#6B7280]">
           Проверьте товары перед оформлением заказа
         </p>
@@ -43,18 +43,18 @@ export function CartPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-[1fr_380px] gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px] lg:gap-8">
           <div className="space-y-4">
             {items.map((item) => (
               <article
                 key={item.id}
-                className="flex items-center gap-5 rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+                className="flex flex-col gap-5 rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center"
               >
                 <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
                   <div className="h-14 w-20 rounded-2xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9]" />
                 </div>
 
-                <div className="flex-1">
+                <div className="w-full flex-1">
                   <h3 className="text-lg font-black">{item.title}</h3>
                   <p className="mt-2 text-sm text-[#6B7280]">
                     Доставка доступна в выбранный город
@@ -81,7 +81,7 @@ export function CartPage() {
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="w-full text-left sm:w-auto sm:text-right">
                   <p className="text-2xl font-black">{item.price}</p>
 
                   <button

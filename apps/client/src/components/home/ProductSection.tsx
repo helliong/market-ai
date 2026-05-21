@@ -4,10 +4,10 @@ import { ProductCard } from "@/components/ui/ProductCard";
 
 export function ProductSection() {
   return (
-    <section className="mx-auto mt-12 max-w-[1440px] px-8 pb-16">
-      <div className="mb-5 flex items-end justify-between">
+    <section className="mx-auto mt-12 max-w-[1440px] px-4 pb-16 md:px-8">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-3xl font-black tracking-[-0.03em]">
+          <h2 className="text-2xl font-black tracking-[-0.03em] md:text-3xl">
             Популярные товары
           </h2>
           <p className="mt-2 text-[#6B7280]">
@@ -23,7 +23,7 @@ export function ProductSection() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">
         {products.map((product) => (
           <ProductCard key={product.id} {...product} />
         ))}

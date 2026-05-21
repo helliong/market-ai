@@ -27,12 +27,12 @@ export default function Agreement() {
   return (
     <main>
       <Header />
-      <section className="mx-auto max-w-[980px] px-8 py-10">
-        <div className="rounded-[32px] bg-white p-8 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <section className="mx-auto max-w-[980px] px-4 py-8 md:px-8 md:py-10">
+        <div className="rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:rounded-[32px] md:p-8">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6D4AFF]">
             MarketAI
           </p>
-          <h1 className="mt-4 text-4xl font-black tracking-[-0.04em]">
+          <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] md:text-4xl">
             Пользовательское соглашение
           </h1>
           <p className="mt-4 leading-7 text-[#6B7280]">

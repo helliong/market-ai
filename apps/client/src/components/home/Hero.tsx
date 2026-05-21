@@ -3,14 +3,14 @@ import { Bot, Sparkles, Search, ShoppingBag } from "lucide-react";
 
 export function Hero() {
   return (
-    <section className="mx-auto mt-8 grid max-w-[1440px] grid-cols-[1.1fr_0.9fr] gap-8 px-8">
-      <div className="rounded-[32px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] p-12 text-white shadow-[0_24px_70px_rgba(79,50,217,0.25)]">
+    <section className="mx-auto mt-6 grid max-w-[1440px] grid-cols-1 gap-5 px-4 md:mt-8 md:gap-8 md:px-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] p-6 text-white shadow-[0_24px_70px_rgba(79,50,217,0.25)] md:rounded-[32px] md:p-12">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-medium">
           <Sparkles size={16} />
           AI shopping assistant
         </div>
 
-        <h1 className="max-w-[650px] text-6xl font-black leading-[1.05] tracking-[-0.04em]">
+        <h1 className="max-w-[650px] text-4xl font-black leading-[1.08] tracking-[-0.04em] md:text-6xl">
           Покупки быстрее с умным AI-помощником
         </h1>
 
@@ -19,15 +19,15 @@ export function Hero() {
           характеристики и поможет выбрать лучший вариант.
         </p>
 
-        <div className="mt-9 flex items-center gap-4">
-          <button className="hero-ai-button flex h-14 items-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <button className="hero-ai-button flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
             <Bot size={20} />
             Спросить AI
           </button>
 
           <Link
             href="/catalog"
-            className="flex h-14 items-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10"
+            className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10"
           >
             <Search size={20} />
             Перейти в каталог
@@ -35,8 +35,8 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[32px] bg-white p-10 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
-        <div className="absolute right-8 top-8 rounded-2xl bg-[#F1EDFF] px-4 py-2 text-sm font-bold text-[#6D4AFF]">
+      <div className="relative overflow-hidden rounded-[28px] bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.06)] md:rounded-[32px] md:p-10">
+        <div className="absolute right-5 top-5 rounded-2xl bg-[#F1EDFF] px-4 py-2 text-sm font-bold text-[#6D4AFF] md:right-8 md:top-8">
           AI подбор
         </div>
 
@@ -46,7 +46,7 @@ export function Hero() {
               <Bot size={42} />
             </div>
 
-            <h2 className="mt-8 text-3xl font-black tracking-[-0.03em]">
+            <h2 className="mt-8 text-2xl font-black tracking-[-0.03em] md:text-3xl">
               Что ищем сегодня?
             </h2>
 

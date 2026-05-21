@@ -63,8 +63,8 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-[76px] max-w-[1440px] items-center gap-5 px-8">
-          <Link href="/" className="flex items-center gap-3">
+        <div className="mx-auto flex min-h-[76px] max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 md:px-8 xl:flex-nowrap">
+          <Link href="/" className="flex shrink-0 items-center gap-3">
             <Image
               src="/logo.webp"
               alt="MarketAI logo"
@@ -72,34 +72,34 @@ export function Header() {
               height={44}
               className="rounded-2xl"
             />
-            <span className="text-2xl font-bold tracking-tight">
+            <span className="hidden text-2xl font-bold tracking-tight sm:inline">
               Market<span className="text-[#6D4AFF]">AI</span>
             </span>
           </Link>
 
-        <div ref={addressRef} className="relative">
+        <div ref={addressRef} className="relative order-3 ml-auto xl:order-none xl:ml-0">
           <button
             onClick={() => {
               setIsAddressOpen((prev) => !prev);
               setIsCatalogOpen(false);
               setIsProfileOpen(false);
             }}
-            className="flex min-w-[170px] items-center gap-2 rounded-2xl px-3 py-2 text-left transition hover:bg-[#F6F7FB]"
+            className="flex min-w-0 items-center gap-2 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F6F7FB] sm:min-w-[170px] sm:px-3"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1EDFF] text-[#6D4AFF]">
               <MapPin size={20} />
             </div>
 
-            <div className="leading-tight">
+            <div className="hidden leading-tight sm:block">
               <p className="text-xs text-[#6B7280]">Доставка</p>
-              <p className="max-w-[110px] truncate text-sm font-bold text-[#111827]">
+              <p className="max-w-[92px] truncate text-sm font-bold text-[#111827] sm:max-w-[110px]">
                 {city}
               </p>
             </div>
           </button>
 
           {isAddressOpen && (
-            <div className="absolute left-0 top-[58px] z-50 w-[320px] rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
+            <div className="fixed left-4 right-4 top-[132px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
               <h3 className="text-lg font-black">Выберите город</h3>
               <p className="mt-1 text-sm text-[#6B7280]">
                 От города зависит срок и стоимость доставки
@@ -125,7 +125,7 @@ export function Header() {
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative order-2 xl:order-none">
           <button
             type="button"
             onClick={() => {
@@ -133,7 +133,7 @@ export function Header() {
               setIsAddressOpen(false);
               setIsProfileOpen(false);
             }}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-5 text-sm font-semibold text-[#6D4AFF] transition hover:bg-[#E8E0FF]"
+            className="flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-semibold text-[#6D4AFF] transition hover:bg-[#E8E0FF] sm:px-5"
           >
             <Menu size={18} />
             Каталог
@@ -141,7 +141,7 @@ export function Header() {
 
         </div>
 
-        <div className="relative flex-1">
+        <div className="relative order-5 w-full basis-full xl:order-none xl:w-auto xl:basis-auto xl:flex-1">
           <Search
             size={20}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
@@ -152,10 +152,10 @@ export function Header() {
           />
         </div>
 
-        <nav className="flex items-center gap-2">
+        <nav className="order-none ml-auto hidden items-center gap-2 xl:flex">
           <Link
             href="/compare"
-            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
           >
             {compareCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -163,12 +163,12 @@ export function Header() {
               </span>
             )}
             <Scale size={20} />
-            Сравнить
+            <span>Сравнить</span>
           </Link>
 
           <Link
             href="/favorites"
-            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
           >
             {favoritesCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
@@ -176,12 +176,12 @@ export function Header() {
               </span>
             )}
             <Heart size={20} />
-            Избранное
+            <span>Избранное</span>
           </Link>
 
           <Link
             href="/cart"
-            className="relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+            className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
           >
             {cartCount > 0 && (
               <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -189,7 +189,7 @@ export function Header() {
               </span>
             )}
             <ShoppingCart size={20} />
-            Корзина
+            <span>Корзина</span>
           </Link>
 
           <div className="relative">
@@ -200,10 +200,10 @@ export function Header() {
                 setIsAddressOpen(false);
                 setIsCatalogOpen(false);
               }}
-              className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+              className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
             >
               <User size={20} />
-              Профиль
+              <span>Профиль</span>
             </button>
 
             {isProfileOpen && (
@@ -285,15 +285,23 @@ export function Header() {
 
       {isCatalogOpen && (
         <div
-          className="fixed inset-x-0 bottom-0 top-[76px] z-40 animate-[catalogFadeIn_160ms_ease-out] bg-[#111827]/45 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[60] animate-[catalogFadeIn_160ms_ease-out] bg-white xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:bg-[#111827]/45 xl:backdrop-blur-[2px]"
           onClick={() => setIsCatalogOpen(false)}
         >
           <aside
-            className="h-full w-[340px] animate-[catalogSlideIn_220ms_cubic-bezier(0.22,1,0.36,1)] border-r border-[#E5E7EB] bg-white p-5 shadow-[24px_0_60px_rgba(15,23,42,0.18)]"
+            className="h-full w-full animate-[catalogSlideIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-y-auto bg-white p-5 xl:w-[min(340px,86vw)] xl:border-r xl:border-[#E5E7EB] xl:shadow-[24px_0_60px_rgba(15,23,42,0.18)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] pb-4">
               <div>
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogOpen(false)}
+                  className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#E8E0FF] xl:hidden"
+                >
+                  <Menu size={18} />
+                  Каталог
+                </button>
                 <h3 className="text-lg font-black text-[#111827]">
                   Каталог товаров
                 </h3>
@@ -305,7 +313,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => setIsCatalogOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
+                className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF] xl:flex"
                 aria-label="Закрыть каталог"
               >
                 <X size={18} />
@@ -346,6 +354,131 @@ export function Header() {
           </aside>
         </div>
       )}
+
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 gap-1 border-t border-[#E5E7EB] bg-white/95 px-3 py-2 backdrop-blur xl:hidden">
+        <Link
+          href="/compare"
+          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+        >
+          {compareCount > 0 && (
+            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+              {compareCount}
+            </span>
+          )}
+          <Scale size={20} />
+          <span>Сравнить</span>
+        </Link>
+
+        <Link
+          href="/favorites"
+          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+        >
+          {favoritesCount > 0 && (
+            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
+              {favoritesCount}
+            </span>
+          )}
+          <Heart size={20} />
+          <span>Избранное</span>
+        </Link>
+
+        <Link
+          href="/cart"
+          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+        >
+          {cartCount > 0 && (
+            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+              {cartCount}
+            </span>
+          )}
+          <ShoppingCart size={20} />
+          <span>Корзина</span>
+        </Link>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setIsProfileOpen((prev) => !prev);
+              setIsAddressOpen(false);
+              setIsCatalogOpen(false);
+            }}
+            className="flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          >
+            <User size={20} />
+            <span>Профиль</span>
+          </button>
+
+          {isProfileOpen && (
+            <div className="fixed bottom-[74px] left-4 right-4 z-50">
+              <div className="rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
+                <div className="flex items-center gap-4 border-b border-[#E5E7EB] pb-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                    <User size={24} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-black text-[#111827]">
+                      {user?.name || "Гость"}
+                    </p>
+                    <p className="mt-1 text-sm text-[#6B7280]">
+                      {user ? user.email : "Войдите или создайте аккаунт"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {user ? (
+                    <>
+                      <ProfileMenuLink
+                        href="/profile"
+                        icon={<User size={18} />}
+                        label="Мой профиль"
+                        onClick={() => setIsProfileOpen(false)}
+                      />
+                      <ProfileMenuAction
+                        icon={<Package size={18} />}
+                        label="История заказов"
+                        onClick={() => setIsProfileOpen(false)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <ProfileMenuLink
+                        href="/login"
+                        icon={<User size={18} />}
+                        label="Войти"
+                        onClick={() => setIsProfileOpen(false)}
+                      />
+                      <ProfileMenuLink
+                        href="/register"
+                        icon={<UserPlus size={18} />}
+                        label="Регистрация"
+                        onClick={() => setIsProfileOpen(false)}
+                      />
+                    </>
+                  )}
+                  <ProfileLanguageSelect value={language} onChange={setLanguage} />
+                </div>
+
+                {user && (
+                  <button
+                    type="button"
+                    className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                    onClick={() => {
+                      dispatch(logout());
+                      setIsProfileOpen(false);
+                    }}
+                  >
+                    <LogOut size={18} />
+                    Выйти
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
     </>
   );
 }

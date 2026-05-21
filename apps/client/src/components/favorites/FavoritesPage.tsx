@@ -16,10 +16,10 @@ export function FavoritesPage() {
   );
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
-      <div className="mb-8 flex items-end justify-between">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-[-0.04em]">
+          <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">
             Избранное
           </h1>
           <p className="mt-2 text-[#6B7280]">
@@ -54,7 +54,7 @@ export function FavoritesPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">
           {favoriteProducts.map((product) => (
             <article
               key={product.id}

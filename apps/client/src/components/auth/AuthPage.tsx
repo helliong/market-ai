@@ -68,13 +68,13 @@ export function AuthPage({ mode }: AuthPageProps) {
   }
 
   return (
-    <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-[1fr_460px] gap-10 px-8 py-10">
+    <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 md:px-8 md:py-10 lg:grid-cols-[1fr_460px] lg:gap-10">
       <div className="flex items-center">
         <div className="max-w-[620px]">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6D4AFF]">
             MarketAI аккаунт
           </p>
-          <h1 className="mt-4 text-5xl font-black leading-tight tracking-[-0.05em]">
+          <h1 className="mt-4 text-3xl font-black leading-tight tracking-[-0.05em] md:text-5xl">
             {isRegister ? "Создайте профиль для покупок" : "Войдите в профиль"}
           </h1>
           <p className="mt-5 max-w-[520px] text-lg leading-8 text-[#6B7280]">
@@ -83,7 +83,7 @@ export function AuthPage({ mode }: AuthPageProps) {
               : "Вход пока без серверной проверки. После отправки формы вы попадете в профиль как авторизованный пользователь."}
           </p>
 
-          <div className="mt-8 grid max-w-[560px] grid-cols-3 gap-3">
+          <div className="mt-8 grid max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-3">
             {["Быстрее оформление", "Избранное под рукой", "История заказов"].map(
               (item) => (
                 <div

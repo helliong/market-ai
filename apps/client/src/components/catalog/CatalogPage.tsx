@@ -55,13 +55,13 @@ export function CatalogPage({
   }, [query, selectedCategory, sort]);
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
-      <div className="mb-8 flex items-end justify-between gap-6">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6D4AFF]">
             MarketAI catalog
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.04em]">
+          <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] md:text-4xl">
             Каталог товаров
           </h1>
           <p className="mt-2 text-[#6B7280]">
@@ -70,16 +70,16 @@ export function CatalogPage({
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <div className="w-fit rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           Найдено: {filteredProducts.length}
         </div>
       </div>
 
-      <div className="grid grid-cols-[280px_1fr] gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         <aside className="h-fit rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-lg font-black">Категории</h2>
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:block lg:space-y-2">
             <button
               type="button"
               onClick={() => setSelectedCategory("all")}
@@ -120,7 +120,7 @@ export function CatalogPage({
         </aside>
 
         <div>
-          <div className="mb-5 flex gap-3 rounded-[28px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <div className="mb-5 flex flex-col gap-3 rounded-[28px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:flex-row">
             <div className="relative flex-1">
               <Search
                 size={20}
@@ -134,7 +134,7 @@ export function CatalogPage({
               />
             </div>
 
-            <label className="flex h-12 min-w-[230px] items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm font-bold text-[#111827]">
+            <label className="flex h-12 w-full items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm font-bold text-[#111827] md:min-w-[230px] md:w-auto">
               <SlidersHorizontal size={18} className="text-[#6D4AFF]" />
               <select
                 value={sort}
@@ -150,7 +150,7 @@ export function CatalogPage({
           </div>
 
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-5">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} {...product} />
               ))}

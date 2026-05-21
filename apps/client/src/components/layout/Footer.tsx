@@ -57,7 +57,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-[#E5E7EB] bg-white">
-      <div className="mx-auto grid max-w-[1440px] grid-cols-[1.2fr_1fr_1fr_1fr] gap-8 px-8 py-10">
+      <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-2 md:px-8 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
         <div>
           <Link href="/" className="inline-flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#6D4AFF] text-white">
@@ -167,7 +167,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-[#E5E7EB]">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-8 text-sm text-[#6B7280]">
+        <div className="mx-auto flex min-h-14 max-w-[1440px] flex-col gap-2 px-4 py-4 text-sm text-[#6B7280] sm:flex-row sm:items-center sm:justify-between md:px-8">
           <span>© 2026 MarketAI</span>
           <span className="flex items-center gap-2">
             Сделано для удобных покупок <Heart size={15} className="text-[#EF4444]" />
