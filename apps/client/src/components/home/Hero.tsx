@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bot, Sparkles, Search, ShoppingBag } from "lucide-react";
 
 export function Hero() {
@@ -19,15 +20,18 @@ export function Hero() {
         </p>
 
         <div className="mt-9 flex items-center gap-4">
-          <button className="flex h-14 items-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
+          <button className="hero-ai-button flex h-14 items-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
             <Bot size={20} />
             Спросить AI
           </button>
 
-          <button className="flex h-14 items-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10">
+          <Link
+            href="/catalog"
+            className="flex h-14 items-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10"
+          >
             <Search size={20} />
             Перейти в каталог
-          </button>
+          </Link>
         </div>
       </div>
 

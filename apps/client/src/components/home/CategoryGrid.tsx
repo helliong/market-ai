@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { categories } from "@/data/categories";
 
 export function CategoryGrid() {
@@ -13,9 +14,12 @@ export function CategoryGrid() {
           </p>
         </div>
 
-        <button className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <Link
+          href="/catalog"
+          className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+        >
           Все категории
-        </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-4 gap-5">
@@ -23,8 +27,9 @@ export function CategoryGrid() {
           const Icon = category.icon;
 
           return (
-            <div
+            <Link
               key={category.id}
+              href={`/catalog?category=${category.id}`}
               className="group rounded-[24px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(109,74,255,0.14)]"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF] transition group-hover:bg-[#6D4AFF] group-hover:text-white">
@@ -33,7 +38,7 @@ export function CategoryGrid() {
 
               <h3 className="mt-5 text-lg font-bold">{category.title}</h3>
               <p className="mt-2 text-sm text-[#6B7280]">Смотреть товары</p>
-            </div>
+            </Link>
           );
         })}
       </div>

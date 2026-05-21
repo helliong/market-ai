@@ -7,6 +7,7 @@ export const products = [
     rating: 4.8,
     reviews: 234,
     badge: "Хит",
+    categoryIds: [1],
   },
   {
     id: 2,
@@ -16,6 +17,7 @@ export const products = [
     rating: 4.7,
     reviews: 412,
     badge: "Скидка",
+    categoryIds: [1, 2],
   },
   {
     id: 3,
@@ -25,6 +27,7 @@ export const products = [
     rating: 4.9,
     reviews: 128,
     badge: "AI choice",
+    categoryIds: [1],
   },
   {
     id: 4,
@@ -34,6 +37,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Новинка",
+    categoryIds: [1, 4, 8],
   },
   {
     id: 5,
@@ -43,6 +47,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Выбор блогеров",
+    categoryIds: [1, 8],
   },
   {
     id: 6,
@@ -52,6 +57,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Лучший планшет",
+    categoryIds: [1],
   },
   {
     id: 7,
@@ -61,5 +67,16 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Выбор Samsung",
+    categoryIds: [1],
+  },
+  {
+    id: 8,
+    title: "Носки Nike Everyday Cushion Crew",
+    price: "990 ₽",
+    oldPrice: "1 390 ₽",
+    rating: 4.6, 
+    reviews: 89,
+    badge: "Выбор Покупателей",
+    categoryIds: [3],
   },
 ];

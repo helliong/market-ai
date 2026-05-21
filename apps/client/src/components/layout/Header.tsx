@@ -319,7 +319,7 @@ export function Header() {
                 return (
                   <Link
                     key={category.id}
-                    href={`/?category=${category.id}`}
+                    href={`/catalog?category=${category.id}`}
                     onClick={() => setIsCatalogOpen(false)}
                     className="flex h-12 items-center gap-3 rounded-2xl px-3 text-sm font-bold text-[#111827] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
                   >
@@ -336,7 +336,7 @@ export function Header() {
             </div>
 
             <Link
-              href="/"
+              href="/catalog"
               onClick={() => setIsCatalogOpen(false)}
               className="mt-4 flex h-12 items-center justify-between rounded-2xl bg-[#F6F7FB] px-4 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
             >

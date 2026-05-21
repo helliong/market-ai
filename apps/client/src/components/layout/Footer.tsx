@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Bot, Heart, Languages, Mail, MapPin, Moon, Phone, Sun } from "lucide-react";
 
 const footerLinks = [
-  { href: "/", label: "Каталог" },
+  { href: "/catalog", label: "Каталог" },
   { href: "/favorites", label: "Избранное" },
   { href: "/compare", label: "Сравнение" },
   { href: "/cart", label: "Корзина" },
@@ -13,36 +13,46 @@ const footerLinks = [
   { href: "/agreement", label: "Соглашение" },
 ];
 
+const settingsEvent = "marketai-settings";
+
+function subscribeToSettings(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(settingsEvent, onChange);
+
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(settingsEvent, onChange);
+  };
+}
+
+function getThemeSnapshot() {
+  return localStorage.getItem("marketai-theme") === "dark" ? "dark" : "light";
+}
+
+function getLanguageSnapshot() {
+  return localStorage.getItem("marketai-language") || "Русский";
+}
+
 export function Footer() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    const savedTheme = localStorage.getItem("marketai-theme");
-    return savedTheme === "dark" ? "dark" : "light";
-  });
-  const [language, setLanguage] = useState(() => {
-    if (typeof window === "undefined") {
-      return "Русский";
-    }
-
-    return localStorage.getItem("marketai-language") || "Русский";
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+  const theme = useSyncExternalStore(
+    subscribeToSettings,
+    getThemeSnapshot,
+    () => "light",
+  );
+  const language = useSyncExternalStore(
+    subscribeToSettings,
+    getLanguageSnapshot,
+    () => "Русский",
+  );
 
   function handleThemeChange(nextTheme: "light" | "dark") {
-    setTheme(nextTheme);
     localStorage.setItem("marketai-theme", nextTheme);
-    document.documentElement.classList.toggle("dark", nextTheme === "dark");
+    window.dispatchEvent(new Event(settingsEvent));
   }
 
   function handleLanguageChange(nextLanguage: string) {
-    setLanguage(nextLanguage);
     localStorage.setItem("marketai-language", nextLanguage);
+    window.dispatchEvent(new Event(settingsEvent));
   }
 
   return (
@@ -115,7 +125,7 @@ export function Footer() {
                   onClick={() => handleThemeChange("light")}
                   className={`flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${
                     theme === "light"
-                      ? "bg-white text-[#6D4AFF] shadow-[0_6px_16px_rgba(15,23,42,0.08)]"
+                      ? "theme-toggle-active"
                       : "text-[#6B7280] hover:text-[#6D4AFF]"
                   }`}
                 >
@@ -127,7 +137,7 @@ export function Footer() {
                   onClick={() => handleThemeChange("dark")}
                   className={`flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${
                     theme === "dark"
-                      ? "bg-white text-[#6D4AFF] shadow-[0_6px_16px_rgba(15,23,42,0.08)]"
+                      ? "theme-toggle-active"
                       : "text-[#6B7280] hover:text-[#6D4AFF]"
                   }`}
                 >
