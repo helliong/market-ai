@@ -285,7 +285,7 @@ export function Header() {
 
       {isCatalogOpen && (
         <div
-          className="fixed inset-0 z-[60] animate-[catalogFadeIn_160ms_ease-out] bg-white xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:bg-[#111827]/45 xl:backdrop-blur-[2px]"
+          className="fixed inset-0 z-[60] animate-[catalogFadeIn_160ms_ease-out] dark:dark-bg-main/45 xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:bg-[#111827]/45 xl:backdrop-blur-[2px] dark:backdrop-blur-[2px]"
           onClick={() => setIsCatalogOpen(false)}
         >
           <aside
