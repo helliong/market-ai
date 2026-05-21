@@ -56,8 +56,8 @@ export function ProductPage({ product }: ProductPageProps) {
   const isCompareDisabled = !isCompared && isCompareLimitReached;
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
-      <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-[#6B7280]">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#6B7280]">
         <Link href="/" className="transition hover:text-[#6D4AFF]">
           Главная
         </Link>
@@ -65,21 +65,21 @@ export function ProductPage({ product }: ProductPageProps) {
         <span className="text-[#111827]">{product.title}</span>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_440px] gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <div className="relative flex min-h-[520px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
+          <div className="relative flex min-h-[320px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] md:min-h-[520px]">
             {product.badge && (
               <span className="absolute left-6 top-6 rounded-full bg-white px-4 py-2 text-sm font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                 {product.badge}
               </span>
             )}
 
-            <div className="h-64 w-80 rounded-[42px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_28px_70px_rgba(79,50,217,0.26)]" />
+            <div className="h-40 w-52 rounded-[34px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_28px_70px_rgba(79,50,217,0.26)] md:h-64 md:w-80 md:rounded-[42px]" />
           </div>
         </div>
 
         <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <h1 className="text-3xl font-black leading-tight tracking-[-0.03em]">
+          <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">
             {product.title}
           </h1>
 
@@ -90,7 +90,7 @@ export function ProductPage({ product }: ProductPageProps) {
           </div>
 
           <div className="mt-6 flex items-end gap-3">
-            <span className="text-4xl font-black tracking-[-0.04em]">
+            <span className="text-3xl font-black tracking-[-0.04em] md:text-4xl">
               {product.price}
             </span>
             {product.oldPrice && (
@@ -100,7 +100,7 @@ export function ProductPage({ product }: ProductPageProps) {
             )}
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {cartItem ? (
               <div className="col-span-2 grid h-13 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
                 <button
@@ -186,7 +186,7 @@ export function ProductPage({ product }: ProductPageProps) {
         </aside>
       </div>
 
-      <div className="mt-8 grid grid-cols-[1fr_420px] gap-8">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px] lg:gap-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">
             О товаре

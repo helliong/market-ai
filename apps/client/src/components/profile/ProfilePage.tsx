@@ -32,13 +32,13 @@ export function ProfilePage() {
   }[] = [];
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
-        <h1 className="text-4xl font-black tracking-[-0.04em]">Профиль</h1>
+        <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">Профиль</h1>
         <p className="mt-2 text-[#6B7280]">Управление аккаунтом и заказами</p>
       </div>
 
-      <div className="grid grid-cols-[320px_1fr] gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
         <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col items-center text-center">
             <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white">

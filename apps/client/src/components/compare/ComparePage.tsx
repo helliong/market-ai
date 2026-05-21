@@ -17,10 +17,10 @@ export function ComparePage() {
   );
 
   return (
-    <section className="mx-auto max-w-[1440px] px-8 py-10">
-      <div className="mb-8 flex items-end justify-between">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-[-0.04em]">
+          <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">
             Сравнение товаров
           </h1>
           <p className="mt-2 text-[#6B7280]">
@@ -56,8 +56,8 @@ export function ComparePage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <div className="grid" style={{ gridTemplateColumns: `220px repeat(${compareProducts.length}, 1fr)` }}>
+        <div className="overflow-x-auto rounded-[32px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <div className="grid min-w-[720px]" style={{ gridTemplateColumns: `180px repeat(${compareProducts.length}, minmax(170px, 1fr))` }}>
             <div className="border-b border-[#E5E7EB] bg-[#F6F7FB] p-5 font-bold">
               Товар
             </div>
