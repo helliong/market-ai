@@ -17,7 +17,7 @@ export function AIWidget() {
 
       {isOpen && (
         <div
-          className="fixed bottom-24 left-4 right-4 z-50 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)] sm:left-auto sm:bottom-28 sm:right-8 sm:w-[380px]"
+          className="fixed bottom-45 left-4 right-4 z-50 overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)] sm:left-auto sm:bottom-28 sm:right-8 sm:w-[380px]"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex items-center justify-between bg-gradient-to-r from-[#6D4AFF] to-[#4F32D9] p-5 text-white">
@@ -76,7 +76,7 @@ export function AIWidget() {
 
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white shadow-[0_18px_50px_rgba(79,50,217,0.32)] transition hover:scale-105 sm:bottom-8 sm:right-8 sm:h-16 sm:w-16"
+        className="fixed bottom-25 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white shadow-[0_18px_50px_rgba(79,50,217,0.32)] transition hover:scale-105 sm:bottom-8 sm:right-8 sm:h-16 sm:w-16"
       >
         <MessageCircle size={28} />
       </button>
