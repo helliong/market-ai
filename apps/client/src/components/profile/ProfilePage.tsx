@@ -10,9 +10,13 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { logout } from "@/store/authSlice";
 import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 
 export function ProfilePage() {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
   );
@@ -41,8 +45,12 @@ export function ProfilePage() {
               <User size={42} />
             </div>
 
-            <h2 className="mt-5 text-2xl font-black">George</h2>
-            <p className="mt-2 text-sm text-[#6B7280]">Premium пользователь</p>
+            <h2 className="mt-5 text-2xl font-black">
+              {user?.name || "Гость"}
+            </h2>
+            <p className="mt-2 text-sm text-[#6B7280]">
+              {user ? user.email : "Войдите, чтобы управлять аккаунтом"}
+            </p>
           </div>
 
           <div className="mt-8 space-y-3">
@@ -65,10 +73,22 @@ export function ProfilePage() {
             />
           </div>
 
-          <button className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]">
-            <LogOut size={18} />
-            Выйти
-          </button>
+          {user ? (
+            <button
+              onClick={() => dispatch(logout())}
+              className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+            >
+              <LogOut size={18} />
+              Выйти
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="mt-8 flex h-12 w-full items-center justify-center rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
+            >
+              Войти
+            </Link>
+          )}
         </aside>
 
         <div className="space-y-6">

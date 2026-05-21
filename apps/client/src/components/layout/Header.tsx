@@ -13,14 +13,17 @@ import {
   Package,
   Search,
   ShoppingCart,
+  UserPlus,
   User,
   Scale,
   X,
 } from "lucide-react";
+import { logout } from "@/store/authSlice";
 import { categories } from "@/data/categories";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function Header() {
+  const dispatch = useAppDispatch();
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -33,6 +36,8 @@ export function Header() {
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
 
   const compareCount = useAppSelector((state) => state.compare.ids.length);
+  const user = useAppSelector((state) => state.auth.user);
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white/90 backdrop-blur">
@@ -165,22 +170,19 @@ export function Header() {
             Корзина
           </Link>
 
-          <div
-            className="relative"
-            onMouseEnter={() => {
-              setIsProfileOpen(true);
-              setIsAddressOpen(false);
-              setIsCatalogOpen(false);
-            }}
-            onMouseLeave={() => setIsProfileOpen(false)}
-          >
-            <Link
-              href="/profile"
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsProfileOpen((prev) => !prev);
+                setIsAddressOpen(false);
+                setIsCatalogOpen(false);
+              }}
               className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
             >
               <User size={20} />
               Профиль
-            </Link>
+            </button>
 
             {isProfileOpen && (
               <div className="absolute right-0 top-full z-50 w-[340px] pt-2">
@@ -193,34 +195,64 @@ export function Header() {
                     
                     <div className="min-w-0">
                       <p className="truncate text-base font-black text-[#111827]">
-                        George
+                        {user?.name || "Гость"}
                       </p>
                       <p className="mt-1 text-sm text-[#6B7280]">
-                        Premium пользователь
+                        {user ? user.email : "Войдите или создайте аккаунт"}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    <ProfileMenuAction
-                      icon={<Package size={18} />}
-                      label="История заказов"
-                      onClick={() => setIsProfileOpen(false)}
-                    />
+                    {user ? (
+                      <>
+                        <ProfileMenuLink
+                          href="/profile"
+                          icon={<User size={18} />}
+                          label="Мой профиль"
+                          onClick={() => setIsProfileOpen(false)}
+                        />
+                        <ProfileMenuAction
+                          icon={<Package size={18} />}
+                          label="История заказов"
+                          onClick={() => setIsProfileOpen(false)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <ProfileMenuLink
+                          href="/login"
+                          icon={<User size={18} />}
+                          label="Войти"
+                          onClick={() => setIsProfileOpen(false)}
+                        />
+                        <ProfileMenuLink
+                          href="/register"
+                          icon={<UserPlus size={18} />}
+                          label="Регистрация"
+                          onClick={() => setIsProfileOpen(false)}
+                        />
+                      </>
+                    )}
                     <ProfileLanguageSelect
                       value={language}
                       onChange={setLanguage}
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
-                    onClick={() => setIsProfileOpen(false)}
-                  >
-                    <LogOut size={18} />
-                    Выйти
-                  </button>
+                  {user && (
+                    <button
+                      type="button"
+                      className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                      onClick={() => {
+                        dispatch(logout());
+                        setIsProfileOpen(false);
+                      }}
+                    >
+                      <LogOut size={18} />
+                      Выйти
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -293,6 +325,29 @@ export function Header() {
         </div>
       )}
     </>
+  );
+}
+
+function ProfileMenuLink({
+  icon,
+  label,
+  href,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
+    >
+      <span className="text-[#6D4AFF]">{icon}</span>
+      <span>{label}</span>
+    </Link>
   );
 }
 
