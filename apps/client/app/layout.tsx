@@ -35,7 +35,7 @@ export default function RootLayout({
         <StoreProvider>
           <ThemeProvider>
             <div className="flex min-h-screen flex-col">
-              <div className="flex-1">{children}</div>
+              <div className="mobile-safe-content flex-1">{children}</div>
               <Footer />
             </div>
           </ThemeProvider>

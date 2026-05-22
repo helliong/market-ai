@@ -136,7 +136,7 @@ select:disabled,
 }
 
 @media (max-width: 1279px) {
-  body {
+  .mobile-safe-content {
     padding-bottom: 74px;
   }
 }

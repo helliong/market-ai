@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
@@ -14,6 +15,10 @@ export function CatalogPage({
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     initialCategory,
   );
+  const currentCategory =
+    selectedCategory === "all"
+      ? undefined
+      : categories.find((category) => category.id === selectedCategory);
 
   useEffect(() => {
     setSelectedCategory(initialCategory);
@@ -36,10 +41,12 @@ export function CatalogPage({
             MarketAI catalog
           </p>
           <h1 className="mt-3 text-3xl font-black md:text-4xl">
-            Каталог товаров
+            {currentCategory?.title || "Каталог товаров"}
           </h1>
           <p className="mt-2 text-[#6B7280]">
-            Выберите категорию, чтобы перейти к товарам нужного раздела.
+            {currentCategory
+              ? `Товары из категории «${currentCategory.title}».`
+              : "Выберите категорию, чтобы перейти к товарам нужного раздела."}
           </p>
         </div>
 
@@ -49,7 +56,11 @@ export function CatalogPage({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="h-fit rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <aside
+          className={`h-fit rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ${
+            selectedCategory !== "all" ? "hidden lg:block" : ""
+          }`}
+        >
           <h2 className="text-lg font-black">Категории</h2>
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:block lg:space-y-2">
@@ -92,9 +103,20 @@ export function CatalogPage({
           </div>
         </aside>
 
-        <div className="hidden lg:block">
+        <div className={selectedCategory === "all" ? "hidden lg:block" : ""}>
+          {selectedCategory !== "all" && (
+            <Link
+              href="/catalog"
+              onClick={() => setSelectedCategory("all")}
+              className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-bold text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:bg-[#F1EDFF] lg:hidden"
+            >
+              <ChevronLeft size={18} />
+              Все категории
+            </Link>
+          )}
+
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3 xl:gap-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3 xl:gap-5">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} {...product} />
               ))}

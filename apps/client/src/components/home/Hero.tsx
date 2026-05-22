@@ -11,18 +11,18 @@ export function Hero() {
         </div>
 
         <h1 className="max-w-[650px] text-4xl font-black leading-[1.08] tracking-[-0.04em] md:text-6xl">
-          Покупки быстрее с умным AI-помощником
+          Покупки быстрее с AI-помощником <span className="underline">Марком</span>
         </h1>
 
         <p className="mt-6 max-w-[560px] text-lg leading-8 text-white/80">
-          Опишите, что вам нужно, а MarketAI подберёт товары, сравнит
+          Опишите, что вам нужно, а <span className="font-black">Марк</span> подберёт товары, сравнит
           характеристики и поможет выбрать лучший вариант.
         </p>
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <button className="hero-ai-button flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
             <Bot size={20} />
-            Спросить AI
+            Спросить <span className="font-black">Марка</span>
           </button>
 
           <Link
