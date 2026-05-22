@@ -27,14 +27,16 @@ export function AIWidget() {
               </div>
 
               <div>
-                <h3 className="font-black">MarketAI Assistant</h3>
+                <h3 className="font-black">Марк</h3>
                 <p className="text-xs text-white/75">Помогу выбрать товар</p>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="rounded-full p-2 transition hover:bg-white/15"
+              aria-label="Закрыть помощника"
             >
               <X size={18} />
             </button>
@@ -42,7 +44,8 @@ export function AIWidget() {
 
           <div className="space-y-4 p-5">
             <div className="rounded-2xl bg-[#F6F7FB] p-4 text-sm leading-6 text-[#111827]">
-              Привет! Опиши, что хочешь купить, а я подберу подходящие товары.
+              Привет, я Марк. Опиши, что хочешь купить, а я подберу
+              подходящие товары.
             </div>
 
             <div className="grid gap-2">
@@ -53,6 +56,7 @@ export function AIWidget() {
               ].map((item) => (
                 <button
                   key={item}
+                  type="button"
                   className="flex items-center gap-2 rounded-2xl border border-[#E5E7EB] p-3 text-left text-sm font-medium transition hover:border-[#6D4AFF] hover:bg-[#F1EDFF]"
                 >
                   <Sparkles size={16} className="text-[#6D4AFF]" />
@@ -66,7 +70,11 @@ export function AIWidget() {
                 placeholder="Например: ноутбук для учёбы..."
                 className="flex-1 bg-transparent px-3 text-sm outline-none"
               />
-              <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6D4AFF] text-white">
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6D4AFF] text-white"
+                aria-label="Отправить запрос"
+              >
                 <Send size={17} />
               </button>
             </div>
@@ -75,8 +83,10 @@ export function AIWidget() {
       )}
 
       <button
+        type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="fixed bottom-25 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white shadow-[0_18px_50px_rgba(79,50,217,0.32)] transition hover:scale-105 sm:bottom-8 sm:right-8 sm:h-16 sm:w-16"
+        aria-label="Открыть помощника Марка"
       >
         <MessageCircle size={28} />
       </button>

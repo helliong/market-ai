@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
@@ -13,6 +14,10 @@ export function CatalogPage({
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     initialCategory,
   );
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory);
+  }, [initialCategory]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -48,8 +53,8 @@ export function CatalogPage({
           <h2 className="text-lg font-black">Категории</h2>
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:block lg:space-y-2">
-            <button
-              type="button"
+            <Link
+              href="/catalog"
               onClick={() => setSelectedCategory("all")}
               className={`flex h-12 w-full items-center justify-between rounded-2xl px-4 text-left text-sm font-bold transition ${
                 selectedCategory === "all"
@@ -59,7 +64,7 @@ export function CatalogPage({
             >
               Все товары
               <span>{products.length}</span>
-            </button>
+            </Link>
 
             {categories.map((category) => {
               const Icon = category.icon;
@@ -68,9 +73,9 @@ export function CatalogPage({
               ).length;
 
               return (
-                <button
+                <Link
                   key={category.id}
-                  type="button"
+                  href={`/catalog?category=${category.id}`}
                   onClick={() => setSelectedCategory(category.id)}
                   className={`flex h-12 w-full items-center gap-3 rounded-2xl px-4 text-left text-sm font-bold transition ${
                     selectedCategory === category.id
@@ -81,7 +86,7 @@ export function CatalogPage({
                   <Icon size={18} />
                   <span className="flex-1">{category.title}</span>
                   <span>{count}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
