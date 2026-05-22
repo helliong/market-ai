@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ChevronRight,
   Heart,
+  Home,
   Languages,
   LogOut,
   MapPin,
@@ -24,6 +26,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function Header() {
   const dispatch = useAppDispatch();
+  const pathname = usePathname();
   const addressRef = useRef<HTMLDivElement>(null);
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -38,6 +41,12 @@ export function Header() {
 
   const compareCount = useAppSelector((state) => state.compare.ids.length);
   const user = useAppSelector((state) => state.auth.user);
+  const mobileNavItemClass = (isActive: boolean) =>
+    `relative flex h-12 items-center justify-center rounded-xl px-2 py-2 transition hover:bg-[#6D4AFF] hover:text-white active:bg-[#4F32D9] active:text-white [&>span:last-child]:hidden ${
+      isActive
+        ? "bg-[#6D4AFF] text-white shadow-[0_10px_24px_rgba(109,74,255,0.26)]"
+        : "text-[#6B7280]"
+    }`;
 
   useEffect(() => {
     if (!isAddressOpen) {
@@ -64,7 +73,7 @@ export function Header() {
     <>
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white/90 backdrop-blur">
         <div className="mx-auto flex min-h-[76px] max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 md:px-8 xl:flex-nowrap">
-          <Link href="/" className="flex shrink-0 items-center gap-3">
+          <Link href="/" className="hidden shrink-0 items-center gap-3 xl:flex">
             <Image
               src="/logo.webp"
               alt="MarketAI logo"
@@ -77,14 +86,17 @@ export function Header() {
             </span>
           </Link>
 
-        <div ref={addressRef} className="relative order-3 ml-auto xl:order-none xl:ml-0">
+        <div
+          ref={addressRef}
+          className="relative order-3 shrink-0 xl:order-none xl:ml-0"
+        >
           <button
             onClick={() => {
               setIsAddressOpen((prev) => !prev);
               setIsCatalogOpen(false);
               setIsProfileOpen(false);
             }}
-            className="flex min-w-0 items-center gap-2 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F6F7FB] sm:min-w-[170px] sm:px-3"
+            className="flex min-w-0 items-center gap-2 rounded-2xl px-2 py-2 text-left transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF] sm:min-w-[170px] sm:px-3"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1EDFF] text-[#6D4AFF]">
               <MapPin size={20} />
@@ -99,7 +111,7 @@ export function Header() {
           </button>
 
           {isAddressOpen && (
-            <div className="fixed left-4 right-4 top-[132px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
+            <div className="fixed left-4 right-4 top-[76px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
               <h3 className="text-lg font-black">Выберите город</h3>
               <p className="mt-1 text-sm text-[#6B7280]">
                 От города зависит срок и стоимость доставки
@@ -125,7 +137,7 @@ export function Header() {
           )}
         </div>
 
-        <div className="relative order-2 xl:order-none">
+        <div className="relative order-2 hidden xl:order-none xl:block">
           <button
             type="button"
             onClick={() => {
@@ -141,7 +153,7 @@ export function Header() {
 
         </div>
 
-        <div className="relative order-5 w-full basis-full xl:order-none xl:w-auto xl:basis-auto xl:flex-1">
+        <div className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto">
           <Search
             size={20}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
@@ -285,7 +297,7 @@ export function Header() {
 
       {isCatalogOpen && (
         <div
-          className="fixed inset-0 z-[60] animate-[catalogFadeIn_160ms_ease-out] dark:dark-bg-main/45 xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:bg-[#111827]/45 xl:backdrop-blur-[2px] dark:backdrop-blur-[2px]"
+          className="fixed inset-0 z-[60] hidden animate-[catalogFadeIn_160ms_ease-out] dark:dark-bg-main/45 xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:block xl:bg-[#111827]/45 xl:backdrop-blur-[2px] dark:backdrop-blur-[2px]"
           onClick={() => setIsCatalogOpen(false)}
         >
           <aside
@@ -355,43 +367,69 @@ export function Header() {
         </div>
       )}
 
-      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 gap-1 border-t border-[#E5E7EB] bg-white/95 px-3 py-2 backdrop-blur xl:hidden">
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-[#E5E7EB] bg-white/95 px-3 py-2 backdrop-blur xl:hidden">
+        <Link
+          href="/"
+          aria-label="Главная"
+          className={mobileNavItemClass(pathname === "/")}
+        >
+          <Home size={21} />
+        </Link>
+
+        <Link
+          href="/catalog"
+          aria-label="Каталог"
+          onClick={() => {
+            setIsCatalogOpen(false);
+            setIsAddressOpen(false);
+            setIsProfileOpen(false);
+          }}
+          className={mobileNavItemClass(pathname.startsWith("/catalog"))}
+        >
+          <Search size={21} />
+        </Link>
+
         <Link
           href="/compare"
-          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          aria-label="Сравнить"
+          className={mobileNavItemClass(pathname.startsWith("/compare"))}
         >
           {compareCount > 0 && (
-            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
               {compareCount}
             </span>
           )}
-          <Scale size={20} />
+          <Scale size={21} />
           <span>Сравнить</span>
         </Link>
 
         <Link
           href="/favorites"
-          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          aria-label="Избранное"
+          className={mobileNavItemClass(pathname.startsWith("/favorites"))}
         >
           {favoritesCount > 0 && (
-            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
               {favoritesCount}
             </span>
           )}
-          <Heart size={20} />
+          <Heart size={21} />
           <span>Избранное</span>
         </Link>
 
         <Link
           href="/cart"
-          className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+          aria-label="Корзина"
+          className={mobileNavItemClass(
+            pathname.startsWith("/cart") || pathname.startsWith("/checkout"),
+          )}
         >
           {cartCount > 0 && (
-            <span className="absolute right-4 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
               {cartCount}
             </span>
           )}
-          <ShoppingCart size={20} />
+          <ShoppingCart size={21} />
           <span>Корзина</span>
         </Link>
 
@@ -403,9 +441,15 @@ export function Header() {
               setIsAddressOpen(false);
               setIsCatalogOpen(false);
             }}
-            className="flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+            aria-label="Профиль"
+            className={`${mobileNavItemClass(
+              isProfileOpen ||
+                pathname.startsWith("/profile") ||
+                pathname.startsWith("/login") ||
+                pathname.startsWith("/register"),
+            )} w-full`}
           >
-            <User size={20} />
+            <User size={21} />
             <span>Профиль</span>
           </button>
 

@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  removeFromCart,
   clearCart,
-  increaseQuantity,
   decreaseQuantity,
+  increaseQuantity,
+  removeFromCart,
 } from "@/store/cartSlice";
 
 function parsePrice(price: string) {
@@ -17,6 +18,7 @@ export function CartPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.cart.items);
 
+  const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = items.reduce(
     (sum, item) => sum + parsePrice(item.price) * item.quantity,
     0,
@@ -25,7 +27,7 @@ export function CartPage() {
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">Корзина</h1>
+        <h1 className="text-3xl font-black md:text-4xl">Корзина</h1>
         <p className="mt-2 text-[#6B7280]">
           Проверьте товары перед оформлением заказа
         </p>
@@ -48,22 +50,32 @@ export function CartPage() {
             {items.map((item) => (
               <article
                 key={item.id}
-                className="flex flex-col gap-5 rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center"
+                className="grid grid-cols-[84px_1fr] gap-4 rounded-[24px] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:grid-cols-[112px_1fr_auto] sm:items-center sm:gap-5 sm:rounded-[28px] sm:p-5"
               >
-                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
-                  <div className="h-14 w-20 rounded-2xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9]" />
-                </div>
+                <Link
+                  href={`/products/${item.id}`}
+                  className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] sm:h-28 sm:w-28 sm:rounded-[24px]"
+                >
+                  <div className="h-10 w-14 rounded-xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] sm:h-14 sm:w-20 sm:rounded-2xl" />
+                </Link>
 
-                <div className="w-full flex-1">
-                  <h3 className="text-lg font-black">{item.title}</h3>
-                  <p className="mt-2 text-sm text-[#6B7280]">
+                <div className="min-w-0">
+                  <Link
+                    href={`/products/${item.id}`}
+                    className="line-clamp-2 text-sm font-black text-[#111827] transition hover:text-[#6D4AFF] sm:text-lg"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="mt-1 text-xs text-[#6B7280] sm:mt-2 sm:text-sm">
                     Доставка доступна в выбранный город
                   </p>
 
-                  <div className="mt-4 flex items-center gap-3">
+                  <div className="mt-3 flex items-center gap-2 sm:mt-4 sm:gap-3">
                     <button
+                      type="button"
                       onClick={() => dispatch(decreaseQuantity(item.id))}
                       className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
+                      aria-label="Уменьшить количество"
                     >
                       <Minus size={16} />
                     </button>
@@ -73,20 +85,23 @@ export function CartPage() {
                     </span>
 
                     <button
+                      type="button"
                       onClick={() => dispatch(increaseQuantity(item.id))}
                       className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F6F7FB] text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
+                      aria-label="Увеличить количество"
                     >
                       <Plus size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div className="w-full text-left sm:w-auto sm:text-right">
-                  <p className="text-2xl font-black">{item.price}</p>
+                <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[#E5E7EB] pt-4 sm:col-span-1 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                  <p className="text-xl font-black sm:text-2xl">{item.price}</p>
 
                   <button
+                    type="button"
                     onClick={() => dispatch(removeFromCart(item.id))}
-                    className="mt-5 inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEF2F2]"
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold text-[#EF4444] transition hover:bg-[#FEF2F2] sm:mt-5 sm:px-4"
                   >
                     <Trash2 size={16} />
                     Удалить
@@ -102,7 +117,7 @@ export function CartPage() {
             <div className="mt-6 space-y-4 text-sm">
               <div className="flex justify-between text-[#6B7280]">
                 <span>Товары</span>
-                <span>{items.length}</span>
+                <span>{itemsCount}</span>
               </div>
 
               <div className="flex justify-between text-[#6B7280]">
@@ -118,11 +133,15 @@ export function CartPage() {
               </div>
             </div>
 
-            <button className="mt-6 h-14 w-full rounded-2xl bg-[#6D4AFF] text-base font-bold text-white transition hover:bg-[#4F32D9]">
+            <Link
+              href="/checkout"
+              className="mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#6D4AFF] text-base font-bold text-white transition hover:bg-[#4F32D9]"
+            >
               Оформить заказ
-            </button>
+            </Link>
 
             <button
+              type="button"
               onClick={() => dispatch(clearCart())}
               className="mt-3 h-12 w-full rounded-2xl bg-[#F6F7FB] text-sm font-bold text-[#6B7280] transition hover:bg-[#FEF2F2] hover:text-[#EF4444]"
             >

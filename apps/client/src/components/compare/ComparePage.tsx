@@ -64,11 +64,18 @@ export function ComparePage() {
 
             {compareProducts.map((product) => (
               <div key={product.id} className="border-b border-[#E5E7EB] p-5">
-                <div className="h-36 rounded-[24px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]" />
+                <Link
+                  href={`/products/${product.id}`}
+                  className="block h-36 rounded-[24px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] transition hover:opacity-85"
+                  aria-label={`Открыть ${product.title}`}
+                />
 
-                <h3 className="mt-4 min-h-[44px] text-sm font-black">
+                <Link
+                  href={`/products/${product.id}`}
+                  className="mt-4 block min-h-[44px] text-sm font-black text-[#111827] transition hover:text-[#6D4AFF]"
+                >
                   {product.title}
-                </h3>
+                </Link>
 
                 <p className="mt-3 text-2xl font-black">{product.price}</p>
 

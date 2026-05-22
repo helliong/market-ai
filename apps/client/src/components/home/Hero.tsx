@@ -35,7 +35,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[28px] bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.06)] md:rounded-[32px] md:p-10">
+      <div className="relative hidden overflow-hidden rounded-[28px] bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.06)] md:rounded-[32px] md:p-10 lg:block">
         <div className="absolute right-5 top-5 rounded-2xl bg-[#F1EDFF] px-4 py-2 text-sm font-bold text-[#6D4AFF] md:right-8 md:top-8">
           AI подбор
         </div>
