@@ -1,290 +1,187 @@
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import { useState } from "react";
 import "./App.css";
 
-type AuthMode = "login" | "register";
+type Page = "dashboard" | "products" | "orders" | "users";
 
-type Errors = {
-  name?: string;
-  email?: string;
-  password?: string;
-  agreement?: string;
-};
+const products = [
+  { id: 1, name: "iPhone 15 Pro", category: "Смартфоны", price: "129 990 ₽", stock: 12 },
+  { id: 2, name: "MacBook Air M2", category: "Ноутбуки", price: "109 990 ₽", stock: 7 },
+  { id: 3, name: "AirPods Pro", category: "Аксессуары", price: "24 990 ₽", stock: 21 },
+];
 
-const isRegisterPath = () => window.location.pathname.startsWith("/register");
+const orders = [
+  { id: "#1001", customer: "Иван Петров", total: "129 990 ₽", status: "Новый" },
+  { id: "#1002", customer: "Анна Смирнова", total: "24 990 ₽", status: "В обработке" },
+  { id: "#1003", customer: "Максим Орлов", total: "109 990 ₽", status: "Завершен" },
+];
+
+const users = [
+  { id: 1, name: "Admin", email: "admin@marketai.ru", role: "admin" },
+  { id: 2, name: "Seller", email: "seller@marketai.ru", role: "seller" },
+  { id: 3, name: "User", email: "user@marketai.ru", role: "user" },
+];
 
 function App() {
-  const [mode, setMode] = useState<AuthMode>(
-    isRegisterPath() ? "register" : "login",
-  );
-
-  useEffect(() => {
-    function handlePopState() {
-      setMode(isRegisterPath() ? "register" : "login");
-    }
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  function navigate(nextMode: AuthMode) {
-    const nextPath = nextMode === "register" ? "/register" : "/login";
-    window.history.pushState(null, "", nextPath);
-    setMode(nextMode);
-  }
-
-  return <SellerAuthPage mode={mode} onNavigate={navigate} />;
-}
-
-function SellerAuthPage({
-  mode,
-  onNavigate,
-}: {
-  mode: AuthMode;
-  onNavigate: (mode: AuthMode) => void;
-}) {
-  const isRegister = mode === "register";
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
-  const [submittedEmail, setSubmittedEmail] = useState("");
-
-  const highlights = useMemo(
-    () =>
-      isRegister
-        ? ["Своя витрина", "Карточки товаров", "Заказы в работе"]
-        : ["Единый кабинет", "Быстрый доступ", "Контроль продаж"],
-    [isRegister],
-  );
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const nextErrors: Errors = {};
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
-
-    if (isRegister && !trimmedName) {
-      nextErrors.name = "В поле ничего нет";
-    }
-
-    if (!trimmedEmail) {
-      nextErrors.email = "В поле ничего нет";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = "Введите корректный email";
-    }
-
-    if (!trimmedPassword) {
-      nextErrors.password = "В поле ничего нет";
-    }
-
-    if (isRegister && !isAgreementAccepted) {
-      nextErrors.agreement = "Подтвердите пользовательское соглашение";
-    }
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-
-    setSubmittedEmail(trimmedEmail);
-  }
+  const [page, setPage] = useState<Page>("dashboard");
 
   return (
-    <main className="admin-shell">
-      <header className="admin-header">
-        <a
-          className="brand"
-          href="/login"
-          onClick={(event) => {
-            event.preventDefault();
-            onNavigate("login");
-          }}
-        >
-          <img className="brand-mark" src="/logo.webp" alt="MarketAI" />
-          <span>
-            Market<span>AI</span>
-          </span>
-        </a>
+    <div className="admin-layout">
+      <aside className="sidebar">
+        <div className="logo">Market<span>AI</span></div>
 
-        <nav className="auth-switch" aria-label="Авторизация продавца">
-          <button
-            type="button"
-            className={mode === "login" ? "active" : ""}
-            onClick={() => onNavigate("login")}
-          >
-            Вход
+        <nav>
+          <button className={page === "dashboard" ? "active" : ""} onClick={() => setPage("dashboard")}>
+            Dashboard
           </button>
-          <button
-            type="button"
-            className={mode === "register" ? "active" : ""}
-            onClick={() => onNavigate("register")}
-          >
-            Регистрация
+          <button className={page === "products" ? "active" : ""} onClick={() => setPage("products")}>
+            Products
+          </button>
+          <button className={page === "orders" ? "active" : ""} onClick={() => setPage("orders")}>
+            Orders
+          </button>
+          <button className={page === "users" ? "active" : ""} onClick={() => setPage("users")}>
+            Users
           </button>
         </nav>
-      </header>
+      </aside>
 
-      <section className="auth-layout">
-        <div className="auth-copy">
-          <p className="eyebrow">MarketAI для продавцов</p>
-          <h1>
-            {isRegister
-              ? "Создайте кабинет продавца"
-              : "Войдите в кабинет продавца"}
-          </h1>
-          <p className="lead">
-            {isRegister
-              ? "Зарегистрируйте магазин, чтобы подготовить витрину, карточки товаров и управление заказами."
-              : "Продолжайте работу с витриной, товарами и заказами в отдельной админке MarketAI."}
-          </p>
-
-          <div className="feature-row">
-            {highlights.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
+      <main className="content">
+        <header className="topbar">
+          <div>
+            <h1>Admin Panel</h1>
+            <p>Управление маркетплейсом MarketAI</p>
           </div>
-        </div>
+          <button className="profile-button">Admin</button>
+        </header>
 
-        <form noValidate className="auth-card" onSubmit={handleSubmit}>
-          <div className="form-heading">
-            <h2>{isRegister ? "Регистрация" : "Вход"}</h2>
-            <p>
-              {isRegister
-                ? "Заполните данные для создания аккаунта продавца"
-                : "Введите email и пароль от аккаунта продавца"}
-            </p>
-          </div>
-
-          <div className="form-stack">
-            {isRegister && (
-              <AuthField
-                label="Название магазина"
-                value={name}
-                onChange={(value) => {
-                  setName(value);
-                  setErrors((current) => ({ ...current, name: undefined }));
-                }}
-                placeholder="Market store"
-                type="text"
-                error={errors.name}
-              />
-            )}
-
-            <AuthField
-              label="Email"
-              value={email}
-              onChange={(value) => {
-                setEmail(value);
-                setErrors((current) => ({ ...current, email: undefined }));
-              }}
-              placeholder="you@example.com"
-              type="email"
-              error={errors.email}
-            />
-
-            <AuthField
-              label="Пароль"
-              value={password}
-              onChange={(value) => {
-                setPassword(value);
-                setErrors((current) => ({ ...current, password: undefined }));
-              }}
-              placeholder="Введите пароль"
-              type="password"
-              error={errors.password}
-            />
-
-            {isRegister && (
-              <label className="agreement">
-                <span
-                  className={
-                    isAgreementAccepted ? "checkbox checked" : "checkbox"
-                  }
-                />
-                <input
-                  type="checkbox"
-                  checked={isAgreementAccepted}
-                  onChange={(event) => {
-                    setIsAgreementAccepted(event.target.checked);
-                    setErrors((current) => ({
-                      ...current,
-                      agreement: undefined,
-                    }));
-                  }}
-                />
-                <span>
-                  Я принимаю{" "}
-                  <a href="/agreement">пользовательское соглашение</a>
-                </span>
-              </label>
-            )}
-
-            {errors.agreement && (
-              <span className="field-error">{errors.agreement}</span>
-            )}
-          </div>
-
-          <button type="submit" className="primary-action">
-            {isRegister ? "Зарегистрироваться" : "Войти"}
-          </button>
-
-          {submittedEmail && (
-            <p className="success-message">
-              {isRegister ? "Аккаунт подготовлен" : "Вход выполнен"}:{" "}
-              {submittedEmail}
-            </p>
-          )}
-
-          <p className="alternate-action">
-            {isRegister ? "Уже есть аккаунт?" : "Еще нет аккаунта?"}{" "}
-            <button
-              type="button"
-              onClick={() => onNavigate(isRegister ? "login" : "register")}
-            >
-              {isRegister ? "Войти" : "Зарегистрироваться"}
-            </button>
-          </p>
-        </form>
-      </section>
-    </main>
+        {page === "dashboard" && <Dashboard />}
+        {page === "products" && <ProductsPage />}
+        {page === "orders" && <OrdersPage />}
+        {page === "users" && <UsersPage />}
+      </main>
+    </div>
   );
 }
 
-function AuthField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type,
-  error,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  type: string;
-  error?: string;
-}) {
+function Dashboard() {
   return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        className={error ? "invalid" : ""}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-      />
-      {error && <span className="field-error">{error}</span>}
-    </label>
+    <section>
+      <div className="cards">
+        <StatCard title="Товары" value="128" />
+        <StatCard title="Заказы" value="34" />
+        <StatCard title="Пользователи" value="512" />
+        <StatCard title="Выручка" value="1.2M ₽" />
+      </div>
+
+      <div className="panel">
+        <h2>Обзор</h2>
+        <p>
+          Здесь будет аналитика: продажи, активные пользователи, заказы и работа AI-рекомендаций.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ProductsPage() {
+  return (
+    <section className="panel">
+      <div className="section-header">
+        <h2>Products management</h2>
+        <button className="primary-button">Добавить товар</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Категория</th>
+            <th>Цена</th>
+            <th>Остаток</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((product) => (
+            <tr key={product.id}>
+              <td>{product.name}</td>
+              <td>{product.category}</td>
+              <td>{product.price}</td>
+              <td>{product.stock}</td>
+              <td>
+                <button className="table-button">Edit</button>
+                <button className="table-button danger">Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function OrdersPage() {
+  return (
+    <section className="panel">
+      <h2>Orders management</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Заказ</th>
+            <th>Клиент</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr key={order.id}>
+              <td>{order.id}</td>
+              <td>{order.customer}</td>
+              <td>{order.total}</td>
+              <td>{order.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function UsersPage() {
+  return (
+    <section className="panel">
+      <h2>Users management</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Email</th>
+            <th>Роль</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.role}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function StatCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="stat-card">
+      <p>{title}</p>
+      <h3>{value}</h3>
+    </div>
   );
 }
 
