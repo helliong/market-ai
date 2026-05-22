@@ -109,6 +109,14 @@ body {
   background-color: rgba(255, 255, 255, 0.18) !important;
 }
 
+.catalog-toggle-button {
+  color: #6d4aff !important;
+}
+
+.dark .catalog-toggle-button {
+  color: #ffffff !important;
+}
+
 .dark .seller-profile-cta {
   border-color: rgba(245, 158, 11, 0.58) !important;
   background-color: rgba(245, 158, 11, 0.08) !important;

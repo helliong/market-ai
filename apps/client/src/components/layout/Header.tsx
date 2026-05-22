@@ -172,7 +172,7 @@ export function Header() {
               setIsAddressOpen(false);
               setIsProfileOpen(false);
             }}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-semibold text-[#6D4AFF] transition hover:bg-[#E8E0FF] sm:px-5"
+            className="catalog-toggle-button flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-semibold transition hover:bg-[#E8E0FF] sm:px-5"
           >
             <Menu size={18} />
             Каталог
