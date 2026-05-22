@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Bot, Sparkles, Search, ShoppingBag } from "lucide-react";
 
 export function Hero() {
+  function openAIWidget() {
+    window.dispatchEvent(new Event("open-ai-widget"));
+  }
+
   return (
     <section className="mx-auto mt-6 grid max-w-[1440px] grid-cols-1 gap-5 px-4 md:mt-8 md:gap-8 md:px-8 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] p-6 text-white shadow-[0_24px_70px_rgba(79,50,217,0.25)] md:rounded-[32px] md:p-12">
@@ -20,7 +26,11 @@ export function Hero() {
         </p>
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <button className="hero-ai-button flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]">
+          <button
+            type="button"
+            onClick={openAIWidget}
+            className="hero-ai-button flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]"
+          >
             <Bot size={20} />
             Спросить <span className="font-black">Марка</span>
           </button>

@@ -79,4 +79,14 @@ export const products = [
     badge: "Выбор Покупателей",
     categoryIds: [3],
   },
+    {
+    id: 9,
+    title: "Носки Adidas",
+    price: "990 ₽",
+    oldPrice: "1 390 ₽",
+    rating: 4.6, 
+    reviews: 89,
+    badge: "Выбор Покупателей",
+    categoryIds: [3],
+  },
 ];

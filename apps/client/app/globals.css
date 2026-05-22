@@ -109,6 +109,96 @@ body {
   background-color: rgba(255, 255, 255, 0.18) !important;
 }
 
+.dark .seller-profile-cta {
+  border-color: rgba(245, 158, 11, 0.58) !important;
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  color: #fbbf24 !important;
+}
+
+.dark .seller-profile-cta:hover {
+  border-color: rgba(251, 191, 36, 0.95) !important;
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  color: #fde68a !important;
+  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+.seller-profile-cta {
+  isolation: isolate;
+}
+
+.seller-profile-cta-star {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+  width: 6px;
+  height: 6px;
+  background: #fbbf24;
+  clip-path: polygon(
+    50% 0%,
+    62% 34%,
+    98% 35%,
+    69% 56%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    31% 56%,
+    2% 35%,
+    38% 34%
+  );
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.42));
+  opacity: 0;
+  animation: sellerStarFloat 4.4s ease-in-out infinite;
+}
+
+.seller-profile-cta-star-1 {
+  top: -7px;
+  left: 16%;
+  animation-delay: 0s;
+}
+
+.seller-profile-cta-star-2 {
+  right: 12%;
+  bottom: -6px;
+  width: 5px;
+  height: 5px;
+  animation-delay: -1.1s;
+}
+
+.seller-profile-cta-star-3 {
+  top: 10px;
+  right: -8px;
+  width: 4px;
+  height: 4px;
+  animation-delay: -2.2s;
+}
+
+.seller-profile-cta-star-4 {
+  bottom: 11px;
+  left: -7px;
+  width: 4px;
+  height: 4px;
+  animation-delay: -3.1s;
+}
+
+@keyframes sellerStarFloat {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 2px, 0) scale(0.55) rotate(0deg);
+  }
+  25% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate3d(6px, -7px, 0) scale(1) rotate(28deg);
+  }
+  75% {
+    opacity: 0.68;
+  }
+}
+
 .dark .mobile-bottom-nav {
   border-color: #334155 !important;
   background-color: rgba(15, 23, 42, 0.96) !important;

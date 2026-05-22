@@ -7,6 +7,7 @@ import {
   Package,
   ShoppingCart,
   Star,
+  Store,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +19,7 @@ export function ProfilePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const cartCount = useAppSelector((state) =>
-    state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
+    state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
 
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
@@ -34,7 +35,9 @@ export function ProfilePage() {
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">Профиль</h1>
+        <h1 className="text-3xl font-black tracking-[-0.04em] md:text-4xl">
+          Профиль
+        </h1>
         <p className="mt-2 text-[#6B7280]">Управление аккаунтом и заказами</p>
       </div>
 
@@ -71,6 +74,20 @@ export function ProfilePage() {
               label={`Сравнение (${compareCount})`}
               href="/compare"
             />
+
+            {user && (
+              <Link
+                href="/seller/register"
+                className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
+              >
+                <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
+                <span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />
+                <span className="seller-profile-cta-star seller-profile-cta-star-3" aria-hidden="true" />
+                <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
+                <Store size={18} />
+                Продавайте на MarketAI
+              </Link>
+            )}
           </div>
 
           {user ? (

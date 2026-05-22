@@ -28,6 +28,8 @@ export function Header() {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const addressRef = useRef<HTMLDivElement>(null);
+  const desktopProfileRef = useRef<HTMLDivElement>(null);
+  const mobileProfileRef = useRef<HTMLDivElement>(null);
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -68,6 +70,31 @@ export function Header() {
       document.removeEventListener("mousedown", handleDocumentClick);
     };
   }, [isAddressOpen]);
+
+  useEffect(() => {
+    if (!isProfileOpen) {
+      return;
+    }
+
+    function handleDocumentPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+
+      if (
+        desktopProfileRef.current?.contains(target) ||
+        mobileProfileRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setIsProfileOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    };
+  }, [isProfileOpen]);
 
   return (
     <>
@@ -204,7 +231,7 @@ export function Header() {
             <span>Корзина</span>
           </Link>
 
-          <div className="relative">
+          <div ref={desktopProfileRef} className="relative">
             <button
               type="button"
               onClick={() => {
@@ -433,7 +460,7 @@ export function Header() {
           <span>Корзина</span>
         </Link>
 
-        <div className="relative">
+        <div ref={mobileProfileRef} className="relative">
           <button
             type="button"
             onClick={() => {

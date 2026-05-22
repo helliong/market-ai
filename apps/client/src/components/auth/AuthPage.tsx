@@ -3,18 +3,49 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, LockKeyhole, Mail, User } from "lucide-react";
+import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
 type AuthPageProps = {
   mode: "login" | "register";
+  audience?: "client" | "seller";
 };
 
-export function AuthPage({ mode }: AuthPageProps) {
+export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isRegister = mode === "register";
+  const isSeller = audience === "seller";
+  const authTheme = isSeller
+    ? {
+        accentText: "text-[#F59E0B]",
+        accentTextHover: "text-[#F59E0B] transition hover:text-[#D97706]",
+        primaryButton:
+          "bg-[#F59E0B] text-[#111827] transition hover:bg-[#D97706]",
+        outlineButton:
+          "border border-[#F59E0B] bg-white text-[#B45309] transition hover:bg-[#FFFBEB] hover:text-[#92400E]",
+        checked: "border-[#F59E0B] bg-[#F59E0B] text-[#111827]",
+        focusBorder: "focus-within:border-[#F59E0B]",
+        hoverBorder: "hover:border-[#F59E0B]",
+      }
+    : {
+        accentText: "text-[#6D4AFF]",
+        accentTextHover: "text-[#6D4AFF] transition hover:text-[#4F32D9]",
+        primaryButton: "bg-[#6D4AFF] text-white transition hover:bg-[#4F32D9]",
+        outlineButton:
+          "border border-[#6D4AFF] bg-white text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]",
+        checked: "border-[#6D4AFF] bg-[#6D4AFF] text-white",
+        focusBorder: "focus-within:border-[#6D4AFF]",
+        hoverBorder: "hover:border-[#6D4AFF]",
+      };
+  const alternateAuthHref = isSeller
+    ? isRegister
+      ? "/seller/login"
+      : "/seller/register"
+    : isRegister
+      ? "/login"
+      : "/register";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,29 +102,42 @@ export function AuthPage({ mode }: AuthPageProps) {
     <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 md:px-8 md:py-10 lg:grid-cols-[1fr_460px] lg:gap-10">
       <div className="flex items-center">
         <div className="max-w-[620px]">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6D4AFF]">
-            MarketAI аккаунт
+          <p
+            className={`text-sm font-black uppercase tracking-[0.16em] ${authTheme.accentText}`}
+          >
+            {isSeller ? "MarketAI для продавцов" : "MarketAI аккаунт"}
           </p>
           <h1 className="mt-4 text-3xl font-black leading-tight tracking-[-0.05em] md:text-5xl">
-            {isRegister ? "Создайте профиль для покупок" : "Войдите в профиль"}
+            {isSeller
+              ? isRegister
+                ? "Создайте кабинет продавца"
+                : "Войдите в кабинет продавца"
+              : isRegister
+                ? "Создайте профиль для покупок"
+                : "Войдите в профиль"}
           </h1>
           <p className="mt-5 max-w-[520px] text-lg leading-8 text-[#6B7280]">
-            {isRegister
-              ? "Регистрация пока работает на фронтенде: мы сохраним пользователя в состоянии приложения, а бэк подключим позже."
-              : "Вход пока без серверной проверки. После отправки формы вы попадете в профиль как авторизованный пользователь."}
+            {isSeller
+              ? isRegister
+                ? "Зарегистрируйте продавца, чтобы подготовить витрину, карточки товаров и управление заказами."
+                : "Войдите как продавец, чтобы продолжить работу с витриной и заказами."
+              : isRegister
+                ? "Регистрация пока работает на фронтенде: мы сохраним пользователя в состоянии приложения, а бэк подключим позже."
+                : "Вход пока без серверной проверки. После отправки формы вы попадете в профиль как авторизованный пользователь."}
           </p>
 
-          <div className="mt-8 grid max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-3">
-            {["Быстрее оформление", "Избранное под рукой", "История заказов"].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl bg-white p-4 text-sm font-bold text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
-                >
-                  {item}
-                </div>
-              ),
-            )}
+          <div className="mt-8 hidden max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-3 lg:grid">
+            {(isSeller
+              ? ["Своя витрина", "Карточки товаров", "Заказы в работе"]
+              : ["Быстрее оформление", "Избранное под рукой", "История заказов"]
+            ).map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl bg-white p-4 text-sm font-bold text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+              >
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -118,15 +162,16 @@ export function AuthPage({ mode }: AuthPageProps) {
           {isRegister && (
             <AuthField
               icon={<User size={18} />}
-              label="Имя"
+              label={isSeller ? "Название магазина" : "Имя"}
               value={name}
               onChange={(value) => {
                 setName(value);
                 setErrors((current) => ({ ...current, name: undefined }));
               }}
-              placeholder="George"
+              placeholder={isSeller ? "Market store" : "George"}
               type="text"
               error={errors.name}
+              focusBorder={authTheme.focusBorder}
             />
           )}
 
@@ -141,6 +186,7 @@ export function AuthPage({ mode }: AuthPageProps) {
             placeholder="you@example.com"
             type="email"
             error={errors.email}
+            focusBorder={authTheme.focusBorder}
           />
 
           <AuthField
@@ -154,15 +200,18 @@ export function AuthPage({ mode }: AuthPageProps) {
             placeholder="Введите пароль"
             type="password"
             error={errors.password}
+            focusBorder={authTheme.focusBorder}
           />
 
           {isRegister && (
             <label className="block">
-              <span className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition hover:border-[#6D4AFF]">
+              <span
+                className={`flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition ${authTheme.hoverBorder}`}
+              >
                 <span
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
                     isAgreementAccepted
-                      ? "border-[#6D4AFF] bg-[#6D4AFF] text-white"
+                      ? authTheme.checked
                       : "border-[#D1D5DB] bg-white text-transparent"
                   }`}
                 >
@@ -184,7 +233,7 @@ export function AuthPage({ mode }: AuthPageProps) {
                   Я принимаю{" "}
                   <Link
                     href="/agreement"
-                    className="font-black text-[#6D4AFF] transition hover:text-[#4F32D9]"
+                    className={`font-black ${authTheme.accentTextHover}`}
                   >
                     пользовательское соглашение
                   </Link>
@@ -201,7 +250,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
         <button
           type="submit"
-          className="mt-6 flex h-12 w-full items-center justify-center rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"
+          className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
         >
           {isRegister ? "Зарегистрироваться" : "Войти"}
         </button>
@@ -209,12 +258,26 @@ export function AuthPage({ mode }: AuthPageProps) {
         <p className="mt-5 text-center text-sm text-[#6B7280]">
           {isRegister ? "Уже есть аккаунт?" : "Еще нет аккаунта?"}{" "}
           <Link
-            href={isRegister ? "/login" : "/register"}
-            className="font-black text-[#6D4AFF] transition hover:text-[#4F32D9]"
+            href={alternateAuthHref}
+            className={`font-black ${authTheme.accentTextHover}`}
           >
             {isRegister ? "Войти" : "Зарегистрироваться"}
           </Link>
         </p>
+
+        {isRegister && !isSeller && (
+          <Link
+            href="/seller/register"
+            className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
+          >
+            <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
+            <span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />
+            <span className="seller-profile-cta-star seller-profile-cta-star-3" aria-hidden="true" />
+            <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
+            <Store size={18} />
+            Продавайте на MarketAI
+          </Link>
+        )}
       </form>
     </section>
   );
@@ -228,6 +291,7 @@ function AuthField({
   placeholder,
   type,
   error,
+  focusBorder = "focus-within:border-[#6D4AFF]",
 }: {
   icon: React.ReactNode;
   label: string;
@@ -236,6 +300,7 @@ function AuthField({
   placeholder: string;
   type: string;
   error?: string;
+  focusBorder?: string;
 }) {
   return (
     <label className="block">
@@ -244,7 +309,7 @@ function AuthField({
         className={`mt-2 flex h-12 items-center gap-3 rounded-2xl border bg-[#F9FAFB] px-4 text-[#6B7280] transition focus-within:bg-white ${
           error
             ? "border-[#EF4444] focus-within:border-[#EF4444]"
-            : "border-[#E5E7EB] focus-within:border-[#6D4AFF]"
+            : `border-[#E5E7EB] ${focusBorder}`
         }`}
       >
         {icon}
@@ -256,7 +321,11 @@ function AuthField({
           className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#111827] outline-none placeholder:text-[#9CA3AF]"
         />
       </span>
-      {error && <span className="mt-2 block text-sm font-bold text-[#EF4444]">{error}</span>}
+      {error && (
+        <span className="mt-2 block text-sm font-bold text-[#EF4444]">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
