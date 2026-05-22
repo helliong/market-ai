@@ -9,8 +9,14 @@ body {
   color: #151515;
 }
 
-button {
+button,
+input,
+select {
   font-family: inherit;
+}
+
+button {
+  cursor: pointer;
 }
 
 .admin-layout {
@@ -48,7 +54,6 @@ button {
   text-align: left;
   padding: 12px 14px;
   border-radius: 12px;
-  cursor: pointer;
   font-size: 15px;
 }
 
@@ -62,6 +67,7 @@ button {
 .content {
   flex: 1;
   padding: 28px;
+  overflow-x: auto;
 }
 
 .topbar {
@@ -82,13 +88,22 @@ button {
 }
 
 .profile-button,
-.primary-button {
+.primary-button,
+.secondary-button {
   border: 0;
-  background: #111827;
-  color: white;
   padding: 11px 18px;
   border-radius: 12px;
-  cursor: pointer;
+}
+
+.profile-button,
+.primary-button {
+  background: #111827;
+  color: white;
+}
+
+.secondary-button {
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .cards {
@@ -117,19 +132,31 @@ button {
 }
 
 .panel h2 {
-  margin-top: 0;
+  margin: 0;
+}
+
+.panel p {
+  margin: 8px 0 0;
+  color: #6b7280;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-bottom: 18px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 760px;
 }
 
 th,
@@ -137,6 +164,7 @@ td {
   text-align: left;
   padding: 14px;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 
 th {
@@ -144,18 +172,127 @@ th {
   font-weight: 700;
 }
 
+.table-actions,
+.inline-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .table-button {
   border: 0;
   background: #e5e7eb;
   padding: 8px 12px;
   border-radius: 10px;
-  margin-right: 8px;
-  cursor: pointer;
 }
 
 .table-button.danger {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.select-control {
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 130px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.empty-cell {
+  text-align: center;
+  color: #6b7280;
+  padding: 32px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal-card {
+  width: min(620px, 100%);
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-header p {
+  margin: 8px 0 0;
+  color: #6b7280;
+}
+
+.close-button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.product-form {
+  display: grid;
+  gap: 14px;
+}
+
+.product-form label {
+  display: grid;
+  gap: 8px;
+  color: #374151;
+  font-weight: 700;
+}
+
+.product-form input,
+.product-form select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.product-form input:focus,
+.product-form select:focus,
+.select-control:focus {
+  outline: 2px solid #facc15;
+  border-color: #facc15;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 @media (max-width: 900px) {
@@ -169,5 +306,11 @@ th {
 
   .cards {
     grid-template-columns: 1fr;
+  }
+
+  .topbar,
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
