@@ -1,11 +1,6 @@
-import { AuthPage } from "@/components/auth/AuthPage";
-import { Header } from "@/components/layout/Header";
+import { redirect } from "next/navigation";
+import { ADMIN_LOGIN_URL } from "@/lib/admin";
 
-export default function SellerLogin() {
-  return (
-    <main>
-      <Header />
-      <AuthPage mode="login" audience="seller" />
-    </main>
-  );
+export default function SellerLoginRedirect() {
+  redirect(ADMIN_LOGIN_URL);
 }

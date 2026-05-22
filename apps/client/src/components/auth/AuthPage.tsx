@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
+import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
@@ -41,8 +42,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       };
   const alternateAuthHref = isSeller
     ? isRegister
-      ? "/seller/login"
-      : "/seller/register"
+      ? ADMIN_LOGIN_URL
+      : ADMIN_REGISTER_URL
     : isRegister
       ? "/login"
       : "/register";
@@ -266,8 +267,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         </p>
 
         {isRegister && !isSeller && (
-          <Link
-            href="/seller/register"
+          <a
+            href={ADMIN_REGISTER_URL}
             className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
           >
             <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
@@ -276,7 +277,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
             <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
             <Store size={18} />
             Продавайте на MarketAI
-          </Link>
+          </a>
         )}
       </form>
     </section>

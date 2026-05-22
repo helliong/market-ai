@@ -1,11 +1,6 @@
-import { AuthPage } from "@/components/auth/AuthPage";
-import { Header } from "@/components/layout/Header";
+import { redirect } from "next/navigation";
+import { ADMIN_REGISTER_URL } from "@/lib/admin";
 
-export default function SellerRegister() {
-  return (
-    <main>
-      <Header />
-      <AuthPage mode="register" audience="seller" />
-    </main>
-  );
+export default function SellerRegisterRedirect() {
+  redirect(ADMIN_REGISTER_URL);
 }
