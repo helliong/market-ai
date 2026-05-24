@@ -98,6 +98,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
     if (!trimmedPassword) {
       nextErrors.password = "Введите пароль";
+    } else if (trimmedPassword.length < 6) {
+      nextErrors.password = "Пароль должен быть не короче 6 символов";
     }
 
     if (isRegister && !trimmedConfirmPassword) {
