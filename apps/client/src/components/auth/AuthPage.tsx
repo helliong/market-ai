@@ -13,6 +13,20 @@ type AuthPageProps = {
   audience?: "client" | "seller";
 };
 
+type AuthUser = {
+  name: string;
+  email: string;
+};
+
+async function requestEmailVerificationCode(_email: string) {
+  // Replace with an API call when email delivery is connected.
+}
+
+async function verifyEmailCode(_email: string, code: string) {
+  // The frontend stub accepts any 6-digit code until backend verification exists.
+  return /^\d{6}$/.test(code.trim());
+}
+
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -50,13 +64,19 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
+  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationError, setVerificationError] = useState<string>();
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
+    confirmPassword?: string;
     agreement?: string;
   }>({});
+  const isEmailVerificationStep = Boolean(pendingUser);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,19 +84,26 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
 
     if (isRegister && !trimmedName) {
-      nextErrors.name = "В поле ничего нет";
+      nextErrors.name = "Введите имя";
     }
 
     if (!trimmedEmail) {
-      nextErrors.email = "В поле ничего нет";
+      nextErrors.email = "Введите email";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       nextErrors.email = "Введите корректный email";
     }
 
     if (!trimmedPassword) {
-      nextErrors.password = "В поле ничего нет";
+      nextErrors.password = "Введите пароль";
+    }
+
+    if (isRegister && !trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Подтвердите пароль";
+    } else if (isRegister && trimmedPassword !== trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Пароли не совпадают";
     }
 
     if (isRegister && !isAgreementAccepted) {
@@ -95,7 +122,38 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       email: trimmedEmail,
     };
 
-    dispatch(isRegister ? register(user) : login(user));
+    if (isRegister) {
+      void requestEmailVerificationCode(user.email);
+      setPendingUser(user);
+      setVerificationCode("");
+      setVerificationError(undefined);
+      return;
+    }
+
+    dispatch(login(user));
+    router.push("/profile");
+  }
+
+  async function handleEmailVerificationSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!pendingUser) {
+      return;
+    }
+
+    const isCodeValid = await verifyEmailCode(
+      pendingUser.email,
+      verificationCode,
+    );
+
+    if (!isCodeValid) {
+      setVerificationError("Введите код из 6 цифр");
+      return;
+    }
+
+    dispatch(register(pendingUser));
     router.push("/profile");
   }
 
@@ -145,21 +203,79 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
       <form
         noValidate
-        onSubmit={handleSubmit}
+        onSubmit={
+          isEmailVerificationStep ? handleEmailVerificationSubmit : handleSubmit
+        }
         className="self-center rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
       >
         <div className="mb-6">
           <h2 className="text-2xl font-black tracking-[-0.03em]">
-            {isRegister ? "Регистрация" : "Вход"}
+            {isEmailVerificationStep
+              ? "Подтверждение почты"
+              : isRegister
+                ? "Регистрация"
+                : "Вход"}
           </h2>
           <p className="mt-2 text-sm text-[#6B7280]">
-            {isRegister
-              ? "Заполните данные для создания аккаунта"
-              : "Введите email и пароль от аккаунта"}
+            {isEmailVerificationStep
+              ? `Введите код, отправленный на ${pendingUser?.email}`
+              : isRegister
+                ? "Заполните данные для создания аккаунта"
+                : "Введите email и пароль от аккаунта"}
           </p>
         </div>
 
-        <div className="space-y-4">
+        {isEmailVerificationStep ? (
+          <div className="space-y-4">
+            <AuthField
+              icon={<Mail size={18} />}
+              label="Код подтверждения"
+              value={verificationCode}
+              onChange={(value) => {
+                setVerificationCode(value.replace(/\D/g, "").slice(0, 6));
+                setVerificationError(undefined);
+              }}
+              placeholder="000000"
+              type="text"
+              error={verificationError}
+              focusBorder={authTheme.focusBorder}
+            />
+
+            <button
+              type="submit"
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
+            >
+              Подтвердить email
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (pendingUser) {
+                  void requestEmailVerificationCode(pendingUser.email);
+                }
+                setVerificationError(undefined);
+              }}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
+              Отправить код еще раз
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPendingUser(null);
+                setVerificationCode("");
+                setVerificationError(undefined);
+              }}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
+              Изменить данные
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4">
           {isRegister && (
             <AuthField
               icon={<User size={18} />}
@@ -196,13 +312,36 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
             value={password}
             onChange={(value) => {
               setPassword(value);
-              setErrors((current) => ({ ...current, password: undefined }));
+              setErrors((current) => ({
+                ...current,
+                password: undefined,
+                confirmPassword: undefined,
+              }));
             }}
             placeholder="Введите пароль"
             type="password"
             error={errors.password}
             focusBorder={authTheme.focusBorder}
           />
+
+          {isRegister && (
+            <AuthField
+              icon={<LockKeyhole size={18} />}
+              label="Подтвердите пароль"
+              value={confirmPassword}
+              onChange={(value) => {
+                setConfirmPassword(value);
+                setErrors((current) => ({
+                  ...current,
+                  confirmPassword: undefined,
+                }));
+              }}
+              placeholder="Повторите пароль"
+              type="password"
+              error={errors.confirmPassword}
+              focusBorder={authTheme.focusBorder}
+            />
+          )}
 
           {isRegister && (
             <label className="block">
@@ -278,6 +417,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
             <Store size={18} />
             Продавайте на MarketAI
           </a>
+        )}
+          </>
         )}
       </form>
     </section>
