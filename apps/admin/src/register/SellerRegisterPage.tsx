@@ -7,19 +7,41 @@ type SellerRegisterPageProps = {
   onSubmit: (seller: { name: string; email: string }) => void;
 };
 
+type PendingSeller = {
+  name: string;
+  email: string;
+};
+
 type FormErrors = {
   name?: string;
   email?: string;
   password?: string;
+  confirmPassword?: string;
   agreement?: string;
 };
+
+async function requestEmailVerificationCode(_email: string) {
+  // Replace with an API call when email delivery is connected.
+}
+
+async function verifyEmailCode(_email: string, code: string) {
+  // The frontend stub accepts any 6-digit code until backend verification exists.
+  return /^\d{6}$/.test(code.trim());
+}
 
 export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
+  const [pendingSeller, setPendingSeller] = useState<PendingSeller | null>(
+    null,
+  );
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationError, setVerificationError] = useState<string>();
   const [errors, setErrors] = useState<FormErrors>({});
+  const isEmailConfirmationStep = Boolean(pendingSeller);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,6 +50,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
 
     if (!trimmedName) {
       nextErrors.name = "Enter the store name";
@@ -45,6 +68,12 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
       nextErrors.password = "Password must be at least 6 characters";
     }
 
+    if (!trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Confirm password";
+    } else if (trimmedPassword && trimmedPassword !== trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Passwords do not match";
+    }
+
     if (!isAgreementAccepted) {
       nextErrors.agreement = "Accept the user agreement";
     }
@@ -55,7 +84,37 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
       return;
     }
 
-    onSubmit({ name: trimmedName, email: trimmedEmail });
+    const seller = {
+      name: trimmedName,
+      email: trimmedEmail,
+    };
+
+    void requestEmailVerificationCode(seller.email);
+    setPendingSeller(seller);
+    setVerificationCode("");
+    setVerificationError(undefined);
+  }
+
+  async function handleEmailConfirmationSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!pendingSeller) {
+      return;
+    }
+
+    const isCodeValid = await verifyEmailCode(
+      pendingSeller.email,
+      verificationCode,
+    );
+
+    if (!isCodeValid) {
+      setVerificationError("Enter a 6-digit code");
+      return;
+    }
+
+    onSubmit(pendingSeller);
   }
 
   return (
@@ -82,100 +141,221 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
           </div>
         </div>
 
-        <form className="seller-register-form" onSubmit={handleSubmit}>
-          <div>
-            <h2>Registration</h2>
-            <p>Fill in the store details to create a seller profile.</p>
-          </div>
+        <form
+          className="seller-register-form"
+          noValidate
+          onSubmit={
+            isEmailConfirmationStep
+              ? handleEmailConfirmationSubmit
+              : handleSubmit
+          }
+        >
+          {isEmailConfirmationStep ? (
+            <>
+              <div>
+                <h2>Email confirmation</h2>
+                <p>
+                  Enter the confirmation code sent to {pendingSeller?.email}.
+                </p>
+              </div>
 
-          <label>
-            Store name
-            <input
-              className={errors.name ? "is-invalid" : ""}
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                setErrors((current) => ({ ...current, name: undefined }));
-              }}
-              placeholder="Market store"
-            />
-            {errors.name && (
-              <span className="seller-register-error">{errors.name}</span>
-            )}
-          </label>
+              <label>
+                Email confirmation code
+                <input
+                  className={verificationError ? "is-invalid" : ""}
+                  inputMode="numeric"
+                  value={verificationCode}
+                  onChange={(event) => {
+                    setVerificationCode(
+                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                    );
+                    setVerificationError(undefined);
+                  }}
+                  placeholder="000000"
+                />
+                {verificationError && (
+                  <span className="seller-register-error">
+                    {verificationError}
+                  </span>
+                )}
+              </label>
 
-          <label>
-            Email
-            <input
-              className={errors.email ? "is-invalid" : ""}
-              type="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setErrors((current) => ({ ...current, email: undefined }));
-              }}
-              placeholder="seller@example.com"
-            />
-            {errors.email && (
-              <span className="seller-register-error">{errors.email}</span>
-            )}
-          </label>
+              <button type="submit">Confirm email</button>
 
-          <label>
-            Password
-            <input
-              className={errors.password ? "is-invalid" : ""}
-              type="password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setErrors((current) => ({ ...current, password: undefined }));
-              }}
-              placeholder="Enter password"
-            />
-            {errors.password && (
-              <span className="seller-register-error">{errors.password}</span>
-            )}
-          </label>
+              <button
+                className="seller-register-secondary-button"
+                type="button"
+                onClick={() => {
+                  if (pendingSeller) {
+                    void requestEmailVerificationCode(pendingSeller.email);
+                  }
+                  setVerificationError(undefined);
+                }}
+              >
+                Send code again
+              </button>
 
-          <label className="seller-register-agreement">
-            <span
-              className={`seller-register-checkbox ${
-                isAgreementAccepted ? "is-checked" : ""
-              }`}
-              aria-hidden="true"
-            >
-              {isAgreementAccepted ? "✓" : ""}
-            </span>
-            <input
-              type="checkbox"
-              checked={isAgreementAccepted}
-              onChange={(event) => {
-                setIsAgreementAccepted(event.target.checked);
-                setErrors((current) => ({
-                  ...current,
-                  agreement: undefined,
-                }));
-              }}
-            />
-            <span>
-              I accept the{" "}
-              <a href="/agreement" target="_blank" rel="noopener noreferrer">
-                user agreement
-              </a>
-            </span>
-          </label>
-          {errors.agreement && (
-            <span className="seller-register-error seller-register-agreement-error">
-              {errors.agreement}
-            </span>
+              <button
+                className="seller-register-secondary-button"
+                type="button"
+                onClick={() => {
+                  setPendingSeller(null);
+                  setVerificationCode("");
+                  setVerificationError(undefined);
+                }}
+              >
+                Edit registration data
+              </button>
+
+              <p className="seller-register-switch">
+                Check your inbox and enter the 6-digit code.
+              </p>
+            </>
+          ) : (
+            <>
+              <div>
+                <h2>Registration</h2>
+                <p>Fill in the store details to create a seller profile.</p>
+              </div>
+
+              <label>
+                Store name
+                <input
+                  className={errors.name ? "is-invalid" : ""}
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    setErrors((current) => ({ ...current, name: undefined }));
+                  }}
+                  placeholder="Market store"
+                />
+                {errors.name && (
+                  <span className="seller-register-error">{errors.name}</span>
+                )}
+              </label>
+
+              <label>
+                Email
+                <input
+                  className={errors.email ? "is-invalid" : ""}
+                  type="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setErrors((current) => ({ ...current, email: undefined }));
+                  }}
+                  placeholder="seller@example.com"
+                />
+                {errors.email && (
+                  <span className="seller-register-error">{errors.email}</span>
+                )}
+              </label>
+
+              <label>
+                Password
+                <input
+                  className={errors.password ? "is-invalid" : ""}
+                  type="password"
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setErrors((current) => ({
+                      ...current,
+                      password: undefined,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  placeholder="At least 6 characters"
+                />
+                {errors.password && (
+                  <span className="seller-register-error">
+                    {errors.password}
+                  </span>
+                )}
+              </label>
+
+              <label>
+                Confirm password
+                <input
+                  className={errors.confirmPassword ? "is-invalid" : ""}
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    setErrors((current) => ({
+                      ...current,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  placeholder="Repeat password"
+                />
+                {errors.confirmPassword && (
+                  <span className="seller-register-error">
+                    {errors.confirmPassword}
+                  </span>
+                )}
+              </label>
+
+              <label className="seller-register-agreement">
+                <span
+                  className={`seller-register-checkbox ${
+                    isAgreementAccepted ? "is-checked" : ""
+                  }`}
+                  aria-hidden="true"
+                >
+                  {isAgreementAccepted && (
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      width="14"
+                    >
+                      <path
+                        d="M20 6 9 17l-5-5"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="3"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={isAgreementAccepted}
+                  onChange={(event) => {
+                    setIsAgreementAccepted(event.target.checked);
+                    setErrors((current) => ({
+                      ...current,
+                      agreement: undefined,
+                    }));
+                  }}
+                />
+                <span>
+                  I accept the{" "}
+                  <a
+                    href="/agreement"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    user agreement
+                  </a>
+                </span>
+              </label>
+              {errors.agreement && (
+                <span className="seller-register-error seller-register-agreement-error">
+                  {errors.agreement}
+                </span>
+              )}
+
+              <button type="submit">Create seller account</button>
+
+              <p className="seller-register-switch">
+                Already have a seller account? <a href="/login">Sign in</a>
+              </p>
+            </>
           )}
-
-          <button type="submit">Create seller account</button>
-
-          <p className="seller-register-switch">
-            Already have a seller account? <a href="/login">Sign in</a>
-          </p>
         </form>
       </section>
 
