@@ -59,23 +59,76 @@
 ```txt
 marketplace-ai/
 ├── apps/
-│   ├── client/
-│   └── admin/
+│   ├── client/                    # Клиентский frontend на Next.js
+│   │   ├── app/                    # App Router страницы
+│   │   │   ├── agreement/
+│   │   │   ├── cart/
+│   │   │   ├── catalog/
+│   │   │   ├── checkout/
+│   │   │   ├── compare/
+│   │   │   ├── favorites/
+│   │   │   ├── login/
+│   │   │   ├── products/[id]/
+│   │   │   ├── profile/
+│   │   │   ├── register/
+│   │   │   └── seller/
+│   │   ├── prisma/
+│   │   ├── public/
+│   │   └── src/
+│   │       ├── components/
+│   │       ├── data/
+│   │       ├── lib/
+│   │       └── store/
+│   │
+│   └── admin/                     # Админская панель на React + Vite
+│       ├── public/
+│       └── src/
+│           ├── admin/
+│           │   ├── components/
+│           │   └── pages/
+│           ├── agreement/
+│           ├── assets/
+│           ├── login/
+│           └── register/
+│
 ├── services/
-│   ├── api-gateway/
-│   ├── auth-service/
-│   ├── catalog-service/
-│   ├── cart-service/
-│   ├── order-service/
-│   └── ai-agent-service/
-├── packages/
-├── infra/
-├── docs/
-├── docker-compose.yml
-├── .env.example
+│   ├── api-gateway/               # API Gateway
+│   │   ├── src/
+│   │   └── test/
+│   │
+│   ├── auth-service/              # Сервис авторизации
+│   │   ├── prisma/
+│   │   │   └── migrations/
+│   │   ├── src/
+│   │   │   ├── auth/
+│   │   │   │   ├── dto/
+│   │   │   │   ├── guards/
+│   │   │   │   └── strategies/
+│   │   │   ├── email/
+│   │   │   └── prisma/
+│   │   └── test/
+│   │
+│   ├── catalog-service/           # Сервис каталога товаров
+│   │   ├── src/
+│   │   └── test/
+│   │
+│   ├── cart-service/              # Сервис корзины
+│   │   ├── src/
+│   │   └── test/
+│   │
+│   ├── order-service/             # Сервис заказов
+│   │   ├── src/
+│   │   └── test/
+│   │
+│   └── ai-agent-service/          # AI-ассистент / рекомендательный сервис
+│       ├── src/
+│       └── test/
+│
+├── docker-compose.yml             # PostgreSQL, Redis и инфраструктура
+├── .env.example                   # Пример переменных окружения
 ├── .gitignore
-├── README.md
-└── CHANGELOG.md
+├── package-lock.json
+└── README.md
 ```
 
 # Что уже реализовано
