@@ -19,11 +19,52 @@ function parsePrice(price: string) {
   return Number(price.replace(/[^\d]/g, ""));
 }
 
+function formatRussianPhone(value: string) {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith("7") || digits.startsWith("8")) {
+    digits = digits.slice(1);
+  }
+
+  const localDigits = digits.slice(0, 10);
+  const parts = [
+    localDigits.slice(0, 3),
+    localDigits.slice(3, 6),
+    localDigits.slice(6, 8),
+    localDigits.slice(8, 10),
+  ];
+
+  if (!localDigits) {
+    return "";
+  }
+
+  let phone = `+7 (${parts[0]}`;
+
+  if (parts[0].length === 3) {
+    phone += ")";
+  }
+
+  if (parts[1]) {
+    phone += ` ${parts[1]}`;
+  }
+
+  if (parts[2]) {
+    phone += `-${parts[2]}`;
+  }
+
+  if (parts[3]) {
+    phone += `-${parts[3]}`;
+  }
+
+  return phone;
+}
+
 export function CheckoutPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.cart.items);
   const user = useAppSelector((state) => state.auth.user);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [phone, setPhone] = useState("");
 
   const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = items.reduce(
@@ -127,8 +168,14 @@ export function CheckoutPage() {
               <TextField
                 label="Телефон"
                 name="phone"
-                placeholder="+7 900 000-00-00"
+                placeholder="+7 (900) 000-00-00"
                 type="tel"
+                value={phone}
+                onChange={(value) => setPhone(formatRussianPhone(value))}
+                inputMode="numeric"
+                autoComplete="tel"
+                minLength={18}
+                maxLength={18}
               />
               <TextField
                 label="Email"
@@ -302,6 +349,12 @@ function TextField({
   placeholder,
   type = "text",
   defaultValue,
+  value,
+  onChange,
+  inputMode,
+  autoComplete,
+  minLength,
+  maxLength,
   className = "",
 }: {
   label: string;
@@ -309,6 +362,12 @@ function TextField({
   placeholder?: string;
   type?: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: string;
+  minLength?: number;
+  maxLength?: number;
   className?: string;
 }) {
   return (
@@ -318,7 +377,15 @@ function TextField({
         name={name}
         type={type}
         placeholder={placeholder}
-        defaultValue={defaultValue}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        value={value}
+        onChange={
+          onChange ? (event) => onChange(event.target.value) : undefined
+        }
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        minLength={minLength}
+        maxLength={maxLength}
         required={name !== "flat"}
         className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
       />
