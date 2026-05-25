@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -16,11 +21,15 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) throw new ConflictException('Email already exists');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
     const hashedCode = await bcrypt.hash(verificationCode, 8); // хэшируем код
     const codeExpires = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -29,13 +38,16 @@ export class AuthService {
         email: dto.email,
         name: dto.name,
         passwordHash,
-        verificationCode: hashedCode,          // сохраняем хэш
+        verificationCode: hashedCode, // сохраняем хэш
         verificationCodeExpires: codeExpires,
       },
     });
 
     await this.emailService.sendVerificationCode(dto.email, verificationCode); // отправляем оригинальный код
-    return { message: 'Registration successful. Check your email for verification code.' };
+    return {
+      message:
+        'Registration successful. Check your email for verification code.',
+    };
   }
 
   async verifyEmail(dto: VerifyEmailDto) {
@@ -57,19 +69,26 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { isEmailVerified: true, verificationCode: null, verificationCodeExpires: null },
+      data: {
+        isEmailVerified: true,
+        verificationCode: null,
+        verificationCodeExpires: null,
+      },
     });
     return { message: 'Email verified successfully' };
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
 
-    if (!user.isEmailVerified) throw new UnauthorizedException('Please verify your email first');
+    if (!user.isEmailVerified)
+      throw new UnauthorizedException('Please verify your email first');
 
     const tokens = await this.generateTokens(user.id);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
@@ -78,11 +97,18 @@ export class AuthService {
 
   async refreshTokens(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken, { secret: this.configService.get('JWT_REFRESH_SECRET') });
-      const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      });
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
       if (!user || !user.refreshTokenHash) throw new UnauthorizedException();
 
-      const refreshValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+      const refreshValid = await bcrypt.compare(
+        refreshToken,
+        user.refreshTokenHash,
+      );
       if (!refreshValid) throw new UnauthorizedException();
 
       const tokens = await this.generateTokens(user.id);
@@ -91,6 +117,25 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isEmailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
   }
 
   async logout(userId: string) {

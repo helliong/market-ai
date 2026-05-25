@@ -8,7 +8,12 @@ import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
-import { loginClient, registerClient, verifyClientEmail } from "@/lib/auth-api";
+import {
+  getCurrentUser,
+  loginClient,
+  registerClient,
+  verifyClientEmail,
+} from "@/lib/auth-api";
 
 type AuthPageProps = {
   mode: "login" | "register";
@@ -150,7 +155,17 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         password: trimmedPassword,
       });
 
-      dispatch(login(user));
+      const currentUser = await getCurrentUser();
+
+      dispatch(
+        login({
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          isEmailVerified: currentUser.isEmailVerified,
+        }),
+      );
+
       router.push("/profile");
     } catch (error) {
       setSubmitError(
@@ -184,7 +199,17 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         password,
       });
 
-      dispatch(register(pendingUser));
+      const currentUser = await getCurrentUser();
+
+      dispatch(
+        register({
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          isEmailVerified: currentUser.isEmailVerified,
+        }),
+      );
+
       router.push("/profile");
     } catch (error) {
       setVerificationError(

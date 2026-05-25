@@ -17,6 +17,14 @@ type VerifyEmailPayload = {
   code: string;
 };
 
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  isEmailVerified: boolean;
+  createdAt: string;
+};
+
 async function authRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -64,4 +72,8 @@ export function logoutClient() {
   return authRequest<{ message: string }>("/auth/logout", {
     method: "POST",
   });
+}
+
+export function getCurrentUser() {
+  return authRequest<CurrentUser>("/auth/me");
 }
