@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { ADMIN_REGISTER_URL } from "@/lib/admin";
 import { logout } from "@/store/authSlice";
+import { logoutClient } from "@/lib/auth-api";
 import { useAppSelector } from "@/store/hooks";
 import { useAppDispatch } from "@/store/hooks";
 
@@ -81,10 +82,22 @@ export function ProfilePage() {
                 href={ADMIN_REGISTER_URL}
                 className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
               >
-                <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-3" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-1"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-2"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-3"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-4"
+                  aria-hidden="true"
+                />
                 <Store size={18} />
                 Продавайте на MarketAI
               </a>
@@ -93,7 +106,13 @@ export function ProfilePage() {
 
           {user ? (
             <button
-              onClick={() => dispatch(logout())}
+              onClick={async () => {
+                try {
+                  await logoutClient();
+                } finally {
+                  dispatch(logout());
+                }
+              }}
               className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
             >
               <LogOut size={18} />
