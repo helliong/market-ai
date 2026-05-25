@@ -8,6 +8,8 @@ import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
+import { loginClient, registerClient, verifyClientEmail } from "@/lib/auth-api";
+
 type AuthPageProps = {
   mode: "login" | "register";
   audience?: "client" | "seller";
@@ -18,14 +20,7 @@ type AuthUser = {
   email: string;
 };
 
-async function requestEmailVerificationCode(_email: string) {
-  // Replace with an API call when email delivery is connected.
-}
-
-async function verifyEmailCode(_email: string, code: string) {
-  // The frontend stub accepts any 6-digit code until backend verification exists.
-  return /^\d{6}$/.test(code.trim());
-}
+const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
 
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
@@ -69,6 +64,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -78,7 +75,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   }>({});
   const isEmailVerificationStep = Boolean(pendingUser);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors: typeof errors = {};
     const trimmedName = name.trim();
@@ -92,18 +89,25 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
     if (!trimmedEmail) {
       nextErrors.email = "Введите email";
+    } else if (CYRILLIC_PATTERN.test(trimmedEmail)) {
+      nextErrors.email = "Email не должен содержать кириллицу";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       nextErrors.email = "Введите корректный email";
     }
 
     if (!trimmedPassword) {
       nextErrors.password = "Введите пароль";
+    } else if (CYRILLIC_PATTERN.test(trimmedPassword)) {
+      nextErrors.password = "Пароль не должен содержать кириллицу";
     } else if (trimmedPassword.length < 6) {
       nextErrors.password = "Пароль должен быть не короче 6 символов";
     }
 
     if (isRegister && !trimmedConfirmPassword) {
       nextErrors.confirmPassword = "Подтвердите пароль";
+    } else if (isRegister && CYRILLIC_PATTERN.test(trimmedConfirmPassword)) {
+      nextErrors.confirmPassword =
+        "Подтверждение пароля не должно содержать кириллицу";
     } else if (isRegister && trimmedPassword !== trimmedConfirmPassword) {
       nextErrors.confirmPassword = "Пароли не совпадают";
     }
@@ -124,16 +128,37 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       email: trimmedEmail,
     };
 
-    if (isRegister) {
-      void requestEmailVerificationCode(user.email);
-      setPendingUser(user);
-      setVerificationCode("");
-      setVerificationError(undefined);
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError(undefined);
 
-    dispatch(login(user));
-    router.push("/profile");
+    try {
+      if (isRegister) {
+        await registerClient({
+          name: trimmedName,
+          email: trimmedEmail,
+          password: trimmedPassword,
+        });
+
+        setPendingUser(user);
+        setVerificationCode("");
+        setVerificationError(undefined);
+        return;
+      }
+
+      await loginClient({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
+      dispatch(login(user));
+      router.push("/profile");
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Auth request failed",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleEmailVerificationSubmit(
@@ -145,18 +170,29 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       return;
     }
 
-    const isCodeValid = await verifyEmailCode(
-      pendingUser.email,
-      verificationCode,
-    );
+    setIsSubmitting(true);
+    setVerificationError(undefined);
 
-    if (!isCodeValid) {
-      setVerificationError("Введите код из 6 цифр");
-      return;
+    try {
+      await verifyClientEmail({
+        email: pendingUser.email,
+        code: verificationCode,
+      });
+
+      await loginClient({
+        email: pendingUser.email,
+        password,
+      });
+
+      dispatch(register(pendingUser));
+      router.push("/profile");
+    } catch (error) {
+      setVerificationError(
+        error instanceof Error ? error.message : "Email verification failed",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    dispatch(register(pendingUser));
-    router.push("/profile");
   }
 
   return (
@@ -245,17 +281,17 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
             <button
               type="submit"
-              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
+              disabled={isSubmitting}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
             >
-              Подтвердить email
+              {isSubmitting ? "Загрузка..." : "Подтвердить email"}
             </button>
 
             <button
               type="button"
               onClick={() => {
-                if (pendingUser) {
-                  void requestEmailVerificationCode(pendingUser.email);
-                }
+                setPendingUser(null);
+                setVerificationCode("");
                 setVerificationError(undefined);
               }}
               className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
@@ -278,148 +314,170 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         ) : (
           <>
             <div className="space-y-4">
-          {isRegister && (
-            <AuthField
-              icon={<User size={18} />}
-              label={isSeller ? "Название магазина" : "Имя"}
-              value={name}
-              onChange={(value) => {
-                setName(value);
-                setErrors((current) => ({ ...current, name: undefined }));
-              }}
-              placeholder={isSeller ? "Market store" : "George"}
-              type="text"
-              error={errors.name}
-              focusBorder={authTheme.focusBorder}
-            />
-          )}
+              {isRegister && (
+                <AuthField
+                  icon={<User size={18} />}
+                  label={isSeller ? "Название магазина" : "Имя"}
+                  value={name}
+                  onChange={(value) => {
+                    setName(value);
+                    setErrors((current) => ({ ...current, name: undefined }));
+                  }}
+                  placeholder={isSeller ? "Market store" : "George"}
+                  type="text"
+                  error={errors.name}
+                  focusBorder={authTheme.focusBorder}
+                />
+              )}
 
-          <AuthField
-            icon={<Mail size={18} />}
-            label="Email"
-            value={email}
-            onChange={(value) => {
-              setEmail(value);
-              setErrors((current) => ({ ...current, email: undefined }));
-            }}
-            placeholder="you@example.com"
-            type="email"
-            error={errors.email}
-            focusBorder={authTheme.focusBorder}
-          />
+              <AuthField
+                icon={<Mail size={18} />}
+                label="Email"
+                value={email}
+                onChange={(value) => {
+                  setEmail(value);
+                  setErrors((current) => ({ ...current, email: undefined }));
+                }}
+                placeholder="you@example.com"
+                type="email"
+                error={errors.email}
+                focusBorder={authTheme.focusBorder}
+              />
 
-          <AuthField
-            icon={<LockKeyhole size={18} />}
-            label="Пароль"
-            value={password}
-            onChange={(value) => {
-              setPassword(value);
-              setErrors((current) => ({
-                ...current,
-                password: undefined,
-                confirmPassword: undefined,
-              }));
-            }}
-            placeholder="Введите пароль"
-            type="password"
-            error={errors.password}
-            focusBorder={authTheme.focusBorder}
-          />
+              <AuthField
+                icon={<LockKeyhole size={18} />}
+                label="Пароль"
+                value={password}
+                onChange={(value) => {
+                  setPassword(value);
+                  setErrors((current) => ({
+                    ...current,
+                    password: undefined,
+                    confirmPassword: undefined,
+                  }));
+                }}
+                placeholder="Введите пароль"
+                type="password"
+                error={errors.password}
+                focusBorder={authTheme.focusBorder}
+              />
 
-          {isRegister && (
-            <AuthField
-              icon={<LockKeyhole size={18} />}
-              label="Подтвердите пароль"
-              value={confirmPassword}
-              onChange={(value) => {
-                setConfirmPassword(value);
-                setErrors((current) => ({
-                  ...current,
-                  confirmPassword: undefined,
-                }));
-              }}
-              placeholder="Повторите пароль"
-              type="password"
-              error={errors.confirmPassword}
-              focusBorder={authTheme.focusBorder}
-            />
-          )}
-
-          {isRegister && (
-            <label className="block">
-              <span
-                className={`flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition ${authTheme.hoverBorder}`}
-              >
-                <span
-                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
-                    isAgreementAccepted
-                      ? authTheme.checked
-                      : "border-[#D1D5DB] bg-white text-transparent"
-                  }`}
-                >
-                  <Check size={14} />
-                </span>
-                <input
-                  type="checkbox"
-                  checked={isAgreementAccepted}
-                  onChange={(event) => {
-                    setIsAgreementAccepted(event.target.checked);
+              {isRegister && (
+                <AuthField
+                  icon={<LockKeyhole size={18} />}
+                  label="Подтвердите пароль"
+                  value={confirmPassword}
+                  onChange={(value) => {
+                    setConfirmPassword(value);
                     setErrors((current) => ({
                       ...current,
-                      agreement: undefined,
+                      confirmPassword: undefined,
                     }));
                   }}
-                  className="sr-only"
+                  placeholder="Повторите пароль"
+                  type="password"
+                  error={errors.confirmPassword}
+                  focusBorder={authTheme.focusBorder}
                 />
-                <span className="text-sm font-semibold leading-6 text-[#6B7280]">
-                  Я принимаю{" "}
-                  <Link
-                    href="/agreement"
-                    className={`font-black ${authTheme.accentTextHover}`}
-                  >
-                    пользовательское соглашение
-                  </Link>
-                </span>
-              </span>
-              {errors.agreement && (
-                <span className="mt-2 block text-sm font-bold text-[#EF4444]">
-                  {errors.agreement}
-                </span>
               )}
-            </label>
-          )}
-        </div>
 
-        <button
-          type="submit"
-          className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
-        >
-          {isRegister ? "Зарегистрироваться" : "Войти"}
-        </button>
+              {isRegister && (
+                <label className="block">
+                  <span
+                    className={`flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition ${authTheme.hoverBorder}`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                        isAgreementAccepted
+                          ? authTheme.checked
+                          : "border-[#D1D5DB] bg-white text-transparent"
+                      }`}
+                    >
+                      <Check size={14} />
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={isAgreementAccepted}
+                      onChange={(event) => {
+                        setIsAgreementAccepted(event.target.checked);
+                        setErrors((current) => ({
+                          ...current,
+                          agreement: undefined,
+                        }));
+                      }}
+                      className="sr-only"
+                    />
+                    <span className="text-sm font-semibold leading-6 text-[#6B7280]">
+                      Я принимаю{" "}
+                      <Link
+                        href="/agreement"
+                        className={`font-black ${authTheme.accentTextHover}`}
+                      >
+                        пользовательское соглашение
+                      </Link>
+                    </span>
+                  </span>
+                  {errors.agreement && (
+                    <span className="mt-2 block text-sm font-bold text-[#EF4444]">
+                      {errors.agreement}
+                    </span>
+                  )}
+                </label>
+              )}
+            </div>
 
-        <p className="mt-5 text-center text-sm text-[#6B7280]">
-          {isRegister ? "Уже есть аккаунт?" : "Еще нет аккаунта?"}{" "}
-          <Link
-            href={alternateAuthHref}
-            className={`font-black ${authTheme.accentTextHover}`}
-          >
-            {isRegister ? "Войти" : "Зарегистрироваться"}
-          </Link>
-        </p>
+            {submitError && (
+              <p className="mt-4 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#EF4444]">
+                {submitError}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
+            >
+              {isSubmitting
+                ? "Загрузка..."
+                : isRegister
+                  ? "Зарегистрироваться"
+                  : "Войти"}
+            </button>
 
-        {isRegister && !isSeller && (
-          <a
-            href={ADMIN_REGISTER_URL}
-            className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
-          >
-            <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
-            <span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />
-            <span className="seller-profile-cta-star seller-profile-cta-star-3" aria-hidden="true" />
-            <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
-            <Store size={18} />
-            Продавайте на MarketAI
-          </a>
-        )}
+            <p className="mt-5 text-center text-sm text-[#6B7280]">
+              {isRegister ? "Уже есть аккаунт?" : "Еще нет аккаунта?"}{" "}
+              <Link
+                href={alternateAuthHref}
+                className={`font-black ${authTheme.accentTextHover}`}
+              >
+                {isRegister ? "Войти" : "Зарегистрироваться"}
+              </Link>
+            </p>
+
+            {isRegister && !isSeller && (
+              <a
+                href={ADMIN_REGISTER_URL}
+                className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
+              >
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-1"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-2"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-3"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-4"
+                  aria-hidden="true"
+                />
+                <Store size={18} />
+                Продавайте на MarketAI
+              </a>
+            )}
           </>
         )}
       </form>
