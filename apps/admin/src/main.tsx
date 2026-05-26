@@ -11,3 +11,7 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+requestAnimationFrame(() => {
+  document.getElementById('initial-loader')?.classList.add('is-hidden')
+})
