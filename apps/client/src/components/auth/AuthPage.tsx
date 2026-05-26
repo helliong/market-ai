@@ -25,7 +25,10 @@ type AuthUser = {
   email: string;
 };
 
+type ResetPasswordStep = "email" | "code" | "password";
+
 const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
+const RESET_PASSWORD_MOCK_CODE = "123456";
 
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
@@ -69,6 +72,19 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
+  const [resetPasswordStep, setResetPasswordStep] =
+    useState<ResetPasswordStep | null>(null);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetNotice, setResetNotice] = useState<string>();
+  const [resetErrors, setResetErrors] = useState<{
+    email?: string;
+    code?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [errors, setErrors] = useState<{
@@ -79,6 +95,33 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     agreement?: string;
   }>({});
   const isEmailVerificationStep = Boolean(pendingUser);
+  const isPasswordResetStep = Boolean(resetPasswordStep);
+
+  function validateEmail(value: string) {
+    if (!value) {
+      return "Введите email";
+    }
+
+    if (CYRILLIC_PATTERN.test(value)) {
+      return "Email не должен содержать кириллицу";
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      return "Введите корректный email";
+    }
+
+    return undefined;
+  }
+
+  function resetPasswordFlow() {
+    setResetPasswordStep(null);
+    setResetEmail("");
+    setResetCode("");
+    setResetPassword("");
+    setResetConfirmPassword("");
+    setResetNotice(undefined);
+    setResetErrors({});
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,12 +135,9 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       nextErrors.name = "Введите имя";
     }
 
-    if (!trimmedEmail) {
-      nextErrors.email = "Введите email";
-    } else if (CYRILLIC_PATTERN.test(trimmedEmail)) {
-      nextErrors.email = "Email не должен содержать кириллицу";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = "Введите корректный email";
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      nextErrors.email = emailError;
     }
 
     if (!trimmedPassword) {
@@ -220,6 +260,83 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     }
   }
 
+  function handleResetPasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!resetPasswordStep) {
+      return;
+    }
+
+    const nextErrors: typeof resetErrors = {};
+
+    if (resetPasswordStep === "email") {
+      const trimmedEmail = resetEmail.trim();
+      const emailError = validateEmail(trimmedEmail);
+      if (emailError) {
+        nextErrors.email = emailError;
+      }
+      setResetErrors(nextErrors);
+
+      if (nextErrors.email) {
+        return;
+      }
+
+      setResetEmail(trimmedEmail);
+      setResetPasswordStep("code");
+      setResetCode("");
+      setResetNotice(
+        `Письмо-заглушка отправлено на ${trimmedEmail}. Код: ${RESET_PASSWORD_MOCK_CODE}`,
+      );
+      return;
+    }
+
+    if (resetPasswordStep === "code") {
+      if (resetCode.length !== 6) {
+        nextErrors.code = "Введите 6 цифр из письма";
+      } else if (resetCode !== RESET_PASSWORD_MOCK_CODE) {
+        nextErrors.code = "Неверный код из письма";
+      }
+
+      setResetErrors(nextErrors);
+
+      if (nextErrors.code) {
+        return;
+      }
+
+      setResetPasswordStep("password");
+      setResetNotice("Код подтвержден. Задайте новый пароль.");
+      return;
+    }
+
+    const trimmedPassword = resetPassword.trim();
+    const trimmedConfirmPassword = resetConfirmPassword.trim();
+
+    if (!trimmedPassword) {
+      nextErrors.password = "Введите новый пароль";
+    } else if (CYRILLIC_PATTERN.test(trimmedPassword)) {
+      nextErrors.password = "Пароль не должен содержать кириллицу";
+    } else if (trimmedPassword.length < 6) {
+      nextErrors.password = "Пароль должен быть не короче 6 символов";
+    }
+
+    if (!trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Подтвердите новый пароль";
+    } else if (trimmedPassword !== trimmedConfirmPassword) {
+      nextErrors.confirmPassword = "Пароли не совпадают";
+    }
+
+    setResetErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setPassword(trimmedPassword);
+    setEmail(resetEmail);
+    setSubmitError(undefined);
+    resetPasswordFlow();
+  }
+
   return (
     <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 md:px-8 md:py-10 lg:grid-cols-[1fr_460px] lg:gap-10">
       <div className="flex items-center">
@@ -267,7 +384,11 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       <form
         noValidate
         onSubmit={
-          isEmailVerificationStep ? handleEmailVerificationSubmit : handleSubmit
+          isPasswordResetStep
+            ? handleResetPasswordSubmit
+            : isEmailVerificationStep
+              ? handleEmailVerificationSubmit
+              : handleSubmit
         }
         className="self-center rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
       >
@@ -275,6 +396,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           <h2 className="text-2xl font-black tracking-[-0.03em]">
             {isEmailVerificationStep
               ? "Подтверждение почты"
+              : isPasswordResetStep
+                ? "Восстановление пароля"
               : isRegister
                 ? "Регистрация"
                 : "Вход"}
@@ -282,13 +405,123 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           <p className="mt-2 text-sm text-[#6B7280]">
             {isEmailVerificationStep
               ? `Введите код, отправленный на ${pendingUser?.email}`
+              : isPasswordResetStep
+                ? resetPasswordStep === "email"
+                  ? "Введите email аккаунта, чтобы получить код"
+                  : resetPasswordStep === "code"
+                    ? "Введите 6 цифр из письма"
+                    : "Придумайте новый пароль"
               : isRegister
                 ? "Заполните данные для создания аккаунта"
                 : "Введите email и пароль от аккаунта"}
           </p>
         </div>
 
-        {isEmailVerificationStep ? (
+        {isPasswordResetStep ? (
+          <div className="space-y-4">
+            {resetNotice && (
+              <p className="rounded-2xl bg-[#F4F0FF] px-4 py-3 text-sm font-bold text-[#4F32D9]">
+                {resetNotice}
+              </p>
+            )}
+
+            {resetPasswordStep === "email" && (
+              <AuthField
+                icon={<Mail size={18} />}
+                label="Email"
+                value={resetEmail}
+                onChange={(value) => {
+                  setResetEmail(value);
+                  setResetErrors((current) => ({
+                    ...current,
+                    email: undefined,
+                  }));
+                }}
+                placeholder="you@example.com"
+                type="email"
+                error={resetErrors.email}
+                focusBorder={authTheme.focusBorder}
+              />
+            )}
+
+            {resetPasswordStep === "code" && (
+              <AuthField
+                icon={<Mail size={18} />}
+                label="Код из письма"
+                value={resetCode}
+                onChange={(value) => {
+                  setResetCode(value.replace(/\D/g, "").slice(0, 6));
+                  setResetErrors((current) => ({
+                    ...current,
+                    code: undefined,
+                  }));
+                }}
+                placeholder="000000"
+                type="text"
+                error={resetErrors.code}
+                focusBorder={authTheme.focusBorder}
+              />
+            )}
+
+            {resetPasswordStep === "password" && (
+              <>
+                <AuthField
+                  icon={<LockKeyhole size={18} />}
+                  label="Новый пароль"
+                  value={resetPassword}
+                  onChange={(value) => {
+                    setResetPassword(value);
+                    setResetErrors((current) => ({
+                      ...current,
+                      password: undefined,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  placeholder="Введите новый пароль"
+                  type="password"
+                  error={resetErrors.password}
+                  focusBorder={authTheme.focusBorder}
+                />
+
+                <AuthField
+                  icon={<LockKeyhole size={18} />}
+                  label="Подтвердите пароль"
+                  value={resetConfirmPassword}
+                  onChange={(value) => {
+                    setResetConfirmPassword(value);
+                    setResetErrors((current) => ({
+                      ...current,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  placeholder="Повторите новый пароль"
+                  type="password"
+                  error={resetErrors.confirmPassword}
+                  focusBorder={authTheme.focusBorder}
+                />
+              </>
+            )}
+
+            <button
+              type="submit"
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
+            >
+              {resetPasswordStep === "email"
+                ? "Отправить письмо"
+                : resetPasswordStep === "code"
+                  ? "Подтвердить код"
+                  : "Сохранить пароль"}
+            </button>
+
+            <button
+              type="button"
+              onClick={resetPasswordFlow}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
+              Вернуться ко входу
+            </button>
+          </div>
+        ) : isEmailVerificationStep ? (
           <div className="space-y-4">
             <AuthField
               icon={<Mail size={18} />}
@@ -477,6 +710,25 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
                 {isRegister ? "Войти" : "Зарегистрироваться"}
               </Link>
             </p>
+
+            {!isRegister && (
+              <button
+                type="button"
+                onClick={() => {
+                  setResetPasswordStep("email");
+                  setResetEmail(email);
+                  setResetCode("");
+                  setResetPassword("");
+                  setResetConfirmPassword("");
+                  setResetNotice(undefined);
+                  setResetErrors({});
+                  setSubmitError(undefined);
+                }}
+                className={`mx-auto mt-3 block w-fit text-sm font-black ${authTheme.accentTextHover}`}
+              >
+                Забыли пароль?
+              </button>
+            )}
 
             {isRegister && !isSeller && (
               <a
