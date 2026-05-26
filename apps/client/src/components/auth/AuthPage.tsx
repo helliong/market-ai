@@ -4,7 +4,11 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
-import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL } from "@/lib/admin";
+import {
+  ADMIN_LOGIN_URL,
+  ADMIN_REGISTER_URL,
+  ADMIN_SELLER_URL,
+} from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
@@ -732,7 +736,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
             {isRegister && !isSeller && (
               <a
-                href={ADMIN_REGISTER_URL}
+                href={ADMIN_SELLER_URL}
                 className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
               >
                 <span

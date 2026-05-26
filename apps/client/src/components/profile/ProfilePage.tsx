@@ -11,7 +11,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { ADMIN_REGISTER_URL } from "@/lib/admin";
+import { ADMIN_SELLER_URL } from "@/lib/admin";
 import { logout } from "@/store/authSlice";
 import { logoutClient } from "@/lib/auth-api";
 import { useAppSelector } from "@/store/hooks";
@@ -79,7 +79,7 @@ export function ProfilePage() {
 
             {user && (
               <a
-                href={ADMIN_REGISTER_URL}
+                href={ADMIN_SELLER_URL}
                 className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
               >
                 <span
