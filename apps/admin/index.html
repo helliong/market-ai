@@ -59,12 +59,14 @@
       }
 
       html[data-initial-page="login"] .initial-loader-shell--welcome,
-      html[data-initial-page="register"] .initial-loader-shell--welcome {
+      html[data-initial-page="register"] .initial-loader-shell--welcome,
+      html[data-initial-page="admin"] .initial-loader-shell--welcome {
         display: none;
       }
 
       html:not([data-initial-page="login"]) .initial-loader-shell--login,
-      html:not([data-initial-page="register"]) .initial-loader-shell--register {
+      html:not([data-initial-page="register"]) .initial-loader-shell--register,
+      html:not([data-initial-page="admin"]) .initial-loader-shell--admin {
         display: none;
       }
 
@@ -275,6 +277,118 @@
         border-radius: 16px;
       }
 
+      .initial-loader-admin {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        width: 100%;
+        min-height: 100vh;
+        padding: 0;
+      }
+
+      .initial-loader-sidebar {
+        display: grid;
+        align-content: start;
+        gap: 24px;
+        background: #111827;
+        padding: 24px;
+      }
+
+      .initial-loader-sidebar-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--initial-accent);
+      }
+
+      .initial-loader-sidebar-nav {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .initial-loader-sidebar-item {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .initial-loader-admin-content {
+        display: grid;
+        align-content: start;
+        gap: 28px;
+        padding: 28px;
+      }
+
+      .initial-loader-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .initial-loader-admin-title {
+        display: grid;
+        gap: 10px;
+      }
+
+      .initial-loader-admin-profile {
+        width: 142px;
+        height: 42px;
+        border-radius: 12px;
+      }
+
+      .initial-loader-admin-cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .initial-loader-admin-card {
+        display: grid;
+        gap: 14px;
+        min-height: 118px;
+        border: 1px solid rgba(17, 24, 39, 0.08);
+        border-radius: 18px;
+        background: var(--initial-card);
+        padding: 22px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .initial-loader-admin-panel {
+        display: grid;
+        gap: 18px;
+        border: 1px solid rgba(17, 24, 39, 0.08);
+        border-radius: 18px;
+        background: var(--initial-card);
+        padding: 22px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .initial-loader-admin-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .initial-loader-table {
+        display: grid;
+        gap: 12px;
+      }
+
+      .initial-loader-table-row {
+        display: grid;
+        grid-template-columns: 1.3fr 0.8fr 0.8fr 0.6fr;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .initial-loader-table-cell {
+        height: 18px;
+        border-radius: 999px;
+      }
+
       @keyframes skeletonShimmer {
         to {
           transform: translateX(100%);
@@ -307,6 +421,31 @@
           grid-template-columns: 1fr;
         }
 
+        .initial-loader-admin {
+          grid-template-columns: 1fr;
+        }
+
+        .initial-loader-sidebar {
+          grid-template-columns: 40px repeat(4, 40px);
+          align-items: center;
+          padding: 19px 22px;
+        }
+
+        .initial-loader-sidebar-nav {
+          grid-template-columns: repeat(4, 40px);
+          margin-top: 0;
+        }
+
+        .initial-loader-admin-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .initial-loader-topbar,
+        .initial-loader-admin-panel-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
         .skeleton-title {
           height: 44px;
         }
@@ -320,6 +459,12 @@
 
       if (initialPath === "/register") {
         document.documentElement.dataset.initialPage = "register";
+      }
+
+      if (
+        ["/dashboard", "/products", "/orders", "/users"].includes(initialPath)
+      ) {
+        document.documentElement.dataset.initialPage = "admin";
       }
     </script>
   </head>
@@ -463,6 +608,90 @@
             <div class="skeleton skeleton-line" style="width: 260px; justify-self: center"></div>
           </div>
         </div>
+      </div>
+
+      <div class="initial-loader-shell initial-loader-shell--admin initial-loader-admin">
+        <aside class="initial-loader-sidebar" aria-hidden="true">
+          <div class="initial-loader-sidebar-logo"></div>
+          <div class="initial-loader-sidebar-nav">
+            <div class="initial-loader-sidebar-item"></div>
+            <div class="initial-loader-sidebar-item"></div>
+            <div class="initial-loader-sidebar-item"></div>
+            <div class="initial-loader-sidebar-item"></div>
+          </div>
+        </aside>
+
+        <main class="initial-loader-admin-content" aria-hidden="true">
+          <div class="initial-loader-topbar">
+            <div class="initial-loader-admin-title">
+              <div class="skeleton skeleton-line" style="width: 280px; height: 34px"></div>
+              <div class="skeleton skeleton-line" style="width: 330px"></div>
+            </div>
+            <div class="skeleton initial-loader-admin-profile"></div>
+          </div>
+
+          <div class="initial-loader-admin-cards">
+            <div class="initial-loader-admin-card">
+              <div class="skeleton skeleton-line" style="width: 86px"></div>
+              <div class="skeleton skeleton-line" style="width: 130px; height: 32px"></div>
+            </div>
+            <div class="initial-loader-admin-card">
+              <div class="skeleton skeleton-line" style="width: 92px"></div>
+              <div class="skeleton skeleton-line" style="width: 116px; height: 32px"></div>
+            </div>
+            <div class="initial-loader-admin-card">
+              <div class="skeleton skeleton-line" style="width: 100px"></div>
+              <div class="skeleton skeleton-line" style="width: 140px; height: 32px"></div>
+            </div>
+            <div class="initial-loader-admin-card">
+              <div class="skeleton skeleton-line" style="width: 84px"></div>
+              <div class="skeleton skeleton-line" style="width: 150px; height: 32px"></div>
+            </div>
+          </div>
+
+          <div class="initial-loader-admin-panel">
+            <div class="initial-loader-admin-panel-header">
+              <div>
+                <div class="skeleton skeleton-line" style="width: 190px; height: 24px"></div>
+                <div class="skeleton skeleton-line" style="width: 310px; margin-top: 10px"></div>
+              </div>
+              <div class="skeleton skeleton-button" style="width: 150px; height: 42px"></div>
+            </div>
+
+            <div class="initial-loader-table">
+              <div class="initial-loader-table-row">
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+              </div>
+              <div class="initial-loader-table-row">
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+              </div>
+              <div class="initial-loader-table-row">
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+              </div>
+              <div class="initial-loader-table-row">
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+              </div>
+              <div class="initial-loader-table-row">
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+                <div class="skeleton initial-loader-table-cell"></div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
     <div id="root"></div>
