@@ -9,12 +9,21 @@ describe('AuthService', () => {
   let service: AuthService;
 
   const prismaServiceMock = {
-    user: {
+    account: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
+    userSeller: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
 
   const jwtServiceMock = {

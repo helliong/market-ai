@@ -9,19 +9,22 @@ import {
   Sun,
   Users,
 } from "lucide-react";
+import { getCurrentSeller } from "./auth-api";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
 import { ProductModal } from "./admin/components/ProductModal";
-import { emptyProductForm, initialOrders, initialProducts, initialUsers } from "./admin/data";
+import { emptyProductForm } from "./admin/data";
 import { DashboardPage } from "./admin/pages/DashboardPage";
 import { OrdersPage } from "./admin/pages/OrdersPage";
 import { ProductsPage } from "./admin/pages/ProductsPage";
 import { UsersPage } from "./admin/pages/UsersPage";
 import type {
   OrderStatus,
+  Order,
   Product,
   ProductForm,
+  User,
   UserRole,
   UserStatus,
 } from "./admin/types";
@@ -79,9 +82,9 @@ const pagePaths: Record<Page, string> = {
 function App() {
   const theme = useTheme();
   const [page, setPage] = useState<Page>(getInitialPage());
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [orders, setOrders] = useState(initialOrders);
-  const [users, setUsers] = useState(initialUsers);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
   const [storeName, setStoreName] = useState("MarketAI Store");
@@ -101,6 +104,34 @@ function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (page === "welcome" || page === "register" || page === "login") {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadSeller() {
+      try {
+        const seller = await getCurrentSeller();
+
+        if (isMounted) {
+          setStoreName(seller.storeName);
+        }
+      } catch {
+        if (isMounted) {
+          navigateToPage("login");
+        }
+      }
+    }
+
+    void loadSeller();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page]);
 
   const dashboardStats = useMemo(() => {
     const activeOrders = orders.filter((order) => order.status !== "cancelled");
@@ -254,22 +285,18 @@ function App() {
     });
   }
 
+  async function restoreSellerSession() {
+    const seller = await getCurrentSeller();
+    setStoreName(seller.storeName);
+  }
+
   function registerSeller(seller: { name: string; email: string }) {
     setStoreName(seller.name);
-    setUsers((currentUsers) => [
-      {
-        id: Date.now(),
-        name: seller.name,
-        email: seller.email,
-        role: "seller",
-        status: "active",
-      },
-      ...currentUsers,
-    ]);
     navigateToPage("dashboard");
   }
 
-  function loginSeller() {
+  async function loginSeller() {
+    await restoreSellerSession();
     navigateToPage("dashboard");
   }
 

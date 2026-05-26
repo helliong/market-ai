@@ -73,6 +73,14 @@ export function UsersPage({
                 </td>
               </tr>
             ))}
+
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={5} className="empty-cell">
+                  Пользователей пока нет
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

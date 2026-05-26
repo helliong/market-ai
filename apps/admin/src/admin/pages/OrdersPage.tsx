@@ -53,6 +53,14 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
                 </td>
               </tr>
             ))}
+
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan={5} className="empty-cell">
+                  Заказов пока нет
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

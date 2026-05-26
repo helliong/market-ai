@@ -19,9 +19,13 @@ type VerifyEmailPayload = {
 
 export type CurrentUser = {
   id: string;
-  name: string;
+  name: string | null;
+  displayName?: string | null;
   email: string;
   isEmailVerified: boolean;
+  hasUserProfile?: boolean;
+  hasSellerProfile?: boolean;
+  sellerStatus?: string | null;
   createdAt: string;
 };
 

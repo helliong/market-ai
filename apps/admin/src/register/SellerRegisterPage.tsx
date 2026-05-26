@@ -1,5 +1,10 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import {
+  registerSellerProfile,
+  resendSellerVerificationCode,
+  verifySellerEmail,
+} from "../auth-api";
 import { SellerAuthFooter } from "./SellerAuthFooter";
 import "./SellerRegisterPage.css";
 
@@ -20,16 +25,6 @@ type FormErrors = {
   agreement?: string;
 };
 
-async function requestEmailVerificationCode(_email: string) {
-  void _email;
-  // Заменить на API-запрос после подключения отправки email.
-}
-
-async function verifyEmailCode(_email: string, code: string) {
-  // Временная заглушка принимает любой 6-значный код до подключения backend.
-  return /^\d{6}$/.test(code.trim());
-}
-
 export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,10 +36,13 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   );
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
+  const [submitError, setSubmitError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const isEmailConfirmationStep = Boolean(pendingSeller);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors: FormErrors = {};
@@ -85,15 +83,32 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
       return;
     }
 
-    const seller = {
-      name: trimmedName,
-      email: trimmedEmail,
-    };
+    setIsSubmitting(true);
+    setSubmitError(undefined);
+    setNotice(undefined);
 
-    void requestEmailVerificationCode(seller.email);
-    setPendingSeller(seller);
-    setVerificationCode("");
-    setVerificationError(undefined);
+    try {
+      await registerSellerProfile({
+        email: trimmedEmail,
+        password: trimmedPassword,
+        storeName: trimmedName,
+        agreementAccepted: isAgreementAccepted,
+      });
+
+      setPendingSeller({
+        name: trimmedName,
+        email: trimmedEmail,
+      });
+      setVerificationCode("");
+      setVerificationError(undefined);
+      setNotice("Код подтверждения отправлен на email.");
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Не удалось создать магазин",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleEmailConfirmationSubmit(
@@ -105,17 +120,49 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
       return;
     }
 
-    const isCodeValid = await verifyEmailCode(
-      pendingSeller.email,
-      verificationCode,
-    );
-
-    if (!isCodeValid) {
+    if (!/^\d{6}$/.test(verificationCode.trim())) {
       setVerificationError("Введите 6-значный код");
       return;
     }
 
-    onSubmit(pendingSeller);
+    setIsSubmitting(true);
+    setVerificationError(undefined);
+
+    try {
+      await verifySellerEmail({
+        email: pendingSeller.email,
+        code: verificationCode,
+      });
+
+      onSubmit(pendingSeller);
+    } catch (error) {
+      setVerificationError(
+        error instanceof Error ? error.message : "Неверный код подтверждения",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendCode() {
+    if (!pendingSeller) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setVerificationError(undefined);
+    setNotice(undefined);
+
+    try {
+      await resendSellerVerificationCode(pendingSeller.email);
+      setNotice("Новый код отправлен на email.");
+    } catch (error) {
+      setVerificationError(
+        error instanceof Error ? error.message : "Не удалось отправить код",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -158,8 +205,13 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
             <>
               <div>
                 <h2>Подтверждение email</h2>
-                <p>Введите код подтверждения, отправленный на {pendingSeller?.email}.</p>
+                <p>
+                  Введите код подтверждения, отправленный на{" "}
+                  {pendingSeller?.email}.
+                </p>
               </div>
+
+              {notice && <p className="seller-register-notice">{notice}</p>}
 
               <label>
                 Код подтверждения
@@ -182,19 +234,17 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 )}
               </label>
 
-              <button type="submit">Подтвердить email</button>
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Проверяем..." : "Подтвердить email"}
+              </button>
 
               <button
                 className="seller-register-secondary-button"
                 type="button"
-                onClick={() => {
-                  if (pendingSeller) {
-                    void requestEmailVerificationCode(pendingSeller.email);
-                  }
-                  setVerificationError(undefined);
-                }}
+                onClick={handleResendCode}
+                disabled={isSubmitting}
               >
-                Отправить код еще раз
+                Отправить код ещё раз
               </button>
 
               <button
@@ -204,6 +254,8 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   setPendingSeller(null);
                   setVerificationCode("");
                   setVerificationError(undefined);
+                  setSubmitError(undefined);
+                  setNotice(undefined);
                 }}
               >
                 Изменить данные регистрации
@@ -217,7 +269,9 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
             <>
               <div>
                 <h2>Регистрация</h2>
-                <p>Заполните данные магазина, чтобы создать профиль продавца.</p>
+                <p>
+                  Заполните данные магазина, чтобы создать профиль продавца.
+                </p>
               </div>
 
               <label>
@@ -267,7 +321,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                       confirmPassword: undefined,
                     }));
                   }}
-                  placeholder="Не менее 6 символов"
+                  placeholder="Пароль от аккаунта"
                 />
                 {errors.password && (
                   <span className="seller-register-error">
@@ -351,10 +405,18 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 </span>
               )}
 
-              <button type="submit">Создать аккаунт продавца</button>
+              {submitError && (
+                <p className="seller-register-error">{submitError}</p>
+              )}
+
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Создаём..."
+                  : "Создать аккаунт продавца"}
+              </button>
 
               <p className="seller-register-switch">
-                Уже продаете на MarketAI? <a href="/login">Войти</a>
+                Уже продаёте на MarketAI? <a href="/login">Войти</a>
               </p>
             </>
           )}

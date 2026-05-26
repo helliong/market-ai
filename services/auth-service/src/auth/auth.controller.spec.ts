@@ -7,11 +7,19 @@ describe('AuthController', () => {
 
   const authServiceMock = {
     register: jest.fn(),
+    registerSeller: jest.fn(),
     verifyEmail: jest.fn(),
     login: jest.fn(),
+    sellerLogin: jest.fn(),
     refreshTokens: jest.fn(),
-    logout: jest.fn(),
-  };
+    getMe: jest.fn(),
+    getUserMe: jest.fn(),
+  getSellerMe: jest.fn(),
+  forgotPassword: jest.fn(),
+  resendVerificationCode: jest.fn(),
+  resetPassword: jest.fn(),
+  logout: jest.fn(),
+};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

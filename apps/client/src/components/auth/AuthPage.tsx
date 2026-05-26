@@ -204,7 +204,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       dispatch(
         login({
           id: currentUser.id,
-          name: currentUser.name,
+          name: currentUser.name ?? currentUser.displayName ?? user.name,
           email: currentUser.email,
           isEmailVerified: currentUser.isEmailVerified,
         }),
@@ -248,7 +248,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       dispatch(
         register({
           id: currentUser.id,
-          name: currentUser.name,
+          name: currentUser.name ?? currentUser.displayName ?? pendingUser.name,
           email: currentUser.email,
           isEmailVerified: currentUser.isEmailVerified,
         }),

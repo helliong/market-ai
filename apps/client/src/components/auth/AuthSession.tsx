@@ -22,7 +22,7 @@ export function AuthSession() {
         dispatch(
           setUser({
             id: user.id,
-            name: user.name,
+            name: user.name ?? user.displayName ?? "",
             email: user.email,
             isEmailVerified: user.isEmailVerified,
           }),

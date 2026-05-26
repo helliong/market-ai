@@ -11,6 +11,9 @@ type DashboardPageProps = {
 };
 
 export function DashboardPage({ stats }: DashboardPageProps) {
+  const hasActivity =
+    stats.products > 0 || stats.orders > 0 || stats.users > 0 || stats.revenue > 0;
+
   return (
     <section>
       <div className="cards">
@@ -20,13 +23,15 @@ export function DashboardPage({ stats }: DashboardPageProps) {
         <StatCard title="Выручка" value={formatCurrency(stats.revenue)} />
       </div>
 
-      <div className="panel">
-        <h2>Обзор</h2>
-        <p>
-          Здесь будет аналитика: продажи, активные пользователи, заказы и работа
-          AI-рекомендаций.
-        </p>
-      </div>
+      {!hasActivity && (
+        <div className="panel">
+          <h2>Обзор</h2>
+          <p>
+            Данных пока нет. Добавьте первый товар или дождитесь первого заказа,
+            чтобы здесь появилась статистика магазина.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
