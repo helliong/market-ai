@@ -4,3 +4,9 @@ export { VerifyEmailDto } from './verify-email.dto';
 export { SellerRegisterDto } from './seller-register.dto';
 export { ForgotPasswordDto } from './forgot-password.dto';
 export { ResetPasswordDto } from './reset-password.dto';
+export {
+  AccountSummaryResponseDto,
+  BuyerProfileResponseDto,
+  MessageResponseDto,
+  SellerProfileResponseDto,
+} from './auth-response.dto';

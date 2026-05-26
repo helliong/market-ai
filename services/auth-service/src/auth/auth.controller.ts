@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -20,23 +22,31 @@ import { AuthService } from './auth.service';
 import {
   ForgotPasswordDto,
   LoginDto,
+  MessageResponseDto,
   RegisterDto,
   ResetPasswordDto,
   SellerRegisterDto,
+  AccountSummaryResponseDto,
+  BuyerProfileResponseDto,
+  SellerProfileResponseDto,
   VerifyEmailDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
-@ApiTags('auth')
+@ApiTags('Auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a buyer profile' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Register buyer profile',
+    description:
+      'Creates a new Account with a buyer User profile. If the Account already exists, the password must match and only the buyer profile is added.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Buyer registered. Verification code was sent to email.',
   })
   @ApiResponse({
@@ -48,10 +58,18 @@ export class AuthController {
   }
 
   @Post('seller/register')
-  @ApiOperation({ summary: 'Register a seller profile' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Register seller profile',
+    description:
+      'Creates a seller profile for a new or existing Account. Existing buyer accounts must use the same email and password.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Seller registered. Verification code was sent to email.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Existing account password does not match.',
   })
   @ApiResponse({
     status: 409,
@@ -62,9 +80,13 @@ export class AuthController {
   }
 
   @Post('verify-email')
-  @ApiOperation({ summary: 'Verify account email with six-digit code' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Verify email',
+    description:
+      'Verifies the Account email using the latest six-digit code sent to the mailbox.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Email verified successfully.',
   })
   @ApiResponse({
@@ -76,9 +98,13 @@ export class AuthController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Login and set auth cookies' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Login account',
+    description:
+      'Authenticates an Account and sets HttpOnly accessToken and refreshToken cookies.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Login successful. Sets accessToken and refreshToken cookies.',
   })
   @ApiResponse({
@@ -96,9 +122,13 @@ export class AuthController {
   }
 
   @Post('seller/login')
-  @ApiOperation({ summary: 'Seller login and set auth cookies' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Login seller',
+    description:
+      'Authenticates an Account and additionally checks that it has an active seller profile.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description:
       'Seller login successful. Sets accessToken and refreshToken cookies.',
   })
@@ -123,9 +153,13 @@ export class AuthController {
 
   @Post('refresh')
   @ApiCookieAuth('refreshToken')
-  @ApiOperation({ summary: 'Refresh access and refresh tokens' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Refresh tokens',
+    description:
+      'Rotates accessToken and refreshToken cookies using a valid refreshToken cookie.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description:
       'Tokens refreshed. Sets new accessToken and refreshToken cookies.',
   })
@@ -154,9 +188,13 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
-  @ApiOperation({ summary: 'Get current account summary' })
-  @ApiResponse({
-    status: 200,
+  @ApiOperation({
+    summary: 'Get current account',
+    description:
+      'Returns Account identity and profile flags. JWT sub is Account.id.',
+  })
+  @ApiOkResponse({
+    type: AccountSummaryResponseDto,
     description: 'Current account summary.',
   })
   @ApiResponse({
@@ -176,9 +214,12 @@ export class AuthController {
   @Get('user/me')
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
-  @ApiOperation({ summary: 'Get current buyer profile' })
-  @ApiResponse({
-    status: 200,
+  @ApiOperation({
+    summary: 'Get buyer profile',
+    description: 'Returns the buyer User profile attached to the current Account.',
+  })
+  @ApiOkResponse({
+    type: BuyerProfileResponseDto,
     description: 'Current buyer profile.',
   })
   @ApiResponse({
@@ -198,9 +239,13 @@ export class AuthController {
   @Get('seller/me')
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
-  @ApiOperation({ summary: 'Get current seller profile' })
-  @ApiResponse({
-    status: 200,
+  @ApiOperation({
+    summary: 'Get seller profile',
+    description:
+      'Returns the seller profile attached to the current Account. Suspended sellers are rejected.',
+  })
+  @ApiOkResponse({
+    type: SellerProfileResponseDto,
     description: 'Current seller profile.',
   })
   @ApiResponse({
@@ -218,9 +263,13 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset code' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Request password reset',
+    description:
+      'Sends a password reset code for the Account. The response is intentionally generic.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Reset instructions were sent if account exists.',
   })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -228,9 +277,13 @@ export class AuthController {
   }
 
   @Post('resend-verification')
-  @ApiOperation({ summary: 'Request a new email verification code' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Resend email verification code',
+    description:
+      'Generates and sends a fresh email verification code for the Account.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Verification code was sent if account exists.',
   })
   async resendVerificationCode(@Body() dto: ForgotPasswordDto) {
@@ -238,9 +291,13 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Reset account password' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Reset password',
+    description:
+      'Updates the Account password using a valid reset code and invalidates existing refresh sessions.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Password reset successfully.',
   })
   @ApiResponse({
@@ -254,9 +311,13 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
-  @ApiOperation({ summary: 'Logout and clear auth cookies' })
-  @ApiResponse({
-    status: 201,
+  @ApiOperation({
+    summary: 'Logout',
+    description:
+      'Clears refreshTokenHash for the Account and removes auth cookies.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
     description: 'Logged out successfully.',
   })
   @ApiResponse({

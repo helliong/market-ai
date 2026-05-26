@@ -33,10 +33,21 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('MarketAI Auth Service')
     .setDescription(
-      'Client authentication API: registration, email verification, login, token refresh, logout and current session.',
+      [
+        'Authentication API for buyer and seller profiles.',
+        '',
+        'Architecture:',
+        '- Account stores email, password, verification and refresh session data.',
+        '- User is the buyer profile.',
+        '- UserSeller is the seller cabinet profile.',
+        '',
+        'One email always belongs to one Account. Buyer and seller profiles are attached to that Account.',
+      ].join('\n'),
     )
     .setVersion('1.0')
     .addServer('http://127.0.0.1:4001', 'Local development')
+    .addServer('http://localhost:4001', 'Local development (localhost)')
+    .addTag('Auth', 'Account, buyer profile and seller profile authorization')
     .addCookieAuth(
       'accessToken',
       {
@@ -61,7 +72,82 @@ async function bootstrap() {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup('docs', app, swaggerDocument);
+  SwaggerModule.setup('docs', app, swaggerDocument, {
+    customSiteTitle: 'MarketAI Auth API',
+    customCss: `
+      :root {
+        --marketai-primary: #6d4aff;
+        --marketai-accent: #f59e0b;
+        --marketai-ink: #111827;
+      }
+
+      .swagger-ui .topbar {
+        background: linear-gradient(90deg, var(--marketai-ink), #2f255f);
+        border-bottom: 4px solid var(--marketai-primary);
+      }
+
+      .swagger-ui .topbar-wrapper img {
+        display: none;
+      }
+
+      .swagger-ui .topbar-wrapper::before {
+        color: #fff;
+        content: "MarketAI Auth API";
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: .02em;
+      }
+
+      .swagger-ui .info {
+        margin: 36px 0 28px;
+      }
+
+      .swagger-ui .info .title {
+        color: var(--marketai-ink);
+        font-size: 36px;
+        font-weight: 900;
+      }
+
+      .swagger-ui .info .title small {
+        background: var(--marketai-primary);
+      }
+
+      .swagger-ui .scheme-container,
+      .swagger-ui .opblock,
+      .swagger-ui .model-box {
+        border-radius: 8px;
+        box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
+      }
+
+      .swagger-ui .opblock.opblock-post {
+        border-color: var(--marketai-primary);
+        background: rgba(109, 74, 255, 0.04);
+      }
+
+      .swagger-ui .opblock.opblock-get {
+        border-color: var(--marketai-accent);
+        background: rgba(245, 158, 11, 0.05);
+      }
+
+      .swagger-ui .opblock .opblock-summary-method {
+        border-radius: 6px;
+      }
+
+      .swagger-ui .btn.authorize,
+      .swagger-ui .btn.execute {
+        border-color: var(--marketai-primary);
+        color: var(--marketai-primary);
+      }
+    `,
+    swaggerOptions: {
+      docExpansion: 'none',
+      filter: true,
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'method',
+    },
+  });
 
   await app.listen(process.env.PORT ?? 4001);
 }
