@@ -1,4 +1,5 @@
 import { StatusBadge } from "../components/StatusBadge";
+import { userRoleLabel, userStatusLabel } from "../formatters";
 import type { User, UserRole, UserStatus } from "../types";
 
 type UsersPageProps = {
@@ -16,8 +17,8 @@ export function UsersPage({
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Users management</h2>
-          <p>Управление пользователями, ролями и статусом аккаунта</p>
+          <h2>Управление пользователями</h2>
+          <p>Роли, статусы аккаунтов и доступ к административным функциям.</p>
         </div>
       </div>
 
@@ -37,11 +38,9 @@ export function UsersPage({
               <tr key={user.id}>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
-                <td>{user.role}</td>
+                <td>{userRoleLabel(user.role)}</td>
                 <td>
-                  <StatusBadge
-                    label={user.status === "active" ? "Активен" : "Заблокирован"}
-                  />
+                  <StatusBadge label={userStatusLabel(user.status)} />
                 </td>
                 <td>
                   <div className="inline-controls">
@@ -52,9 +51,9 @@ export function UsersPage({
                         onRoleChange(user.id, event.target.value as UserRole)
                       }
                     >
-                      <option value="admin">admin</option>
-                      <option value="seller">seller</option>
-                      <option value="user">user</option>
+                      <option value="admin">Администратор</option>
+                      <option value="seller">Продавец</option>
+                      <option value="user">Покупатель</option>
                     </select>
 
                     <select
@@ -67,8 +66,8 @@ export function UsersPage({
                         )
                       }
                     >
-                      <option value="active">active</option>
-                      <option value="blocked">blocked</option>
+                      <option value="active">Активен</option>
+                      <option value="blocked">Заблокирован</option>
                     </select>
                   </div>
                 </td>

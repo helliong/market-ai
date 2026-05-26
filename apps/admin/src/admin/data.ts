@@ -51,21 +51,21 @@ export const initialOrders: Order[] = [
 export const initialUsers: User[] = [
   {
     id: 1,
-    name: "Admin",
+    name: "Администратор",
     email: "admin@marketai.ru",
     role: "admin",
     status: "active",
   },
   {
     id: 2,
-    name: "Seller",
+    name: "Продавец",
     email: "seller@marketai.ru",
     role: "seller",
     status: "active",
   },
   {
     id: 3,
-    name: "User",
+    name: "Покупатель",
     email: "user@marketai.ru",
     role: "user",
     status: "blocked",

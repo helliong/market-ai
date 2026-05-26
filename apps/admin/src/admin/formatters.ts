@@ -1,4 +1,4 @@
-import type { OrderStatus, ProductStatus } from "./types";
+import type { OrderStatus, ProductStatus, UserRole, UserStatus } from "./types";
 
 export function formatCurrency(value: number) {
   return `${new Intl.NumberFormat("ru-RU").format(value)} ₽`;
@@ -20,6 +20,25 @@ export function orderStatusLabel(status: OrderStatus) {
     processing: "В обработке",
     completed: "Завершен",
     cancelled: "Отменен",
+  };
+
+  return labels[status];
+}
+
+export function userRoleLabel(role: UserRole) {
+  const labels: Record<UserRole, string> = {
+    admin: "Администратор",
+    seller: "Продавец",
+    user: "Покупатель",
+  };
+
+  return labels[role];
+}
+
+export function userStatusLabel(status: UserStatus) {
+  const labels: Record<UserStatus, string> = {
+    active: "Активен",
+    blocked: "Заблокирован",
   };
 
   return labels[status];

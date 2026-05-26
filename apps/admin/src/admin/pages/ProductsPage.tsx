@@ -19,8 +19,8 @@ export function ProductsPage({
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Products management</h2>
-          <p>Управление товарами, категориями, ценами и остатками</p>
+          <h2>Управление товарами</h2>
+          <p>Товары, категории, цены, остатки и статусы публикации.</p>
         </div>
         <button className="primary-button" onClick={onAddProduct}>
           Добавить товар
@@ -55,13 +55,13 @@ export function ProductsPage({
                       className="table-button"
                       onClick={() => onEditProduct(product)}
                     >
-                      Edit
+                      Изменить
                     </button>
                     <button
                       className="table-button danger"
                       onClick={() => onDeleteProduct(product.id)}
                     >
-                      Delete
+                      Удалить
                     </button>
                   </div>
                 </td>

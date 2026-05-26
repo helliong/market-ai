@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Moon,
+  Package,
+  Settings,
+  Sun,
+  Users,
+} from "lucide-react";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
@@ -18,9 +27,12 @@ import type {
 } from "./admin/types";
 import { SellerLoginPage } from "./login/SellerLoginPage";
 import { SellerRegisterPage } from "./register/SellerRegisterPage";
+import { setTheme, useTheme } from "./settings-store";
+import { SellerWelcomePage } from "./welcome/SellerWelcomePage";
 import "./App.css";
 
 type Page =
+  | "welcome"
   | "dashboard"
   | "products"
   | "orders"
@@ -28,17 +40,34 @@ type Page =
   | "register"
   | "login"
   | "agreement";
-type MenuPage = Exclude<Page, "register" | "login" | "agreement">;
+type MenuPage = Exclude<Page, "welcome" | "register" | "login" | "agreement">;
+type MenuItem = {
+  label: string;
+  icon: ReactNode;
+};
 
-const pageTitles: Record<MenuPage, string> = {
-  dashboard: "Dashboard",
-  products: "Products",
-  orders: "Orders",
-  users: "Users",
+const pageTitles: Record<MenuPage, MenuItem> = {
+  dashboard: {
+    label: "Обзор",
+    icon: <LayoutDashboard aria-hidden="true" />,
+  },
+  products: {
+    label: "Товары",
+    icon: <Package aria-hidden="true" />,
+  },
+  orders: {
+    label: "Заказы",
+    icon: <ClipboardList aria-hidden="true" />,
+  },
+  users: {
+    label: "Пользователи",
+    icon: <Users aria-hidden="true" />,
+  },
 };
 
 const pagePaths: Record<Page, string> = {
-  dashboard: "/",
+  welcome: "/",
+  dashboard: "/dashboard",
   products: "/products",
   orders: "/orders",
   users: "/users",
@@ -48,10 +77,14 @@ const pagePaths: Record<Page, string> = {
 };
 
 function App() {
+  const theme = useTheme();
   const [page, setPage] = useState<Page>(getInitialPage());
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [orders, setOrders] = useState(initialOrders);
   const [users, setUsers] = useState(initialUsers);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
+  const [storeName, setStoreName] = useState("MarketAI Store");
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -62,6 +95,7 @@ function App() {
   useEffect(() => {
     function handlePopState() {
       setPage(getInitialPage());
+      setIsMenuOpen(false);
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -196,7 +230,32 @@ function App() {
     window.history.pushState({}, "", pagePaths[nextPage]);
   }
 
+  function handleMenuItemClick(nextPage: MenuPage) {
+    if (!isMenuOpen) {
+      setIsMenuOpen(true);
+    }
+
+    navigateToPage(nextPage);
+  }
+
+  function openStoreMenu() {
+    setIsMenuOpen(true);
+    setIsStoreMenuOpen(true);
+  }
+
+  function toggleSidebar() {
+    if (isStoreMenuOpen) {
+      setIsStoreMenuOpen(false);
+      return;
+    }
+
+    setIsMenuOpen((current) => {
+      return !current;
+    });
+  }
+
   function registerSeller(seller: { name: string; email: string }) {
+    setStoreName(seller.name);
     setUsers((currentUsers) => [
       {
         id: Date.now(),
@@ -214,6 +273,10 @@ function App() {
     navigateToPage("dashboard");
   }
 
+  if (page === "welcome") {
+    return <SellerWelcomePage />;
+  }
+
   if (page === "login") {
     return <SellerLoginPage onSubmit={loginSeller} />;
   }
@@ -228,31 +291,135 @@ function App() {
 
   return (
     <div className="admin-layout">
-      <aside className="sidebar">
-        <div className="logo">
-          Market<span>AI</span>
-        </div>
+      <aside
+        className={`sidebar ${isMenuOpen ? "is-open" : ""}`}
+        onClick={toggleSidebar}
+      >
+        <button
+          type="button"
+          className="logo"
+          aria-expanded={isMenuOpen}
+          aria-controls="admin-menu"
+          onClick={(event) => {
+            event.stopPropagation();
+            toggleSidebar();
+          }}
+        >
+          <span className="logo-mark">M</span>
+          <span className="logo-text">
+            <span className="logo-word">
+              Market<span>AI</span>
+            </span>
+            <small>Продавцам</small>
+          </span>
+        </button>
 
-        <nav>
+        <nav id="admin-menu">
           {(Object.keys(pageTitles) as MenuPage[]).map((item) => (
             <button
               key={item}
               className={page === item ? "active" : ""}
-              onClick={() => navigateToPage(item)}
+              title={pageTitles[item].label}
+              aria-label={pageTitles[item].label}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleMenuItemClick(item);
+              }}
             >
-              {pageTitles[item]}
+              <span className="menu-icon">{pageTitles[item].icon}</span>
+              <span className="menu-label">{pageTitles[item].label}</span>
             </button>
           ))}
         </nav>
+
+        <button
+          type="button"
+          className="sidebar-store"
+          title={storeName}
+          aria-label={`Настройки магазина: ${storeName}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            openStoreMenu();
+          }}
+        >
+          <span className="store-icon">
+            <Settings aria-hidden="true" />
+          </span>
+          <span className="store-name">{storeName}</span>
+        </button>
+      </aside>
+
+      {isStoreMenuOpen && (
+        <div
+          className="store-menu-backdrop"
+          role="button"
+          tabIndex={0}
+          aria-label="Закрыть меню магазина"
+          onClick={() => setIsStoreMenuOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Enter") {
+              setIsStoreMenuOpen(false);
+            }
+          }}
+        />
+      )}
+
+      <aside
+        className={`store-subsidebar ${isStoreMenuOpen ? "is-open" : ""}`}
+        aria-hidden={!isStoreMenuOpen}
+      >
+        <div className="store-subsidebar-header">
+          <div>
+            <p>Магазин</p>
+            <h2>{storeName}</h2>
+          </div>
+          <button
+            type="button"
+            aria-label="Закрыть"
+            onClick={() => setIsStoreMenuOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="store-subsidebar-nav">
+          <button type="button">Настройки</button>
+          <button type="button">Юридические данные</button>
+          <button type="button">Подписка на уведомления</button>
+        </nav>
+
+        <div
+          className={`store-subsidebar-theme ${theme === "dark" ? "is-dark" : ""}`}
+          role="group"
+          aria-label="Тема"
+        >
+          <span className="theme-slider-thumb" aria-hidden="true" />
+          <button
+            type="button"
+            className={theme === "light" ? "active" : ""}
+            aria-label="Светлая тема"
+            onClick={() => setTheme("light")}
+          >
+            <Sun aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={theme === "dark" ? "active" : ""}
+            aria-label="Темная тема"
+            onClick={() => setTheme("dark")}
+          >
+            <Moon aria-hidden="true" />
+          </button>
+        </div>
       </aside>
 
       <main className="content">
         <header className="topbar">
           <div>
-            <h1>Admin Panel</h1>
+            <h1>Панель администратора</h1>
             <p>Управление маркетплейсом MarketAI</p>
           </div>
-          <button className="profile-button">Admin</button>
+          <button className="profile-button">Администратор</button>
         </header>
 
         {page === "dashboard" && <DashboardPage stats={dashboardStats} />}
@@ -300,10 +467,12 @@ function getInitialPage(): Page {
   }
 
   const matchedPage = (Object.keys(pagePaths) as Page[]).find(
-    (item) => pagePaths[item] === path || (item === "dashboard" && path === ""),
+    (item) =>
+      pagePaths[item] === path ||
+      (item === "welcome" && (path === "" || path === "/")),
   );
 
-  return matchedPage ?? "dashboard";
+  return matchedPage ?? "welcome";
 }
 
 export default App;

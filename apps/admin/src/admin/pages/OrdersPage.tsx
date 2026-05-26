@@ -12,8 +12,8 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Orders management</h2>
-          <p>Просмотр заказов и изменение статуса обработки</p>
+          <h2>Управление заказами</h2>
+          <p>Просмотр заказов и изменение статуса обработки.</p>
         </div>
       </div>
 

@@ -23,11 +23,11 @@ export function ProductModal({
           <div>
             <h2>{isEditing ? "Редактировать товар" : "Добавить товар"}</h2>
             <p>
-              Данные пока сохраняются локально. После готовности backend будут
-              отправляться через API.
+              Данные пока сохраняются локально. После готовности backend они
+              будут отправляться через API.
             </p>
           </div>
-          <button className="close-button" onClick={onClose}>
+          <button className="close-button" onClick={onClose} aria-label="Закрыть">
             ×
           </button>
         </div>
@@ -51,7 +51,7 @@ export function ProductModal({
               onChange={(event) =>
                 onChange({ ...form, category: event.target.value })
               }
-              placeholder="Например, Смартфоны"
+              placeholder="Например, смартфоны"
             />
           </label>
 

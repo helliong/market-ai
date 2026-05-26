@@ -3,8 +3,9 @@
   flex-direction: column;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(250, 204, 21, 0.18), transparent 34%), #f4f6fb;
-  color: #111827;
+    linear-gradient(135deg, rgba(250, 204, 21, 0.18), transparent 34%),
+    var(--bg-main);
+  color: var(--text-main);
   padding: 28px;
 }
 
@@ -16,14 +17,30 @@
 .seller-register-logo {
   display: inline-flex;
   align-items: center;
-  color: #111827;
+  gap: 8px;
+  color: var(--text-main);
   font-size: 26px;
   font-weight: 800;
   text-decoration: none;
 }
 
-.seller-register-logo span {
+.seller-logo-word {
+  color: var(--text-main);
+}
+
+.seller-logo-word span {
   color: #facc15;
+}
+
+.seller-register-logo small,
+.seller-auth-footer-logo small {
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .seller-register-shell {
@@ -43,7 +60,7 @@
 
 .seller-register-eyebrow {
   margin: 0;
-  color: #b45309;
+  color: var(--accent-strong);
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -52,7 +69,7 @@
 
 .seller-register-copy h1 {
   margin: 16px 0 0;
-  color: #111827;
+  color: var(--text-main);
   font-size: 56px;
   line-height: 1.02;
 }
@@ -60,7 +77,7 @@
 .seller-register-copy p {
   margin: 22px 0 0;
   max-width: 560px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 18px;
   line-height: 1.75;
 }
@@ -75,9 +92,9 @@
 
 .seller-register-benefits div {
   min-height: 74px;
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: white;
+  background: var(--bg-card);
   padding: 18px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   font-size: 14px;
@@ -88,9 +105,9 @@
   display: grid;
   gap: 16px;
   width: 100%;
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  border: 1px solid var(--border);
   border-radius: 32px;
-  background: white;
+  background: var(--bg-card);
   padding: 28px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.1);
 }
@@ -103,7 +120,7 @@
 
 .seller-register-form p {
   margin: 8px 0 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -111,7 +128,7 @@
 .seller-register-form label {
   display: grid;
   gap: 8px;
-  color: #111827;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 800;
 }
@@ -119,11 +136,11 @@
 .seller-register-form input {
   width: 100%;
   height: 48px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: #f9fafb;
+  background: var(--bg-soft);
   padding: 0 16px;
-  color: #111827;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 700;
   outline: none;
@@ -134,14 +151,18 @@
 }
 
 .seller-register-form input:focus {
-  border-color: #facc15;
-  background: white;
+  border-color: var(--accent);
+  background: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.22);
 }
 
 .seller-register-form input.is-invalid {
   border-color: #ef4444;
   background: #fff7f7;
+}
+
+.dark .seller-register-form input.is-invalid {
+  background: #3f1d25;
 }
 
 .seller-register-form input.is-invalid:focus {
@@ -156,16 +177,31 @@
   line-height: 1.4;
 }
 
+.seller-register-notice {
+  border-radius: 16px;
+  background: #fffbeb;
+  padding: 14px 16px;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.dark .seller-register-notice {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde68a;
+}
+
 .seller-register-agreement {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: #f9fafb;
+  background: var(--bg-soft);
   padding: 14px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -179,13 +215,13 @@
 }
 
 .seller-register-agreement span {
-  color: #111827;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 600;
 }
 
 .seller-register-agreement a {
-  color: #b45309;
+  color: var(--accent-strong);
   font-weight: 900;
   text-decoration: none;
 }
@@ -196,10 +232,10 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: white;
-  color: #111827;
+  background: var(--bg-card);
+  color: var(--text-main);
   font-size: 15px;
   font-weight: 900;
   line-height: 1;
@@ -209,8 +245,9 @@
 }
 
 .seller-register-checkbox.is-checked {
-  border-color: #facc15;
-  background: #facc15;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #111827;
 }
 
 .seller-register-agreement-error {
@@ -224,8 +261,8 @@
   height: 48px;
   border: 0;
   border-radius: 16px;
-  background: #111827;
-  color: #facc15;
+  background: var(--text-main);
+  color: var(--bg-card);
   font-size: 14px;
   font-weight: 900;
   transition:
@@ -234,50 +271,84 @@
 }
 
 .seller-register-form button:hover {
-  background: #0b1220;
   transform: translateY(-1px);
 }
 
+.dark .seller-register-form button {
+  background: var(--accent);
+  color: #111827;
+}
+
 .seller-register-form .seller-register-secondary-button {
-  border: 1px solid #facc15;
-  background: white;
-  color: #b45309;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent-strong);
 }
 
 .seller-register-form .seller-register-secondary-button:hover {
-  background: #fffbeb;
+  background: transparent;
   color: #92400e;
+}
+
+.dark .seller-register-form .seller-register-secondary-button,
+.dark .seller-register-form .seller-register-secondary-button:hover {
+  border-color: var(--accent);
+  background: transparent;
+  color: var(--accent);
+}
+
+.seller-register-form .seller-register-forgot-button {
+  justify-self: center;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.seller-register-form .seller-register-forgot-button:hover {
+  background: transparent;
+  color: var(--accent-strong);
+  text-decoration: underline;
+  transform: none;
+}
+
+.dark .seller-register-form .seller-register-forgot-button,
+.dark .seller-register-form .seller-register-forgot-button:hover {
+  background: transparent;
+  color: var(--accent-strong);
 }
 
 .seller-register-switch {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-muted);
   text-align: center;
   font-size: 14px;
   font-weight: 700;
 }
 
 .seller-register-switch a {
-  color: #b45309;
+  color: var(--accent-strong);
   font-weight: 900;
   text-decoration: none;
 }
 
 .seller-register-switch a:hover,
 .seller-register-agreement a:hover {
-  color: #92400e;
+  color: var(--accent-strong);
 }
 
 .seller-auth-footer {
   width: calc(100% + 56px);
   margin: auto -28px -28px;
-  border-top: 1px solid #e5e7eb;
-  background: white;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
 }
 
 .seller-auth-footer-main {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: 1.2fr 0.8fr 0.9fr 1.1fr;
   gap: 32px;
   width: min(1440px, calc(100% - 56px));
   margin: 0 auto;
@@ -287,20 +358,36 @@
 .seller-auth-footer-logo {
   display: inline-flex;
   align-items: center;
-  color: #111827;
+  gap: 12px;
+  color: var(--text-main);
   font-size: 24px;
   font-weight: 900;
   text-decoration: none;
 }
 
-.seller-auth-footer-logo span {
+.seller-auth-footer-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #111827;
+}
+
+.seller-auth-footer-logo .seller-logo-word span {
   color: #facc15;
+}
+
+.seller-auth-footer-logo .seller-auth-footer-logo-icon {
+  color: #111827;
 }
 
 .seller-auth-footer p {
   max-width: 420px;
   margin: 14px 0 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.7;
@@ -308,7 +395,7 @@
 
 .seller-auth-footer h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-main);
   font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -324,14 +411,50 @@
 
 .seller-auth-footer a,
 .seller-auth-footer-contacts span {
-  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
 }
 
+.seller-auth-footer .seller-auth-footer-logo {
+  display: inline-flex;
+  color: var(--text-main);
+  font-size: 24px;
+  font-weight: 900;
+  gap: 8px;
+}
+
+.seller-auth-footer .seller-auth-footer-logo-icon {
+  margin-right: 12px;
+}
+
+.seller-auth-footer-contacts svg,
+.seller-auth-footer-language-label svg {
+  color: var(--accent-strong);
+}
+
 .seller-auth-footer a:hover {
-  color: #b45309;
+  color: var(--accent-strong);
+}
+
+.seller-auth-footer select {
+  width: 100%;
+  height: 44px;
+  border-radius: 16px;
+  background: var(--bg-soft);
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.seller-auth-footer-language-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .seller-auth-footer-bottom {
@@ -342,9 +465,19 @@
   width: min(1440px, calc(100% - 56px));
   margin: 0 auto;
   padding: 16px 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 700;
+}
+
+.seller-auth-footer-bottom span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seller-auth-footer-bottom svg {
+  color: #ef4444;
 }
 
 .seller-auth-footer-bottom::before {
@@ -353,7 +486,7 @@
   top: 0;
   left: 50%;
   width: 100vw;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
   transform: translateX(-50%);
 }
 
@@ -362,8 +495,9 @@
   flex-direction: column;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(250, 204, 21, 0.18), transparent 34%), #f4f6fb;
-  color: #111827;
+    linear-gradient(135deg, rgba(250, 204, 21, 0.18), transparent 34%),
+    var(--bg-main);
+  color: var(--text-main);
   padding: 28px;
 }
 
@@ -375,9 +509,9 @@
 }
 
 .seller-agreement-card {
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  border: 1px solid var(--border);
   border-radius: 32px;
-  background: white;
+  background: var(--bg-card);
   padding: 34px;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.1);
 }
@@ -390,7 +524,7 @@
 
 .seller-agreement-card > p {
   margin: 18px 0 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 16px;
   line-height: 1.75;
 }
@@ -403,14 +537,14 @@
 
 .seller-agreement-sections h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-main);
   font-size: 20px;
   line-height: 1.25;
 }
 
 .seller-agreement-sections p {
   margin: 10px 0 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 15px;
   line-height: 1.8;
 }
@@ -463,7 +597,7 @@
   }
 
   .seller-register-benefits {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
   .seller-auth-footer-main {

@@ -21,11 +21,12 @@ type FormErrors = {
 };
 
 async function requestEmailVerificationCode(_email: string) {
-  // Replace with an API call when email delivery is connected.
+  void _email;
+  // Заменить на API-запрос после подключения отправки email.
 }
 
 async function verifyEmailCode(_email: string, code: string) {
-  // The frontend stub accepts any 6-digit code until backend verification exists.
+  // Временная заглушка принимает любой 6-значный код до подключения backend.
   return /^\d{6}$/.test(code.trim());
 }
 
@@ -53,29 +54,29 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
     const trimmedConfirmPassword = confirmPassword.trim();
 
     if (!trimmedName) {
-      nextErrors.name = "Enter the store name";
+      nextErrors.name = "Введите название магазина";
     }
 
     if (!trimmedEmail) {
-      nextErrors.email = "Enter email";
+      nextErrors.email = "Введите email";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = "Enter a valid email";
+      nextErrors.email = "Введите корректный email";
     }
 
     if (!trimmedPassword) {
-      nextErrors.password = "Enter password";
+      nextErrors.password = "Введите пароль";
     } else if (trimmedPassword.length < 6) {
-      nextErrors.password = "Password must be at least 6 characters";
+      nextErrors.password = "Пароль должен быть не короче 6 символов";
     }
 
     if (!trimmedConfirmPassword) {
-      nextErrors.confirmPassword = "Confirm password";
+      nextErrors.confirmPassword = "Подтвердите пароль";
     } else if (trimmedPassword && trimmedPassword !== trimmedConfirmPassword) {
-      nextErrors.confirmPassword = "Passwords do not match";
+      nextErrors.confirmPassword = "Пароли не совпадают";
     }
 
     if (!isAgreementAccepted) {
-      nextErrors.agreement = "Accept the user agreement";
+      nextErrors.agreement = "Примите пользовательское соглашение";
     }
 
     setErrors(nextErrors);
@@ -110,7 +111,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
     );
 
     if (!isCodeValid) {
-      setVerificationError("Enter a 6-digit code");
+      setVerificationError("Введите 6-значный код");
       return;
     }
 
@@ -120,24 +121,27 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   return (
     <main className="seller-register-page">
       <div className="seller-register-brand">
-        <a className="seller-register-logo" href="#">
-          Market<span>AI</span>
+        <a className="seller-register-logo" href="/">
+          <span className="seller-logo-word">
+            Market<span>AI</span>
+          </span>
+          <small>Продавцам</small>
         </a>
       </div>
 
       <section className="seller-register-shell">
         <div className="seller-register-copy">
-          <p className="seller-register-eyebrow">MarketAI sellers</p>
-          <h1>Create a seller account</h1>
+          <p className="seller-register-eyebrow">Продавцы MarketAI</p>
+          <h1>Создание аккаунта продавца</h1>
           <p>
-            Register your store to prepare products, manage orders, and open the
-            admin workspace for marketplace operations.
+            Зарегистрируйте магазин, чтобы подготовить товары, управлять
+            заказами и открыть рабочую панель маркетплейса.
           </p>
 
           <div className="seller-register-benefits">
-            <div>Storefront setup</div>
-            <div>Product cards</div>
-            <div>Orders in work</div>
+            <div>Настройка витрины</div>
+            <div>Карточки товаров</div>
+            <div>Заказы в работе</div>
           </div>
         </div>
 
@@ -153,14 +157,12 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
           {isEmailConfirmationStep ? (
             <>
               <div>
-                <h2>Email confirmation</h2>
-                <p>
-                  Enter the confirmation code sent to {pendingSeller?.email}.
-                </p>
+                <h2>Подтверждение email</h2>
+                <p>Введите код подтверждения, отправленный на {pendingSeller?.email}.</p>
               </div>
 
               <label>
-                Email confirmation code
+                Код подтверждения
                 <input
                   className={verificationError ? "is-invalid" : ""}
                   inputMode="numeric"
@@ -180,7 +182,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 )}
               </label>
 
-              <button type="submit">Confirm email</button>
+              <button type="submit">Подтвердить email</button>
 
               <button
                 className="seller-register-secondary-button"
@@ -192,7 +194,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   setVerificationError(undefined);
                 }}
               >
-                Send code again
+                Отправить код еще раз
               </button>
 
               <button
@@ -204,22 +206,22 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   setVerificationError(undefined);
                 }}
               >
-                Edit registration data
+                Изменить данные регистрации
               </button>
 
               <p className="seller-register-switch">
-                Check your inbox and enter the 6-digit code.
+                Проверьте почту и введите 6-значный код.
               </p>
             </>
           ) : (
             <>
               <div>
-                <h2>Registration</h2>
-                <p>Fill in the store details to create a seller profile.</p>
+                <h2>Регистрация</h2>
+                <p>Заполните данные магазина, чтобы создать профиль продавца.</p>
               </div>
 
               <label>
-                Store name
+                Название магазина
                 <input
                   className={errors.name ? "is-invalid" : ""}
                   value={name}
@@ -252,7 +254,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
               </label>
 
               <label>
-                Password
+                Пароль
                 <input
                   className={errors.password ? "is-invalid" : ""}
                   type="password"
@@ -265,7 +267,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                       confirmPassword: undefined,
                     }));
                   }}
-                  placeholder="At least 6 characters"
+                  placeholder="Не менее 6 символов"
                 />
                 {errors.password && (
                   <span className="seller-register-error">
@@ -275,7 +277,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
               </label>
 
               <label>
-                Confirm password
+                Подтверждение пароля
                 <input
                   className={errors.confirmPassword ? "is-invalid" : ""}
                   type="password"
@@ -287,7 +289,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                       confirmPassword: undefined,
                     }));
                   }}
-                  placeholder="Repeat password"
+                  placeholder="Повторите пароль"
                 />
                 {errors.confirmPassword && (
                   <span className="seller-register-error">
@@ -333,13 +335,13 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   }}
                 />
                 <span>
-                  I accept the{" "}
+                  Я принимаю{" "}
                   <a
                     href="/agreement"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    user agreement
+                    пользовательское соглашение
                   </a>
                 </span>
               </label>
@@ -349,10 +351,10 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 </span>
               )}
 
-              <button type="submit">Create seller account</button>
+              <button type="submit">Создать аккаунт продавца</button>
 
               <p className="seller-register-switch">
-                Already have a seller account? <a href="/login">Sign in</a>
+                Уже продаете на MarketAI? <a href="/login">Войти</a>
               </p>
             </>
           )}

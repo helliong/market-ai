@@ -3,24 +3,24 @@ import "../register/SellerRegisterPage.css";
 
 const sections = [
   {
-    title: "1. General Terms",
-    text: "This agreement describes the basic rules for using the MarketAI seller workspace, including storefront setup, product management, and order operations.",
+    title: "1. Общие условия",
+    text: "Соглашение описывает базовые правила использования кабинета продавца MarketAI, включая настройку витрины, управление товарами и обработку заказов.",
   },
   {
-    title: "2. Seller Account",
-    text: "The seller is responsible for the accuracy of account data, store information, product descriptions, prices, and order processing details.",
+    title: "2. Аккаунт продавца",
+    text: "Продавец отвечает за актуальность данных аккаунта, информации о магазине, описаний товаров, цен и сведений по обработке заказов.",
   },
   {
-    title: "3. Product Information",
-    text: "Product cards should contain correct names, categories, prices, stock values, and status information. Demo data can be replaced when backend services are connected.",
+    title: "3. Информация о товарах",
+    text: "Карточки товаров должны содержать корректные названия, категории, цены, остатки и статусы. Демоданные можно заменить после подключения backend-сервисов.",
   },
   {
-    title: "4. Admin Tools",
-    text: "The admin workspace provides interface tools for marketplace operations. Final business rules, moderation, payments, and delivery flows can be expanded later.",
+    title: "4. Инструменты администрирования",
+    text: "Панель предоставляет интерфейсные инструменты для операций маркетплейса. Бизнес-правила, модерация, платежи и доставка могут быть расширены позже.",
   },
   {
-    title: "5. Updates",
-    text: "MarketAI may update these terms as the seller product develops, backend services are added, and new operational features become available.",
+    title: "5. Обновления",
+    text: "MarketAI может обновлять условия по мере развития продукта продавца, добавления backend-сервисов и новых операционных функций.",
   },
 ];
 
@@ -29,18 +29,21 @@ export function SellerAgreementPage() {
     <main className="seller-agreement-page">
       <div className="seller-register-brand">
         <a className="seller-register-logo" href="/">
-          Market<span>AI</span>
+          <span className="seller-logo-word">
+            Market<span>AI</span>
+          </span>
+          <small>Продавцам</small>
         </a>
       </div>
 
       <section className="seller-agreement-shell">
         <div className="seller-agreement-card">
-          <p className="seller-register-eyebrow">MarketAI sellers</p>
-          <h1>User agreement</h1>
+          <p className="seller-register-eyebrow">Продавцы MarketAI</p>
+          <h1>Пользовательское соглашение</h1>
           <p>
-            Terms for sellers using the MarketAI admin workspace. This is a
-            frontend version of the agreement and can be expanded with backend
-            rules later.
+            Условия для продавцов, использующих панель MarketAI. Это
+            frontend-версия соглашения, которую можно расширить правилами
+            backend позже.
           </p>
 
           <div className="seller-agreement-sections">
