@@ -16,6 +16,8 @@ import {
   getCurrentUser,
   loginClient,
   registerClient,
+  requestClientPasswordReset,
+  resetClientPassword,
   verifyClientEmail,
 } from "@/lib/auth-api";
 
@@ -32,7 +34,6 @@ type AuthUser = {
 type ResetPasswordStep = "email" | "code" | "password";
 
 const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
-const RESET_PASSWORD_MOCK_CODE = "123456";
 
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
@@ -264,7 +265,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     }
   }
 
-  function handleResetPasswordSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleResetPasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!resetPasswordStep) {
@@ -285,20 +286,30 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         return;
       }
 
-      setResetEmail(trimmedEmail);
-      setResetPasswordStep("code");
-      setResetCode("");
-      setResetNotice(
-        `Письмо-заглушка отправлено на ${trimmedEmail}. Код: ${RESET_PASSWORD_MOCK_CODE}`,
-      );
+      setIsSubmitting(true);
+      setSubmitError(undefined);
+
+      try {
+        await requestClientPasswordReset({ email: trimmedEmail });
+        setResetEmail(trimmedEmail);
+        setResetPasswordStep("code");
+        setResetCode("");
+        setResetNotice(`Код восстановления отправлен на ${trimmedEmail}.`);
+      } catch (error) {
+        setSubmitError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось отправить код восстановления",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
     if (resetPasswordStep === "code") {
       if (resetCode.length !== 6) {
         nextErrors.code = "Введите 6 цифр из письма";
-      } else if (resetCode !== RESET_PASSWORD_MOCK_CODE) {
-        nextErrors.code = "Неверный код из письма";
       }
 
       setResetErrors(nextErrors);
@@ -335,10 +346,26 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       return;
     }
 
-    setPassword(trimmedPassword);
-    setEmail(resetEmail);
+    setIsSubmitting(true);
     setSubmitError(undefined);
-    resetPasswordFlow();
+
+    try {
+      await resetClientPassword({
+        email: resetEmail,
+        code: resetCode,
+        password: trimmedPassword,
+      });
+      setPassword("");
+      setEmail(resetEmail);
+      resetPasswordFlow();
+      setSubmitError(undefined);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Не удалось обновить пароль",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -506,15 +533,24 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
               </>
             )}
 
+            {submitError && (
+              <p className="rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#DC2626]">
+                {submitError}
+              </p>
+            )}
+
             <button
               type="submit"
-              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.primaryButton}`}
+              disabled={isSubmitting}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
             >
-              {resetPasswordStep === "email"
-                ? "Отправить письмо"
-                : resetPasswordStep === "code"
-                  ? "Подтвердить код"
-                  : "Сохранить пароль"}
+              {isSubmitting
+                ? "Загрузка..."
+                : resetPasswordStep === "email"
+                  ? "Отправить письмо"
+                  : resetPasswordStep === "code"
+                    ? "Подтвердить код"
+                    : "Сохранить пароль"}
             </button>
 
             <button

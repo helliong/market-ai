@@ -17,6 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { CredentialScope } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import {
@@ -32,6 +33,7 @@ import {
   VerifyEmailDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SellerJwtAuthGuard } from './guards/seller-jwt-auth.guard';
 
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
@@ -43,7 +45,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register buyer profile',
     description:
-      'Creates a new Account with a buyer User profile. If the Account already exists, the password must match and only the buyer profile is added.',
+      'Creates a buyer User profile and BUYER credentials. If the Account already exists, only the buyer profile and buyer password are added.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -61,7 +63,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register seller profile',
     description:
-      'Creates a seller profile for a new or existing Account. Existing buyer accounts must use the same email and password.',
+      'Creates a seller profile and SELLER credentials for a new or existing Account. Seller password is separate from buyer password.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -69,7 +71,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Existing account password does not match.',
+    description: 'Invalid credentials.',
   })
   @ApiResponse({
     status: 409,
@@ -101,7 +103,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login account',
     description:
-      'Authenticates an Account and sets HttpOnly accessToken and refreshToken cookies.',
+      'Authenticates BUYER credentials and sets HttpOnly accessToken and refreshToken cookies.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -116,7 +118,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken } = await this.authService.login(dto);
-    this.setAuthCookies(res, accessToken, refreshToken);
+    this.setAuthCookies(res, accessToken, refreshToken, {
+      accessToken: 'accessToken',
+      refreshToken: 'refreshToken',
+    });
 
     return { message: 'Login successful' };
   }
@@ -125,7 +130,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login seller',
     description:
-      'Authenticates an Account and additionally checks that it has an active seller profile.',
+      'Authenticates SELLER credentials and additionally checks that it has an active seller profile.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -146,7 +151,10 @@ export class AuthController {
   ) {
     const { accessToken, refreshToken } =
       await this.authService.sellerLogin(dto);
-    this.setAuthCookies(res, accessToken, refreshToken);
+    this.setAuthCookies(res, accessToken, refreshToken, {
+      accessToken: 'sellerAccessToken',
+      refreshToken: 'sellerRefreshToken',
+    });
 
     return { message: 'Seller login successful' };
   }
@@ -178,11 +186,54 @@ export class AuthController {
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await this.authService.refreshTokens(refreshToken);
+      await this.authService.refreshTokens(refreshToken, CredentialScope.BUYER);
 
-    this.setAuthCookies(res, accessToken, newRefreshToken);
+    this.setAuthCookies(res, accessToken, newRefreshToken, {
+      accessToken: 'accessToken',
+      refreshToken: 'refreshToken',
+    });
 
     return { message: 'Tokens refreshed' };
+  }
+
+  @Post('seller/refresh')
+  @ApiCookieAuth('sellerRefreshToken')
+  @ApiOperation({
+    summary: 'Refresh seller tokens',
+    description:
+      'Rotates sellerAccessToken and sellerRefreshToken cookies using a valid sellerRefreshToken cookie.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description:
+      'Seller tokens refreshed. Sets new sellerAccessToken and sellerRefreshToken cookies.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid seller refresh token.',
+  })
+  async sellerRefresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies['sellerRefreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('No seller refresh token');
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.authService.refreshTokens(
+        refreshToken,
+        CredentialScope.SELLER,
+      );
+
+    this.setAuthCookies(res, accessToken, newRefreshToken, {
+      accessToken: 'sellerAccessToken',
+      refreshToken: 'sellerRefreshToken',
+    });
+
+    return { message: 'Seller tokens refreshed' };
   }
 
   @Get('me')
@@ -237,8 +288,8 @@ export class AuthController {
   }
 
   @Get('seller/me')
-  @UseGuards(JwtAuthGuard)
-  @ApiCookieAuth('accessToken')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Get seller profile',
     description:
@@ -276,6 +327,20 @@ export class AuthController {
     return this.authService.forgotPassword(dto);
   }
 
+  @Post('seller/forgot-password')
+  @ApiOperation({
+    summary: 'Request seller password reset',
+    description:
+      'Sends a seller password reset code. The response is intentionally generic.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Reset instructions were sent if seller account exists.',
+  })
+  async forgotSellerPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotSellerPassword(dto);
+  }
+
   @Post('resend-verification')
   @ApiOperation({
     summary: 'Resend email verification code',
@@ -294,7 +359,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Reset password',
     description:
-      'Updates the Account password using a valid reset code and invalidates existing refresh sessions.',
+      'Updates the buyer password using a valid reset code and invalidates buyer refresh sessions.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -308,13 +373,31 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
+  @Post('seller/reset-password')
+  @ApiOperation({
+    summary: 'Reset seller password',
+    description:
+      'Updates the seller password using a valid seller reset code and invalidates seller refresh sessions.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Seller password reset successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired reset code.',
+  })
+  async resetSellerPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetSellerPassword(dto);
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Logout',
     description:
-      'Clears refreshTokenHash for the Account and removes auth cookies.',
+      'Clears buyer refreshTokenHash and removes buyer auth cookies.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -328,7 +411,7 @@ export class AuthController {
     const accountId = (req as any).user?.sub;
 
     if (accountId) {
-      await this.authService.logout(accountId);
+      await this.authService.logout(accountId, CredentialScope.BUYER);
     }
 
     res.clearCookie('accessToken');
@@ -337,18 +420,51 @@ export class AuthController {
     return { message: 'Logged out' };
   }
 
+  @Post('seller/logout')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Logout seller',
+    description:
+      'Clears seller refreshTokenHash and removes seller auth cookies.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Seller logged out successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid seller access token.',
+  })
+  async sellerLogout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const accountId = (req as any).user?.sub;
+
+    if (accountId) {
+      await this.authService.logout(accountId, CredentialScope.SELLER);
+    }
+
+    res.clearCookie('sellerAccessToken');
+    res.clearCookie('sellerRefreshToken');
+
+    return { message: 'Seller logged out' };
+  }
+
   private setAuthCookies(
     res: Response,
     accessToken: string,
     refreshToken: string,
+    cookieNames: { accessToken: string; refreshToken: string },
   ) {
-    res.cookie('accessToken', accessToken, {
+    res.cookie(cookieNames.accessToken, accessToken, {
       httpOnly: true,
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
     });
 
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie(cookieNames.refreshToken, refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,

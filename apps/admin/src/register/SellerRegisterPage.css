@@ -365,23 +365,14 @@
   text-decoration: none;
 }
 
-.seller-auth-footer-logo-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.seller-auth-footer-logo-image {
   width: 44px;
   height: 44px;
-  border-radius: 16px;
-  background: var(--accent);
-  color: #111827;
+  object-fit: contain;
 }
 
 .seller-auth-footer-logo .seller-logo-word span {
   color: #facc15;
-}
-
-.seller-auth-footer-logo .seller-auth-footer-logo-icon {
-  color: #111827;
 }
 
 .seller-auth-footer p {
@@ -428,7 +419,7 @@
   gap: 8px;
 }
 
-.seller-auth-footer .seller-auth-footer-logo-icon {
+.seller-auth-footer .seller-auth-footer-logo-image {
   margin-right: 12px;
 }
 

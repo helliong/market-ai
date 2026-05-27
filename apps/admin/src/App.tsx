@@ -3,13 +3,14 @@ import type { FormEvent, ReactNode } from "react";
 import {
   ClipboardList,
   LayoutDashboard,
+  LogOut,
   Moon,
   Package,
   Settings,
   Sun,
   Users,
 } from "lucide-react";
-import { getCurrentSeller } from "./auth-api";
+import { getCurrentSeller, logoutSellerAccount } from "./auth-api";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
@@ -300,6 +301,16 @@ function App() {
     navigateToPage("dashboard");
   }
 
+  async function logoutSeller() {
+    try {
+      await logoutSellerAccount();
+    } finally {
+      setIsStoreMenuOpen(false);
+      setIsMenuOpen(false);
+      navigateToPage("login");
+    }
+  }
+
   if (page === "welcome") {
     return <SellerWelcomePage />;
   }
@@ -415,27 +426,38 @@ function App() {
           <button type="button">Подписка на уведомления</button>
         </nav>
 
-        <div
-          className={`store-subsidebar-theme ${theme === "dark" ? "is-dark" : ""}`}
-          role="group"
-          aria-label="Тема"
-        >
-          <span className="theme-slider-thumb" aria-hidden="true" />
+        <div className="store-subsidebar-actions">
+          <div
+            className={`store-subsidebar-theme ${theme === "dark" ? "is-dark" : ""}`}
+            role="group"
+            aria-label="Тема"
+          >
+            <span className="theme-slider-thumb" aria-hidden="true" />
+            <button
+              type="button"
+              className={theme === "light" ? "active" : ""}
+              aria-label="Светлая тема"
+              onClick={() => setTheme("light")}
+            >
+              <Sun aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className={theme === "dark" ? "active" : ""}
+              aria-label="Темная тема"
+              onClick={() => setTheme("dark")}
+            >
+              <Moon aria-hidden="true" />
+            </button>
+          </div>
+
           <button
             type="button"
-            className={theme === "light" ? "active" : ""}
-            aria-label="Светлая тема"
-            onClick={() => setTheme("light")}
+            className="store-subsidebar-logout"
+            onClick={logoutSeller}
           >
-            <Sun aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={theme === "dark" ? "active" : ""}
-            aria-label="Темная тема"
-            onClick={() => setTheme("dark")}
-          >
-            <Moon aria-hidden="true" />
+            <LogOut aria-hidden="true" />
+            Logout
           </button>
         </div>
       </aside>

@@ -13,19 +13,38 @@ enum SellerStatus {
   REJECTED
 }
 
+enum CredentialScope {
+  BUYER
+  SELLER
+}
+
 model Account {
   id                      String      @id @default(cuid())
   email                   String      @unique
-  passwordHash            String
   isEmailVerified         Boolean     @default(false)
   verificationCode        String?
   verificationCodeExpires DateTime?
-  refreshTokenHash        String?
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 
   user                    User?
   seller                  UserSeller?
+  credentials             AccountCredential[]
+}
+
+model AccountCredential {
+  id               String          @id @default(cuid())
+  accountId        String
+  account          Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  scope            CredentialScope
+  passwordHash     String
+  refreshTokenHash String?
+  resetCode        String?
+  resetCodeExpires DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([accountId, scope])
 }
 
 model User {

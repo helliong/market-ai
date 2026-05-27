@@ -18,6 +18,16 @@ type LoginPayload = {
   password: string;
 };
 
+type ForgotPasswordPayload = {
+  email: string;
+};
+
+type ResetPasswordPayload = {
+  email: string;
+  code: string;
+  password: string;
+};
+
 export type SellerProfile = {
   id: string;
   accountId: string;
@@ -86,7 +96,21 @@ export function getCurrentSeller() {
 }
 
 export function logoutSellerAccount() {
-  return authRequest<{ message: string }>("/auth/logout", {
+  return authRequest<{ message: string }>("/auth/seller/logout", {
     method: "POST",
+  });
+}
+
+export function requestSellerPasswordReset(payload: ForgotPasswordPayload) {
+  return authRequest<{ message: string }>("/auth/seller/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetSellerPassword(payload: ResetPasswordPayload) {
+  return authRequest<{ message: string }>("/auth/seller/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

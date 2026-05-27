@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from '../email/email.module';
-import { JwtStrategy } from './strategies/jwt-strategy';
+import { JwtStrategy, SellerJwtStrategy } from './strategies/jwt-strategy';
 import { BuyerGuard } from './guards/buyer.guard';
 import { SellerGuard } from './guards/seller.guard';
 
@@ -24,6 +24,6 @@ import { SellerGuard } from './guards/seller.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, BuyerGuard, SellerGuard],
+  providers: [AuthService, JwtStrategy, SellerJwtStrategy, BuyerGuard, SellerGuard],
 })
 export class AuthModule {}

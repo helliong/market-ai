@@ -5,7 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { CredentialScope, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -38,7 +38,7 @@ export class AuthService {
     try {
       const existingAccount = await this.prisma.account.findUnique({
         where: { email },
-        include: { user: true },
+        include: { user: true, credentials: true },
       });
 
       if (existingAccount?.user) {
@@ -46,20 +46,19 @@ export class AuthService {
       }
 
       if (existingAccount) {
-        const passwordValid = await bcrypt.compare(
-          dto.password,
-          existingAccount.passwordHash,
-        );
-
-        if (!passwordValid) {
-          throw new UnauthorizedException('Invalid credentials');
-        }
-
         await this.prisma.$transaction(async (tx) => {
           await tx.user.create({
             data: {
               accountId: existingAccount.id,
               displayName: dto.name,
+            },
+          });
+
+          await tx.accountCredential.create({
+            data: {
+              accountId: existingAccount.id,
+              scope: CredentialScope.BUYER,
+              passwordHash,
             },
           });
 
@@ -77,20 +76,23 @@ export class AuthService {
         return { message: 'Buyer profile created successfully' };
       }
 
-      await this.prisma.$transaction(async (tx) => {
-        await tx.account.create({
-          data: {
-            email,
-            passwordHash,
-            verificationCode: hashedCode,
-            verificationCodeExpires: expiresAt,
-            user: {
-              create: {
-                displayName: dto.name,
-              },
+      await this.prisma.account.create({
+        data: {
+          email,
+          verificationCode: hashedCode,
+          verificationCodeExpires: expiresAt,
+          user: {
+            create: {
+              displayName: dto.name,
             },
           },
-        });
+          credentials: {
+            create: {
+              scope: CredentialScope.BUYER,
+              passwordHash,
+            },
+          },
+        },
       });
 
       await this.emailService.sendVerificationCode(email, code);
@@ -118,7 +120,7 @@ export class AuthService {
     try {
       const existingAccount = await this.prisma.account.findUnique({
         where: { email },
-        include: { seller: true },
+        include: { seller: true, credentials: true },
       });
 
       if (existingAccount?.seller) {
@@ -126,15 +128,6 @@ export class AuthService {
       }
 
       if (existingAccount) {
-        const passwordValid = await bcrypt.compare(
-          dto.password,
-          existingAccount.passwordHash,
-        );
-
-        if (!passwordValid) {
-          throw new UnauthorizedException('Invalid credentials');
-        }
-
         await this.prisma.$transaction(async (tx) => {
           await tx.userSeller.create({
             data: {
@@ -144,6 +137,14 @@ export class AuthService {
               legalName: dto.legalName,
               inn: dto.inn,
               phone: dto.phone,
+            },
+          });
+
+          await tx.accountCredential.create({
+            data: {
+              accountId: existingAccount.id,
+              scope: CredentialScope.SELLER,
+              passwordHash,
             },
           });
 
@@ -161,24 +162,27 @@ export class AuthService {
         return { message: 'Seller profile created successfully' };
       }
 
-      await this.prisma.$transaction(async (tx) => {
-        await tx.account.create({
-          data: {
-            email,
-            passwordHash,
-            verificationCode: hashedCode,
-            verificationCodeExpires: expiresAt,
-            seller: {
-              create: {
-                storeName: dto.storeName,
-                agreementAcceptedAt: new Date(),
-                legalName: dto.legalName,
-                inn: dto.inn,
-                phone: dto.phone,
-              },
+      await this.prisma.account.create({
+        data: {
+          email,
+          verificationCode: hashedCode,
+          verificationCodeExpires: expiresAt,
+          seller: {
+            create: {
+              storeName: dto.storeName,
+              agreementAcceptedAt: new Date(),
+              legalName: dto.legalName,
+              inn: dto.inn,
+              phone: dto.phone,
             },
           },
-        });
+          credentials: {
+            create: {
+              scope: CredentialScope.SELLER,
+              passwordHash,
+            },
+          },
+        },
       });
 
       await this.emailService.sendVerificationCode(email, code);
@@ -229,14 +233,19 @@ export class AuthService {
     const account = await this.validateAccountCredentials(
       dto.email,
       dto.password,
+      CredentialScope.BUYER,
     );
 
     if (!account.isEmailVerified) {
       throw new UnauthorizedException('Please verify your email first');
     }
 
-    const tokens = await this.generateTokens(account.id);
-    await this.storeRefreshToken(account.id, tokens.refreshToken);
+    const tokens = await this.generateTokens(account.id, CredentialScope.BUYER);
+    await this.storeRefreshToken(
+      account.id,
+      CredentialScope.BUYER,
+      tokens.refreshToken,
+    );
 
     return tokens;
   }
@@ -245,6 +254,7 @@ export class AuthService {
     const account = await this.validateAccountCredentials(
       dto.email,
       dto.password,
+      CredentialScope.SELLER,
     );
 
     if (!account.isEmailVerified) {
@@ -263,37 +273,54 @@ export class AuthService {
       throw new ForbiddenException('Seller profile is suspended');
     }
 
-    const tokens = await this.generateTokens(account.id);
-    await this.storeRefreshToken(account.id, tokens.refreshToken);
+    const tokens = await this.generateTokens(account.id, CredentialScope.SELLER);
+    await this.storeRefreshToken(
+      account.id,
+      CredentialScope.SELLER,
+      tokens.refreshToken,
+    );
 
     return tokens;
   }
 
-  async refreshTokens(refreshToken: string) {
+  async refreshTokens(refreshToken: string, scope: CredentialScope) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
-      const account = await this.prisma.account.findUnique({
-        where: { id: payload.sub },
+      if (payload.scope !== scope) {
+        throw new UnauthorizedException();
+      }
+
+      const credential = await this.prisma.accountCredential.findUnique({
+        where: {
+          accountId_scope: {
+            accountId: payload.sub,
+            scope,
+          },
+        },
       });
 
-      if (!account?.refreshTokenHash) {
+      if (!credential?.refreshTokenHash) {
         throw new UnauthorizedException();
       }
 
       const refreshValid = await bcrypt.compare(
         refreshToken,
-        account.refreshTokenHash,
+        credential.refreshTokenHash,
       );
 
       if (!refreshValid) {
         throw new UnauthorizedException();
       }
 
-      const tokens = await this.generateTokens(account.id);
-      await this.storeRefreshToken(account.id, tokens.refreshToken);
+      const tokens = await this.generateTokens(credential.accountId, scope);
+      await this.storeRefreshToken(
+        credential.accountId,
+        scope,
+        tokens.refreshToken,
+      );
 
       return tokens;
     } catch {
@@ -374,34 +401,20 @@ export class AuthService {
     return seller;
   }
 
-  async forgotPassword(dto: ForgotPasswordDto) {
-    const email = this.normalizeEmail(dto.email);
-    const account = await this.prisma.account.findUnique({
-      where: { email },
-    });
+  forgotPassword(dto: ForgotPasswordDto) {
+    return this.forgotPasswordForScope(dto, CredentialScope.BUYER);
+  }
 
-    if (!account) {
-      return {
-        message: 'If this email exists, reset instructions were sent.',
-      };
-    }
+  forgotSellerPassword(dto: ForgotPasswordDto) {
+    return this.forgotPasswordForScope(dto, CredentialScope.SELLER);
+  }
 
-    const { hashedCode, code, expiresAt } =
-      await this.createVerificationCode();
+  resetPassword(dto: ResetPasswordDto) {
+    return this.resetPasswordForScope(dto, CredentialScope.BUYER);
+  }
 
-    await this.prisma.account.update({
-      where: { id: account.id },
-      data: {
-        verificationCode: hashedCode,
-        verificationCodeExpires: expiresAt,
-      },
-    });
-
-    await this.emailService.sendVerificationCode(email, code);
-
-    return {
-      message: 'If this email exists, reset instructions were sent.',
-    };
+  resetSellerPassword(dto: ResetPasswordDto) {
+    return this.resetPasswordForScope(dto, CredentialScope.SELLER);
   }
 
   async resendVerificationCode(dto: ForgotPasswordDto) {
@@ -434,21 +447,88 @@ export class AuthService {
     };
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
-    const email = this.normalizeEmail(dto.email);
+  async logout(accountId: string, scope: CredentialScope) {
+    await this.prisma.accountCredential.updateMany({
+      where: { accountId, scope },
+      data: { refreshTokenHash: null },
+    });
+  }
 
-    const account = await this.prisma.account.findFirst({
+  private async forgotPasswordForScope(
+    dto: ForgotPasswordDto,
+    scope: CredentialScope,
+  ) {
+    const email = this.normalizeEmail(dto.email);
+    const account = await this.prisma.account.findUnique({
+      where: { email },
+    });
+
+    if (!account) {
+      return {
+        message: 'If this email exists, reset instructions were sent.',
+      };
+    }
+
+    const credential = await this.prisma.accountCredential.findUnique({
       where: {
-        email,
-        verificationCodeExpires: { gt: new Date() },
+        accountId_scope: {
+          accountId: account.id,
+          scope,
+        },
       },
     });
 
-    if (!account?.verificationCode) {
+    if (!credential) {
+      return {
+        message: 'If this email exists, reset instructions were sent.',
+      };
+    }
+
+    const { hashedCode, code, expiresAt } =
+      await this.createVerificationCode();
+
+    await this.prisma.accountCredential.update({
+      where: { id: credential.id },
+      data: {
+        resetCode: hashedCode,
+        resetCodeExpires: expiresAt,
+      },
+    });
+
+    await this.emailService.sendVerificationCode(email, code);
+
+    return {
+      message: 'If this email exists, reset instructions were sent.',
+    };
+  }
+
+  private async resetPasswordForScope(
+    dto: ResetPasswordDto,
+    scope: CredentialScope,
+  ) {
+    const email = this.normalizeEmail(dto.email);
+
+    const account = await this.prisma.account.findUnique({
+      where: { email },
+    });
+
+    if (!account) {
       throw new BadRequestException('Invalid or expired reset code');
     }
 
-    const codeValid = await bcrypt.compare(dto.code, account.verificationCode);
+    const credential = await this.prisma.accountCredential.findFirst({
+      where: {
+        accountId: account.id,
+        scope,
+        resetCodeExpires: { gt: new Date() },
+      },
+    });
+
+    if (!credential?.resetCode) {
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+
+    const codeValid = await bcrypt.compare(dto.code, credential.resetCode);
 
     if (!codeValid) {
       throw new BadRequestException('Invalid reset code');
@@ -456,38 +536,45 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    await this.prisma.account.update({
-      where: { id: account.id },
+    await this.prisma.accountCredential.update({
+      where: { id: credential.id },
       data: {
         passwordHash,
         refreshTokenHash: null,
-        verificationCode: null,
-        verificationCodeExpires: null,
+        resetCode: null,
+        resetCodeExpires: null,
       },
     });
 
     return { message: 'Password reset successfully' };
   }
 
-  async logout(accountId: string) {
-    await this.prisma.account.update({
-      where: { id: accountId },
-      data: { refreshTokenHash: null },
-    });
-  }
-
-  private async validateAccountCredentials(email: string, password: string) {
+  private async validateAccountCredentials(
+    email: string,
+    password: string,
+    scope: CredentialScope,
+  ) {
     const normalizedEmail = this.normalizeEmail(email);
 
     const account = await this.prisma.account.findUnique({
       where: { email: normalizedEmail },
+      include: {
+        credentials: {
+          where: { scope },
+        },
+      },
     });
 
-    if (!account) {
+    const credential = account?.credentials[0];
+
+    if (!account || !credential) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await bcrypt.compare(password, account.passwordHash);
+    const passwordValid = await bcrypt.compare(
+      password,
+      credential.passwordHash,
+    );
 
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -496,25 +583,35 @@ export class AuthService {
     return account;
   }
 
-  private async generateTokens(accountId: string) {
-    const accessToken = this.jwtService.sign(
-      { sub: accountId },
-      { secret: this.configService.get('JWT_ACCESS_SECRET'), expiresIn: '15m' },
-    );
+  private async generateTokens(accountId: string, scope: CredentialScope) {
+    const payload = { sub: accountId, scope };
+    const accessToken = this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_ACCESS_SECRET'),
+      expiresIn: '15m',
+    });
 
-    const refreshToken = this.jwtService.sign(
-      { sub: accountId },
-      { secret: this.configService.get('JWT_REFRESH_SECRET'), expiresIn: '7d' },
-    );
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: '7d',
+    });
 
     return { accessToken, refreshToken };
   }
 
-  private async storeRefreshToken(accountId: string, refreshToken: string) {
+  private async storeRefreshToken(
+    accountId: string,
+    scope: CredentialScope,
+    refreshToken: string,
+  ) {
     const hash = await bcrypt.hash(refreshToken, 10);
 
-    await this.prisma.account.update({
-      where: { id: accountId },
+    await this.prisma.accountCredential.update({
+      where: {
+        accountId_scope: {
+          accountId,
+          scope,
+        },
+      },
       data: { refreshTokenHash: hash },
     });
   }

@@ -37,11 +37,12 @@ async function bootstrap() {
         'Authentication API for buyer and seller profiles.',
         '',
         'Architecture:',
-        '- Account stores email, password, verification and refresh session data.',
+        '- Account stores shared email and email verification data.',
+        '- AccountCredential stores scoped buyer/seller passwords, reset codes and refresh sessions.',
         '- User is the buyer profile.',
         '- UserSeller is the seller cabinet profile.',
         '',
-        'One email always belongs to one Account. Buyer and seller profiles are attached to that Account.',
+        'One email belongs to one Account. Buyer and seller profiles can have separate passwords and sessions.',
       ].join('\n'),
     )
     .setVersion('1.0')
@@ -67,6 +68,26 @@ async function bootstrap() {
         description: 'JWT refresh token stored in an HttpOnly cookie',
       },
       'refreshToken',
+    )
+    .addCookieAuth(
+      'sellerAccessToken',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'sellerAccessToken',
+        description: 'Seller JWT access token stored in an HttpOnly cookie',
+      },
+      'sellerAccessToken',
+    )
+    .addCookieAuth(
+      'sellerRefreshToken',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'sellerRefreshToken',
+        description: 'Seller JWT refresh token stored in an HttpOnly cookie',
+      },
+      'sellerRefreshToken',
     )
     .build();
 

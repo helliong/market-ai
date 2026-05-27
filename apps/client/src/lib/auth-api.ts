@@ -17,6 +17,16 @@ type VerifyEmailPayload = {
   code: string;
 };
 
+type ForgotPasswordPayload = {
+  email: string;
+};
+
+type ResetPasswordPayload = {
+  email: string;
+  code: string;
+  password: string;
+};
+
 export type CurrentUser = {
   id: string;
   name: string | null;
@@ -80,4 +90,18 @@ export function logoutClient() {
 
 export function getCurrentUser() {
   return authRequest<CurrentUser>("/auth/me");
+}
+
+export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
+  return authRequest<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resetClientPassword(payload: ResetPasswordPayload) {
+  return authRequest<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

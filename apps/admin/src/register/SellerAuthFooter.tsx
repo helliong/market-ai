@@ -1,5 +1,4 @@
 import {
-  Bot,
   Heart,
   Languages,
   Mail,
@@ -28,9 +27,12 @@ export function SellerAuthFooter() {
       <div className="seller-auth-footer-main">
         <div>
           <a className="seller-auth-footer-logo" href="/">
-            <span className="seller-auth-footer-logo-icon">
-              <Bot size={22} aria-hidden="true" />
-            </span>
+            <img
+              className="seller-auth-footer-logo-image"
+              src="/logo.webp"
+              alt=""
+              aria-hidden="true"
+            />
             <span className="seller-logo-word">
               Market<span>AI</span>
             </span>
