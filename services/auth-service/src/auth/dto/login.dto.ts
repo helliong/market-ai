@@ -4,14 +4,16 @@ import { IsEmail, IsString } from 'class-validator';
 export class LoginDto {
   @ApiProperty({
     example: 'ivan@example.com',
-    description: 'User email address',
+    description:
+      'Account email address. The endpoint determines whether BUYER or SELLER credentials are checked.',
   })
   @IsEmail()
   email!: string;
 
   @ApiProperty({
     example: '123456',
-    description: 'User password',
+    description:
+      'Scoped password for the selected endpoint: buyer password for /auth/login, seller password for /auth/seller/login.',
   })
   @IsString()
   password!: string;

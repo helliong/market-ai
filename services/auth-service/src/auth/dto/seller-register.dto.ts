@@ -10,14 +10,16 @@ import {
 export class SellerRegisterDto {
   @ApiProperty({
     example: 'seller@example.com',
-    description: 'Seller account email address',
+    description:
+      'Seller account email address. Can match an existing buyer Account email.',
   })
   @IsEmail()
   email!: string;
 
   @ApiProperty({
     example: '123456',
-    description: 'Account password',
+    description:
+      'Seller password. Buyer credentials, if any, use a separate password.',
     minLength: 6,
   })
   @IsString()

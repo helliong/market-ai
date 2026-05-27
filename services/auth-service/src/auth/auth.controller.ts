@@ -45,7 +45,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register buyer profile',
     description:
-      'Creates a buyer User profile and BUYER credentials. If the Account already exists, only the buyer profile and buyer password are added.',
+      'Creates a buyer User profile and BUYER credentials. If an Account with this email already exists as seller-only, the buyer profile and an independent buyer password are added to the same Account.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -63,7 +63,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register seller profile',
     description:
-      'Creates a seller profile and SELLER credentials for a new or existing Account. Seller password is separate from buyer password.',
+      'Creates a seller profile and SELLER credentials for a new or existing Account. Seller password is independent from buyer password even when email is shared.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -101,13 +101,13 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({
-    summary: 'Login account',
+    summary: 'Login buyer',
     description:
       'Authenticates BUYER credentials and sets HttpOnly accessToken and refreshToken cookies.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
-    description: 'Login successful. Sets accessToken and refreshToken cookies.',
+    description: 'Buyer login successful. Sets accessToken and refreshToken cookies.',
   })
   @ApiResponse({
     status: 401,
@@ -135,7 +135,7 @@ export class AuthController {
   @ApiCreatedResponse({
     type: MessageResponseDto,
     description:
-      'Seller login successful. Sets accessToken and refreshToken cookies.',
+      'Seller login successful. Sets sellerAccessToken and sellerRefreshToken cookies.',
   })
   @ApiResponse({
     status: 401,
@@ -162,14 +162,14 @@ export class AuthController {
   @Post('refresh')
   @ApiCookieAuth('refreshToken')
   @ApiOperation({
-    summary: 'Refresh tokens',
+    summary: 'Refresh buyer tokens',
     description:
-      'Rotates accessToken and refreshToken cookies using a valid refreshToken cookie.',
+      'Rotates buyer accessToken and refreshToken cookies using a valid buyer refreshToken cookie.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
     description:
-      'Tokens refreshed. Sets new accessToken and refreshToken cookies.',
+      'Buyer tokens refreshed. Sets new accessToken and refreshToken cookies.',
   })
   @ApiResponse({
     status: 401,
@@ -242,7 +242,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Get current account',
     description:
-      'Returns Account identity and profile flags. JWT sub is Account.id.',
+      'Returns Account identity and profile flags for the current BUYER session. JWT sub is Account.id.',
   })
   @ApiOkResponse({
     type: AccountSummaryResponseDto,
@@ -267,7 +267,8 @@ export class AuthController {
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Get buyer profile',
-    description: 'Returns the buyer User profile attached to the current Account.',
+    description:
+      'Returns the buyer User profile for the current BUYER session. Requires accessToken cookie.',
   })
   @ApiOkResponse({
     type: BuyerProfileResponseDto,
@@ -293,7 +294,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Get seller profile',
     description:
-      'Returns the seller profile attached to the current Account. Suspended sellers are rejected.',
+      'Returns the seller profile for the current SELLER session. Requires sellerAccessToken cookie. Suspended sellers are rejected.',
   })
   @ApiOkResponse({
     type: SellerProfileResponseDto,
@@ -315,13 +316,13 @@ export class AuthController {
 
   @Post('forgot-password')
   @ApiOperation({
-    summary: 'Request password reset',
+    summary: 'Request buyer password reset',
     description:
-      'Sends a password reset code for the Account. The response is intentionally generic.',
+      'Sends a reset code for BUYER credentials. The response is intentionally generic and does not reveal whether the email exists.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
-    description: 'Reset instructions were sent if account exists.',
+    description: 'Buyer reset instructions were sent if buyer credentials exist.',
   })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
@@ -331,7 +332,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request seller password reset',
     description:
-      'Sends a seller password reset code. The response is intentionally generic.',
+      'Sends a reset code for SELLER credentials. The response is intentionally generic and does not reveal whether the email exists.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -345,7 +346,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Resend email verification code',
     description:
-      'Generates and sends a fresh email verification code for the Account.',
+      'Generates and sends a fresh Account-level email verification code. Email verification is shared by buyer and seller profiles.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -357,7 +358,7 @@ export class AuthController {
 
   @Post('reset-password')
   @ApiOperation({
-    summary: 'Reset password',
+    summary: 'Reset buyer password',
     description:
       'Updates the buyer password using a valid reset code and invalidates buyer refresh sessions.',
   })
@@ -395,9 +396,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiCookieAuth('accessToken')
   @ApiOperation({
-    summary: 'Logout',
+    summary: 'Logout buyer',
     description:
-      'Clears buyer refreshTokenHash and removes buyer auth cookies.',
+      'Clears the BUYER refreshTokenHash and removes buyer auth cookies. Seller cookies and seller sessions are not touched.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,
@@ -426,7 +427,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Logout seller',
     description:
-      'Clears seller refreshTokenHash and removes seller auth cookies.',
+      'Clears the SELLER refreshTokenHash and removes seller auth cookies. Buyer cookies and buyer sessions are not touched.',
   })
   @ApiCreatedResponse({
     type: MessageResponseDto,

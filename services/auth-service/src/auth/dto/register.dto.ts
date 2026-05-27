@@ -13,14 +13,15 @@ export class RegisterDto {
 
   @ApiProperty({
     example: 'ivan@example.com',
-    description: 'User email address',
+    description: 'Buyer account email address',
   })
   @IsEmail()
   email!: string;
 
   @ApiProperty({
     example: '123456',
-    description: 'User password',
+    description:
+      'Buyer password. Seller credentials, if any, use a separate password.',
     minLength: 6,
   })
   @IsString()

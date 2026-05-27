@@ -4,7 +4,8 @@ import { IsEmail, IsString, Length, MinLength } from 'class-validator';
 export class ResetPasswordDto {
   @ApiProperty({
     example: 'ivan@example.com',
-    description: 'Account email address',
+    description:
+      'Account email address. The endpoint determines whether BUYER or SELLER credentials are reset.',
   })
   @IsEmail()
   email!: string;
@@ -21,7 +22,8 @@ export class ResetPasswordDto {
 
   @ApiProperty({
     example: 'new-password-123',
-    description: 'New account password',
+    description:
+      'New scoped password for the selected endpoint: buyer password for /auth/reset-password, seller password for /auth/seller/reset-password.',
     minLength: 6,
   })
   @IsString()

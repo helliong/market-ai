@@ -55,7 +55,7 @@ async function bootstrap() {
         type: 'apiKey',
         in: 'cookie',
         name: 'accessToken',
-        description: 'JWT access token stored in an HttpOnly cookie',
+        description: 'Buyer JWT access token stored in an HttpOnly cookie',
       },
       'accessToken',
     )
@@ -65,7 +65,7 @@ async function bootstrap() {
         type: 'apiKey',
         in: 'cookie',
         name: 'refreshToken',
-        description: 'JWT refresh token stored in an HttpOnly cookie',
+        description: 'Buyer JWT refresh token stored in an HttpOnly cookie',
       },
       'refreshToken',
     )
