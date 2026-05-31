@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { CheckCircle2, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -21,9 +23,38 @@ export function ProductsPage({
   onDeleteProduct,
 }: ProductsPageProps) {
   const { t } = useLanguage();
+  const [toast, setToast] = useState<{
+    id: number;
+    message: string;
+    variant: "success" | "error";
+  } | null>(null);
+
+  function showToast(message: string, variant: "success" | "error") {
+    const id = Date.now();
+    setToast({ id, message, variant });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4200);
+  }
+
+  function handleAddProduct() {
+    if (!canAddProducts) {
+      showToast(inactiveReason || t("sellerStatusPendingLegal"), "error");
+      return;
+    }
+    onAddProduct();
+  }
 
   return (
     <section className="panel">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="section-header">
         <div>
           <h2>{t("manageProducts")}</h2>
@@ -31,19 +62,13 @@ export function ProductsPage({
         </div>
         <button
           className="primary-button"
-          disabled={!canAddProducts}
-          onClick={onAddProduct}
+          aria-disabled={!canAddProducts}
+          onClick={handleAddProduct}
           title={!canAddProducts ? inactiveReason : undefined}
         >
           {t("addProduct")}
         </button>
       </div>
-
-      {!canAddProducts && inactiveReason && (
-        <div className="settings-notice product-access-notice">
-          {inactiveReason}
-        </div>
-      )}
 
       <div className="table-wrapper">
         <table>
@@ -97,5 +122,27 @@ export function ProductsPage({
         </table>
       </div>
     </section>
+  );
+}
+
+function ToastNotification({
+  message,
+  variant,
+  onClose,
+}: {
+  message: string;
+  variant: "success" | "error";
+  onClose: () => void;
+}) {
+  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+
+  return (
+    <div className={`toast-notification toast-notification-${variant}`}>
+      <Icon aria-hidden="true" />
+      <span>{message}</span>
+      <button type="button" aria-label="Close notification" onClick={onClose}>
+        <X aria-hidden="true" />
+      </button>
+    </div>
   );
 }

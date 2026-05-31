@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   Building2,
+  CheckCircle2,
   Mail,
   Phone,
   Plus,
@@ -14,6 +15,7 @@ import {
   Upload,
   Users,
   X,
+  XCircle,
 } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
 import type {
@@ -25,11 +27,17 @@ type TeamMemberRole = "owner" | "manager" | "operator" | "viewer";
 type TeamMemberStatus = "active" | "invited";
 
 type TeamMember = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: TeamMemberRole;
   status: TeamMemberStatus;
+};
+
+type ToastState = {
+  id: number;
+  message: string;
+  variant: "success" | "error";
 };
 
 type SettingsPageProps = {
@@ -44,14 +52,7 @@ type SettingsPageProps = {
 
 const initialTeam: TeamMember[] = [
   {
-    id: 1,
-    name: "MarketAI Owner",
-    email: "owner@marketai.local",
-    role: "owner",
-    status: "active",
-  },
-  {
-    id: 2,
+    id: "orders-manager",
     name: "Order Manager",
     email: "orders@marketai.local",
     role: "operator",
@@ -92,12 +93,22 @@ export function SettingsPage({
     email: "",
     role: "manager" as TeamMemberRole,
   });
-  const [savedNotice, setSavedNotice] = useState("");
-  const [legalNotice, setLegalNotice] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
   const isActivated = sellerProfile?.status === "ACTIVATED";
   const isUnderReview = sellerProfile?.status === "UNDER_REVIEW";
   const canEditLegal = !isActivated && !isUnderReview;
   const canManageTeam = isActivated;
+
+  const ownerMember = useMemo<TeamMember>(
+    () => ({
+      id: "store-owner",
+      name: sellerProfile?.ownerName || storeName || "Store owner",
+      email: sellerProfile?.ownerEmail || shop.email || "",
+      role: "owner",
+      status: "active",
+    }),
+    [sellerProfile?.ownerEmail, sellerProfile?.ownerName, shop.email, storeName],
+  );
 
   useEffect(() => {
     setShop((current) => ({
@@ -120,6 +131,24 @@ export function SettingsPage({
     }));
   }, [sellerProfile?.legalProfile]);
 
+  useEffect(() => {
+    if (!sellerProfile?.status || sellerProfile.status === "ACTIVATED") return;
+
+    const statusMessage =
+      sellerProfile.status === "UNDER_REVIEW"
+        ? t("sellerStatusUnderReview")
+        : sellerProfile.status === "REJECTED"
+        ? sellerProfile.reviewComment
+          ? `${t("sellerStatusRejected")}: ${sellerProfile.reviewComment}`
+          : t("sellerStatusRejected")
+        : t("sellerStatusPendingLegal");
+
+    showToast(
+      statusMessage,
+      sellerProfile.status === "REJECTED" ? "error" : "success",
+    );
+  }, [sellerProfile?.reviewComment, sellerProfile?.status, t]);
+
   const coverTitle = useMemo(() => {
     const trimmedName = shop.name.trim();
     return trimmedName || t("settingsStoreNamePlaceholder");
@@ -130,18 +159,26 @@ export function SettingsPage({
     if (nextStoreName) {
       onStoreNameChange(nextStoreName);
     }
-    setSavedNotice(t("settingsSaved"));
+    showToast(t("settingsSaved"), "success");
   }
 
   async function saveLegalProfile() {
-    await onSaveLegalProfile(prepareLegalPayload(legal));
-    setLegalNotice(t("settingsLegalSaved"));
+    try {
+      await onSaveLegalProfile(prepareLegalPayload(legal));
+      showToast(t("settingsLegalSaved"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
   }
 
   async function submitLegalProfile() {
-    await onSaveLegalProfile(prepareLegalPayload(legal));
-    await onSubmitLegalProfile();
-    setLegalNotice(t("settingsLegalSubmitted"));
+    try {
+      await onSaveLegalProfile(prepareLegalPayload(legal));
+      await onSubmitLegalProfile();
+      showToast(t("settingsLegalSubmitted"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
   }
 
   function handleCoverChange(file: File | undefined) {
@@ -157,11 +194,14 @@ export function SettingsPage({
   function inviteMember() {
     const name = inviteForm.name.trim();
     const email = inviteForm.email.trim();
-    if (!name || !email) return;
+    if (!name || !email) {
+      showToast(t("checkFieldsMessage"), "error");
+      return;
+    }
     setTeam((currentTeam) => [
       ...currentTeam,
       {
-        id: Date.now(),
+        id: `member-${Date.now()}`,
         name,
         email,
         role: inviteForm.role,
@@ -169,9 +209,10 @@ export function SettingsPage({
       },
     ]);
     closeInviteModal();
+    showToast(t("settingsInviteSubmit"), "success");
   }
 
-  function updateMemberRole(memberId: number, role: TeamMemberRole) {
+  function updateMemberRole(memberId: string, role: TeamMemberRole) {
     setTeam((currentTeam) =>
       currentTeam.map((member) =>
         member.id === memberId ? { ...member, role } : member,
@@ -179,14 +220,30 @@ export function SettingsPage({
     );
   }
 
-  function removeMember(memberId: number) {
+  function removeMember(memberId: string) {
     setTeam((currentTeam) =>
       currentTeam.filter((member) => member.id !== memberId),
     );
   }
 
+  function showToast(message: string, variant: ToastState["variant"]) {
+    const id = Date.now();
+    setToast({ id, message, variant });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4200);
+  }
+
   return (
     <section className="settings-page">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="settings-hero">
         <div>
           <p>{t("settingsEyebrow")}</p>
@@ -198,19 +255,6 @@ export function SettingsPage({
           {t("settingsSave")}
         </button>
       </div>
-
-      {savedNotice && <p className="settings-notice">{savedNotice}</p>}
-      {sellerProfile?.status && sellerProfile.status !== "ACTIVATED" && (
-        <p className="settings-notice">
-          {sellerProfile.status === "UNDER_REVIEW"
-            ? t("sellerStatusUnderReview")
-            : sellerProfile.status === "REJECTED"
-            ? sellerProfile.reviewComment
-              ? `${t("sellerStatusRejected")}: ${sellerProfile.reviewComment}`
-              : t("sellerStatusRejected")
-            : t("sellerStatusPendingLegal")}
-        </p>
-      )}
 
       <div className="settings-grid">
         <section className="panel settings-section settings-section-large">
@@ -283,8 +327,8 @@ export function SettingsPage({
                 <input
                   value={shop.phone}
                   onChange={(event) =>
-                  setShop((current) => ({
-                    ...current,
+                    setShop((current) => ({
+                      ...current,
                       phone: formatPhone(event.target.value),
                     }))
                   }
@@ -414,7 +458,6 @@ export function SettingsPage({
               />
             </label>
           </div>
-          {legalNotice && <p className="settings-notice">{legalNotice}</p>}
           <div className="modal-actions">
             <button
               type="button"
@@ -460,7 +503,7 @@ export function SettingsPage({
         )}
 
         <div className="settings-team-list">
-          {team.map((member) => (
+          {[ownerMember, ...team].map((member) => (
             <article key={member.id} className="settings-team-card">
               <div className="settings-team-avatar">
                 {member.name.slice(0, 1).toUpperCase()}
@@ -639,6 +682,28 @@ function SettingsSectionTitle({
   );
 }
 
+function ToastNotification({
+  message,
+  variant,
+  onClose,
+}: {
+  message: string;
+  variant: ToastState["variant"];
+  onClose: () => void;
+}) {
+  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+
+  return (
+    <div className={`toast-notification toast-notification-${variant}`}>
+      <Icon aria-hidden="true" />
+      <span>{message}</span>
+      <button type="button" aria-label="Close notification" onClick={onClose}>
+        <X aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 function prepareLegalPayload(
   legal: SellerLegalProfilePayload,
 ): SellerLegalProfilePayload {
@@ -693,4 +758,8 @@ function compactBankAccount(value: string) {
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Request failed";
 }

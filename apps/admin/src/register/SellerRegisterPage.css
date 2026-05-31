@@ -177,21 +177,6 @@
   line-height: 1.4;
 }
 
-.seller-register-notice {
-  border-radius: 16px;
-  background: #fffbeb;
-  padding: 14px 16px;
-  color: #92400e;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.dark .seller-register-notice {
-  background: rgba(250, 204, 21, 0.16);
-  color: #fde68a;
-}
-
 .seller-register-agreement {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);

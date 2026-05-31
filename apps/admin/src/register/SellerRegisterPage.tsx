@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { CheckCircle2, X, XCircle } from "lucide-react";
 import {
   registerSellerProfile,
   resendSellerVerificationCode,
@@ -16,6 +17,12 @@ type SellerRegisterPageProps = {
 type PendingSeller = {
   name: string;
   email: string;
+};
+
+type ToastState = {
+  id: number;
+  message: string;
+  variant: "success" | "error";
 };
 
 type FormErrors = {
@@ -37,7 +44,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
   const [submitError, setSubmitError] = useState<string>();
-  const [notice, setNotice] = useState<string>();
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const isEmailConfirmationStep = Boolean(pendingSeller);
@@ -64,7 +71,6 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
 
     setIsSubmitting(true);
     setSubmitError(undefined);
-    setNotice(undefined);
 
     try {
       await registerSellerProfile({
@@ -76,9 +82,12 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
       setPendingSeller({ name: trimmedName, email: trimmedEmail });
       setVerificationCode("");
       setVerificationError(undefined);
-      setNotice(t("successRegistration"));
+      showToast(t("successRegistration"), "success");
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : t("errorAuthRequestFailed"));
+      const message =
+        error instanceof Error ? error.message : t("errorAuthRequestFailed");
+      setSubmitError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -107,19 +116,37 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
     if (!pendingSeller) return;
     setIsSubmitting(true);
     setVerificationError(undefined);
-    setNotice(undefined);
     try {
       await resendSellerVerificationCode(pendingSeller.email);
-      setNotice(t("resendCode"));
+      showToast(t("resendCode"), "success");
     } catch (error) {
-      setVerificationError(error instanceof Error ? error.message : t("errorResendCodeFailed"));
+      const message =
+        error instanceof Error ? error.message : t("errorResendCodeFailed");
+      setVerificationError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  function showToast(message: string, variant: ToastState["variant"]) {
+    const id = Date.now();
+    setToast({ id, message, variant });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4200);
+  }
+
   return (
     <main className="seller-register-page">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="seller-register-brand">
         <a className="seller-register-logo" href="/">
           <span className="seller-logo-word">
@@ -152,7 +179,6 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 <h2>{t("emailConfirmation")}</h2>
                 <p>{t("codeSentTo")} {pendingSeller?.email}.</p>
               </div>
-              {notice && <p className="seller-register-notice">{notice}</p>}
               <label>
                 {t("verificationCode")}
                 <input
@@ -186,7 +212,6 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   setVerificationCode("");
                   setVerificationError(undefined);
                   setSubmitError(undefined);
-                  setNotice(undefined);
                 }}
               >
                 {t("changeRegistrationData")}
@@ -296,5 +321,27 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
 
       <SellerAuthFooter />
     </main>
+  );
+}
+
+function ToastNotification({
+  message,
+  variant,
+  onClose,
+}: {
+  message: string;
+  variant: ToastState["variant"];
+  onClose: () => void;
+}) {
+  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+
+  return (
+    <div className={`toast-notification toast-notification-${variant}`}>
+      <Icon aria-hidden="true" />
+      <span>{message}</span>
+      <button type="button" aria-label="Close notification" onClick={onClose}>
+        <X aria-hidden="true" />
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { CheckCircle2, X, XCircle } from "lucide-react";
 import {
   loginSellerAccount,
   requestSellerPasswordReset,
@@ -20,6 +21,12 @@ type FormErrors = {
 
 type ResetPasswordStep = "email" | "code" | "password";
 
+type ToastState = {
+  id: number;
+  message: string;
+  variant: "success" | "error";
+};
+
 type ResetErrors = {
   email?: string;
   code?: string;
@@ -37,7 +44,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
   const [resetCode, setResetCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [resetNotice, setResetNotice] = useState<string>();
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [resetErrors, setResetErrors] = useState<ResetErrors>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string>();
@@ -56,7 +63,6 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
     setResetCode("");
     setResetPassword("");
     setResetConfirmPassword("");
-    setResetNotice(undefined);
     setResetErrors({});
     setIsSubmitting(false);
   }
@@ -79,11 +85,12 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
         setResetEmail(trimmedEmail);
         setResetCode("");
         setResetPasswordStep("code");
-        setResetNotice(`${t("resetPasswordEmailSent")} ${trimmedEmail}.`);
+        showToast(`${t("resetPasswordEmailSent")} ${trimmedEmail}.`, "success");
       } catch (error) {
-        setSubmitError(
-          error instanceof Error ? error.message : t("errorPasswordResetFailed")
-        );
+        const message =
+          error instanceof Error ? error.message : t("errorPasswordResetFailed");
+        setSubmitError(message);
+        showToast(message, "error");
       } finally {
         setIsSubmitting(false);
       }
@@ -95,7 +102,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
       setResetErrors(nextErrors);
       if (nextErrors.code) return;
       setResetPasswordStep("password");
-      setResetNotice(t("resetCodeAccepted"));
+      showToast(t("resetCodeAccepted"), "success");
       return;
     }
 
@@ -119,8 +126,12 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
       setPassword("");
       resetPasswordFlow();
       setSubmitError(undefined);
+      showToast(t("resetCodeAccepted"), "success");
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : t("errorPasswordResetFailed"));
+      const message =
+        error instanceof Error ? error.message : t("errorPasswordResetFailed");
+      setSubmitError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -143,14 +154,33 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
       await loginSellerAccount({ email: trimmedEmail, password: trimmedPassword });
       await onSubmit();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : t("errorInvalidCredentials"));
+      const message =
+        error instanceof Error ? error.message : t("errorInvalidCredentials");
+      setSubmitError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  function showToast(message: string, variant: ToastState["variant"]) {
+    const id = Date.now();
+    setToast({ id, message, variant });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4200);
+  }
+
   return (
     <main className="seller-register-page">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="seller-register-brand">
         <a className="seller-register-logo" href="/">
           <span className="seller-logo-word">
@@ -192,7 +222,6 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
 
           {isPasswordResetStep ? (
             <>
-              {resetNotice && <p className="seller-register-notice">{resetNotice}</p>}
               {resetPasswordStep === "email" && (
                 <label>
                   Email
@@ -329,7 +358,6 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                   setResetCode("");
                   setResetPassword("");
                   setResetConfirmPassword("");
-                  setResetNotice(undefined);
                   setResetErrors({});
                   setSubmitError(undefined);
                 }}
@@ -343,5 +371,27 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
 
       <SellerAuthFooter />
     </main>
+  );
+}
+
+function ToastNotification({
+  message,
+  variant,
+  onClose,
+}: {
+  message: string;
+  variant: ToastState["variant"];
+  onClose: () => void;
+}) {
+  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+
+  return (
+    <div className={`toast-notification toast-notification-${variant}`}>
+      <Icon aria-hidden="true" />
+      <span>{message}</span>
+      <button type="button" aria-label="Close notification" onClick={onClose}>
+        <X aria-hidden="true" />
+      </button>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Store,
   X,
+  XCircle,
 } from "lucide-react";
 import {
   approveModerationSeller,
@@ -18,14 +19,19 @@ import "./App.css";
 
 const MODERATION_KEY_STORAGE = "marketai-moderation-key";
 
+type ToastState = {
+  id: number;
+  message: string;
+  variant: "success" | "error";
+};
+
 function App() {
   const [adminKey, setAdminKey] = useState(
     () => localStorage.getItem(MODERATION_KEY_STORAGE) ?? "",
   );
   const [sellers, setSellers] = useState<ModerationSeller[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [rejectingSeller, setRejectingSeller] =
     useState<ModerationSeller | null>(null);
   const [rejectComment, setRejectComment] = useState("");
@@ -44,35 +50,31 @@ function App() {
   async function loadSellers() {
     const key = adminKey.trim();
     if (!key) {
-      setError("Введите ключ модератора.");
+      showToast("Введите ключ модератора.", "error");
       return;
     }
 
     setIsLoading(true);
-    setError("");
-    setNotice("");
     try {
       const reviewSellers = await getModerationSellers(key);
       setSellers(reviewSellers);
       if (reviewSellers.length === 0) {
-        setNotice("Заявок на проверку сейчас нет.");
+        showToast("Заявок на проверку сейчас нет.", "success");
       }
     } catch (requestError) {
-      setError(getErrorMessage(requestError));
+      showToast(getErrorMessage(requestError), "error");
     } finally {
       setIsLoading(false);
     }
   }
 
   async function approveSeller(seller: ModerationSeller) {
-    setError("");
-    setNotice("");
     try {
       await approveModerationSeller(adminKey.trim(), seller.id);
       setSellers((current) => current.filter((item) => item.id !== seller.id));
-      setNotice(`Магазин "${seller.storeName}" одобрен.`);
+      showToast(`Магазин "${seller.storeName}" одобрен.`, "success");
     } catch (requestError) {
-      setError(getErrorMessage(requestError));
+      showToast(getErrorMessage(requestError), "error");
     }
   }
 
@@ -81,21 +83,19 @@ function App() {
 
     const comment = rejectComment.trim();
     if (!comment) {
-      setError("Напишите, что продавцу нужно исправить.");
+      showToast("Напишите, что продавцу нужно исправить.", "error");
       return;
     }
 
-    setError("");
-    setNotice("");
     try {
       await rejectModerationSeller(adminKey.trim(), rejectingSeller.id, comment);
       setSellers((current) =>
         current.filter((item) => item.id !== rejectingSeller.id),
       );
-      setNotice(`Магазин "${rejectingSeller.storeName}" отклонен.`);
+      showToast(`Магазин "${rejectingSeller.storeName}" отклонен.`, "error");
       closeRejectModal();
     } catch (requestError) {
-      setError(getErrorMessage(requestError));
+      showToast(getErrorMessage(requestError), "error");
     }
   }
 
@@ -104,8 +104,24 @@ function App() {
     setRejectComment("");
   }
 
+  function showToast(message: string, variant: ToastState["variant"]) {
+    const id = Date.now();
+    setToast({ id, message, variant });
+    window.setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 4200);
+  }
+
   return (
     <main className="moderation-shell">
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          variant={toast.variant}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <aside className="moderation-sidebar">
         <div className="brand">
           <span>M</span>
@@ -165,9 +181,6 @@ function App() {
           </button>
         </section>
 
-        {error && <p className="notice error">{error}</p>}
-        {notice && <p className="notice success">{notice}</p>}
-
         <section className="seller-list">
           {sellers.map((seller) => (
             <article className="seller-card" key={seller.id}>
@@ -178,14 +191,19 @@ function App() {
                   </span>
                   <div>
                     <h2>{seller.storeName}</h2>
-                    <p>{seller.ownerName || "Имя владельца не заполнено"}</p>
+                    <p>
+                      {seller.ownerName || "Имя владельца не заполнено"}
+                    </p>
                   </div>
                 </div>
                 <span className="status-badge">{seller.status}</span>
               </div>
 
               <dl className="seller-details">
-                <Detail label="Почта" value={seller.ownerEmail || seller.account.email} />
+                <Detail
+                  label="Почта"
+                  value={seller.ownerEmail || seller.account.email}
+                />
                 <Detail
                   label="Тип бизнеса"
                   value={seller.legalProfile?.businessType}
@@ -203,7 +221,9 @@ function App() {
                 <Detail label="IBAN" value={seller.legalProfile?.iban} />
                 <Detail
                   label="Отправлено"
-                  value={seller.submittedAt ? formatDate(seller.submittedAt) : undefined}
+                  value={
+                    seller.submittedAt ? formatDate(seller.submittedAt) : undefined
+                  }
                 />
               </dl>
 
@@ -222,7 +242,6 @@ function App() {
                   onClick={() => {
                     setRejectingSeller(seller);
                     setRejectComment("");
-                    setError("");
                   }}
                 >
                   <X aria-hidden="true" />
@@ -233,7 +252,9 @@ function App() {
           ))}
 
           {!isLoading && sellers.length === 0 && (
-            <div className="empty-state">Заявки появятся здесь после отправки Legal data.</div>
+            <div className="empty-state">
+              Заявки появятся здесь после отправки Legal data.
+            </div>
           )}
         </section>
       </section>
@@ -295,6 +316,28 @@ function Detail({ label, value }: { label: string; value?: string | null }) {
     <div>
       <dt>{label}</dt>
       <dd>{value || "-"}</dd>
+    </div>
+  );
+}
+
+function ToastNotification({
+  message,
+  variant,
+  onClose,
+}: {
+  message: string;
+  variant: ToastState["variant"];
+  onClose: () => void;
+}) {
+  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+
+  return (
+    <div className={`toast-notification toast-notification-${variant}`}>
+      <Icon aria-hidden="true" />
+      <span>{message}</span>
+      <button type="button" aria-label="Close notification" onClick={onClose}>
+        <X aria-hidden="true" />
+      </button>
     </div>
   );
 }

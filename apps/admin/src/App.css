@@ -587,6 +587,10 @@ input:disabled {
   color: var(--bg-card);
 }
 
+.primary-button[aria-disabled="true"] {
+  opacity: 0.58;
+}
+
 .dark .profile-button,
 .dark .primary-button {
   background: var(--accent);
@@ -969,17 +973,6 @@ th {
   stroke-width: 2.3;
 }
 
-.settings-notice {
-  margin: 0;
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  background: #f0fdf4;
-  color: #166534;
-  padding: 12px 14px;
-  font-weight: 800;
-}
-
-.product-access-notice,
 .settings-muted-warning {
   margin: 0 0 16px;
 }
@@ -991,12 +984,6 @@ th {
   color: var(--text-muted);
   padding: 12px 14px;
   font-weight: 800;
-}
-
-.dark .settings-notice {
-  border-color: #166534;
-  background: #052e16;
-  color: #bbf7d0;
 }
 
 .settings-grid {
@@ -1331,6 +1318,83 @@ th {
   fill: none;
   stroke: currentColor;
   stroke-width: 2.6;
+}
+
+.toast-notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid;
+  border-radius: 14px;
+  background: var(--bg-card);
+  padding: 14px;
+  box-shadow: var(--shadow-modal);
+  font-weight: 900;
+}
+
+.toast-notification-success {
+  border-color: #86efac;
+  color: #166534;
+}
+
+.toast-notification-error {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.dark .toast-notification-success {
+  border-color: #166534;
+  background: #052e16;
+  color: #bbf7d0;
+}
+
+.dark .toast-notification-error {
+  border-color: #7f1d1d;
+  background: #1f1217;
+  color: #fecaca;
+}
+
+.toast-notification > svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.toast-notification span {
+  overflow-wrap: anywhere;
+}
+
+.toast-notification button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: currentColor;
+  padding: 0;
+}
+
+.toast-notification button:hover {
+  background: var(--bg-soft);
+}
+
+.toast-notification button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
 }
 
 @media (max-width: 900px) {
