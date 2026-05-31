@@ -7,7 +7,14 @@ import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
 import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL, ADMIN_SELLER_URL } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
-import { getCurrentUser, loginClient, registerClient, requestClientPasswordReset, resetClientPassword, verifyClientEmail } from "@/lib/auth-api";
+import {
+  getCurrentUser,
+  loginClient,
+  registerClient,
+  requestClientPasswordReset,
+  resetClientPassword,
+  verifyClientEmail,
+} from "@/lib/auth-api";
 import { useLanguage } from "@/hooks/useLanguage";
 
 type AuthPageProps = {
@@ -34,8 +41,10 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     ? {
         accentText: "text-[#F59E0B]",
         accentTextHover: "text-[#F59E0B] transition hover:text-[#D97706]",
-        primaryButton: "bg-[#F59E0B] text-[#111827] transition hover:bg-[#D97706]",
-        outlineButton: "border border-[#F59E0B] bg-white text-[#B45309] transition hover:bg-[#FFFBEB] hover:text-[#92400E]",
+        primaryButton:
+          "bg-[#F59E0B] text-[#111827] transition hover:bg-[#D97706]",
+        outlineButton:
+          "border border-[#F59E0B] bg-white text-[#B45309] transition hover:bg-[#FFFBEB] hover:text-[#92400E]",
         checked: "border-[#F59E0B] bg-[#F59E0B] text-[#111827]",
         focusBorder: "focus-within:border-[#F59E0B]",
         hoverBorder: "hover:border-[#F59E0B]",
@@ -44,14 +53,19 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         accentText: "text-[#6D4AFF]",
         accentTextHover: "text-[#6D4AFF] transition hover:text-[#4F32D9]",
         primaryButton: "bg-[#6D4AFF] text-white transition hover:bg-[#4F32D9]",
-        outlineButton: "border border-[#6D4AFF] bg-white text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]",
+        outlineButton:
+          "border border-[#6D4AFF] bg-white text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]",
         checked: "border-[#6D4AFF] bg-[#6D4AFF] text-white",
         focusBorder: "focus-within:border-[#6D4AFF]",
         hoverBorder: "hover:border-[#6D4AFF]",
       };
   const alternateAuthHref = isSeller
-    ? isRegister ? ADMIN_LOGIN_URL : ADMIN_REGISTER_URL
-    : isRegister ? "/login" : "/register";
+    ? isRegister
+      ? ADMIN_LOGIN_URL
+      : ADMIN_REGISTER_URL
+    : isRegister
+      ? "/login"
+      : "/register";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,23 +74,35 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
-  const [resetPasswordStep, setResetPasswordStep] = useState<ResetPasswordStep | null>(null);
+  const [resetPasswordStep, setResetPasswordStep] =
+    useState<ResetPasswordStep | null>(null);
   const [resetEmail, setResetEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
   const [resetNotice, setResetNotice] = useState<string>();
-  const [resetErrors, setResetErrors] = useState<{ email?: string; code?: string; password?: string; confirmPassword?: string }>({});
+  const [resetErrors, setResetErrors] = useState<{
+    email?: string;
+    code?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string; agreement?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    agreement?: string;
+  }>({});
   const isEmailVerificationStep = Boolean(pendingUser);
   const isPasswordResetStep = Boolean(resetPasswordStep);
 
   function validateEmail(value: string) {
-    if (!value) return "Введите email";
-    if (CYRILLIC_PATTERN.test(value)) return "Email не должен содержать кириллицу";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Введите корректный email";
+    if (!value) return t("errorEmailRequired");
+    if (CYRILLIC_PATTERN.test(value)) return t("errorEmailNoCyrillic");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return t("errorInvalidEmail");
     return undefined;
   }
 
@@ -98,57 +124,129 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     const trimmedPassword = password.trim();
     const trimmedConfirmPassword = confirmPassword.trim();
 
-    if (isRegister && !trimmedName) nextErrors.name = "Введите имя";
+    if (isRegister && !trimmedName) {
+      nextErrors.name = t("errorNameRequired");
+    }
+
     const emailError = validateEmail(trimmedEmail);
-    if (emailError) nextErrors.email = emailError;
-    if (!trimmedPassword) nextErrors.password = "Введите пароль";
-    else if (CYRILLIC_PATTERN.test(trimmedPassword)) nextErrors.password = "Пароль не должен содержать кириллицу";
-    else if (trimmedPassword.length < 6) nextErrors.password = "Пароль должен быть не короче 6 символов";
-    if (isRegister && !trimmedConfirmPassword) nextErrors.confirmPassword = "Подтвердите пароль";
-    else if (isRegister && CYRILLIC_PATTERN.test(trimmedConfirmPassword)) nextErrors.confirmPassword = "Подтверждение пароля не должно содержать кириллицу";
-    else if (isRegister && trimmedPassword !== trimmedConfirmPassword) nextErrors.confirmPassword = "Пароли не совпадают";
-    if (isRegister && !isAgreementAccepted) nextErrors.agreement = "Подтвердите пользовательское соглашение";
+    if (emailError) {
+      nextErrors.email = emailError;
+    }
+
+    if (!trimmedPassword) {
+      nextErrors.password = t("errorPasswordRequired");
+    } else if (CYRILLIC_PATTERN.test(trimmedPassword)) {
+      nextErrors.password = t("errorPasswordNoCyrillic");
+    } else if (trimmedPassword.length < 6) {
+      nextErrors.password = t("errorPasswordMinLength");
+    }
+
+    if (isRegister && !trimmedConfirmPassword) {
+      nextErrors.confirmPassword = t("errorConfirmPasswordRequired");
+    } else if (isRegister && CYRILLIC_PATTERN.test(trimmedConfirmPassword)) {
+      nextErrors.confirmPassword = t("errorPasswordNoCyrillic");
+    } else if (isRegister && trimmedPassword !== trimmedConfirmPassword) {
+      nextErrors.confirmPassword = t("errorPasswordsDoNotMatch");
+    }
+
+    if (isRegister && !isAgreementAccepted) {
+      nextErrors.agreement = t("errorAgreementRequired");
+    }
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
 
     const fallbackName = trimmedEmail.split("@")[0] || "Пользователь";
-    const user = { name: isRegister ? trimmedName : fallbackName, email: trimmedEmail };
+    const user = {
+      name: isRegister ? trimmedName : fallbackName,
+      email: trimmedEmail,
+    };
+
     setIsSubmitting(true);
     setSubmitError(undefined);
 
     try {
       if (isRegister) {
-        await registerClient({ name: trimmedName, email: trimmedEmail, password: trimmedPassword });
+        await registerClient({
+          name: trimmedName,
+          email: trimmedEmail,
+          password: trimmedPassword,
+        });
+
         setPendingUser(user);
         setVerificationCode("");
         setVerificationError(undefined);
         return;
       }
-      await loginClient({ email: trimmedEmail, password: trimmedPassword });
+
+      await loginClient({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
       const currentUser = await getCurrentUser();
-      dispatch(login({ id: currentUser.id, name: currentUser.name ?? currentUser.displayName ?? user.name, email: currentUser.email, isEmailVerified: currentUser.isEmailVerified }));
+
+      dispatch(
+        login({
+          id: currentUser.id,
+          name: currentUser.name ?? currentUser.displayName ?? user.name,
+          email: currentUser.email,
+          isEmailVerified: currentUser.isEmailVerified,
+        }),
+      );
+
       router.push("/profile");
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Auth request failed");
+      setSubmitError(
+        error instanceof Error ? error.message : t("errorAuthRequestFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleEmailVerificationSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleEmailVerificationSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
-    if (!pendingUser) return;
+
+    if (!pendingUser) {
+      return;
+    }
+
     setIsSubmitting(true);
     setVerificationError(undefined);
+
     try {
-      await verifyClientEmail({ email: pendingUser.email, code: verificationCode });
-      await loginClient({ email: pendingUser.email, password });
+      await verifyClientEmail({
+        email: pendingUser.email,
+        code: verificationCode,
+      });
+
+      await loginClient({
+        email: pendingUser.email,
+        password,
+      });
+
       const currentUser = await getCurrentUser();
-      dispatch(register({ id: currentUser.id, name: currentUser.name ?? currentUser.displayName ?? pendingUser.name, email: currentUser.email, isEmailVerified: currentUser.isEmailVerified }));
+
+      dispatch(
+        register({
+          id: currentUser.id,
+          name: currentUser.name ?? currentUser.displayName ?? pendingUser.name,
+          email: currentUser.email,
+          isEmailVerified: currentUser.isEmailVerified,
+        }),
+      );
+
       router.push("/profile");
     } catch (error) {
-      setVerificationError(error instanceof Error ? error.message : "Email verification failed");
+      setVerificationError(
+        error instanceof Error ? error.message : t("errorEmailVerificationFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -156,16 +254,28 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
   async function handleResetPasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!resetPasswordStep) return;
+
+    if (!resetPasswordStep) {
+      return;
+    }
+
     const nextErrors: typeof resetErrors = {};
+
     if (resetPasswordStep === "email") {
       const trimmedEmail = resetEmail.trim();
       const emailError = validateEmail(trimmedEmail);
-      if (emailError) nextErrors.email = emailError;
+      if (emailError) {
+        nextErrors.email = emailError;
+      }
       setResetErrors(nextErrors);
-      if (nextErrors.email) return;
+
+      if (nextErrors.email) {
+        return;
+      }
+
       setIsSubmitting(true);
       setSubmitError(undefined);
+
       try {
         await requestClientPasswordReset({ email: trimmedEmail });
         setResetEmail(trimmedEmail);
@@ -173,43 +283,78 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         setResetCode("");
         setResetNotice(`${t("resetPasswordEmailSent")} ${trimmedEmail}.`);
       } catch (error) {
-        setSubmitError(error instanceof Error ? error.message : "Не удалось отправить код восстановления");
+        setSubmitError(
+          error instanceof Error
+            ? error.message
+            : t("errorPasswordResetFailed"),
+        );
       } finally {
         setIsSubmitting(false);
       }
       return;
     }
+
     if (resetPasswordStep === "code") {
-      if (resetCode.length !== 6) nextErrors.code = "Введите 6 цифр из письма";
+      if (resetCode.length !== 6) {
+        nextErrors.code = t("errorVerificationCodeRequired");
+      }
+
       setResetErrors(nextErrors);
-      if (nextErrors.code) return;
+
+      if (nextErrors.code) {
+        return;
+      }
+
       setResetPasswordStep("password");
-      setResetNotice(t("codeConfirmed"));
+      setResetNotice(t("resetCodeAccepted"));
       return;
     }
+
     const trimmedPassword = resetPassword.trim();
     const trimmedConfirmPassword = resetConfirmPassword.trim();
-    if (!trimmedPassword) nextErrors.password = "Введите новый пароль";
-    else if (CYRILLIC_PATTERN.test(trimmedPassword)) nextErrors.password = "Пароль не должен содержать кириллицу";
-    else if (trimmedPassword.length < 6) nextErrors.password = "Пароль должен быть не короче 6 символов";
-    if (!trimmedConfirmPassword) nextErrors.confirmPassword = "Подтвердите новый пароль";
-    else if (trimmedPassword !== trimmedConfirmPassword) nextErrors.confirmPassword = "Пароли не совпадают";
+
+    if (!trimmedPassword) {
+      nextErrors.password = t("errorPasswordRequired");
+    } else if (CYRILLIC_PATTERN.test(trimmedPassword)) {
+      nextErrors.password = t("errorPasswordNoCyrillic");
+    } else if (trimmedPassword.length < 6) {
+      nextErrors.password = t("errorPasswordMinLength");
+    }
+
+    if (!trimmedConfirmPassword) {
+      nextErrors.confirmPassword = t("errorConfirmPasswordRequired");
+    } else if (trimmedPassword !== trimmedConfirmPassword) {
+      nextErrors.confirmPassword = t("errorPasswordsDoNotMatch");
+    }
+
     setResetErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(undefined);
+
     try {
-      await resetClientPassword({ email: resetEmail, code: resetCode, password: trimmedPassword });
+      await resetClientPassword({
+        email: resetEmail,
+        code: resetCode,
+        password: trimmedPassword,
+      });
       setPassword("");
       setEmail(resetEmail);
       resetPasswordFlow();
       setSubmitError(undefined);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Не удалось обновить пароль");
+      setSubmitError(
+        error instanceof Error ? error.message : t("errorPasswordResetFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }
   }
+
 
   return (
     <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 md:px-8 md:py-10 lg:grid-cols-[1fr_460px] lg:gap-10">
