@@ -21,6 +21,9 @@ import {
   X,
 } from "lucide-react";
 import { logout } from "@/store/authSlice";
+import { hydrateCart } from "@/store/cartSlice";
+import { hydrateCompare } from "@/store/compareSlice";
+import { hydrateFavorites } from "@/store/favoritesSlice";
 import { categories } from "@/data/categories";
 import { logoutClient } from "@/lib/auth-api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -309,6 +312,9 @@ export function Header() {
                             await logoutClient();
                           } finally {
                             dispatch(logout());
+                            dispatch(hydrateCart([]));
+                            dispatch(hydrateFavorites([]));
+                            dispatch(hydrateCompare([]));
                             setIsProfileOpen(false);
                           }
                         }}
@@ -547,6 +553,9 @@ export function Header() {
                         await logoutClient();
                       } finally {
                         dispatch(logout());
+                        dispatch(hydrateCart([]));
+                        dispatch(hydrateFavorites([]));
+                        dispatch(hydrateCompare([]));
                         setIsProfileOpen(false);
                       }
                     }}

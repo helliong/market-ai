@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  accountId String
+  productId Int
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, productId])
+  @@index([accountId])
+}
+
+model FavoriteItem {
+  id        String   @id @default(cuid())
+  accountId String
+  productId Int
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, productId])
+  @@index([accountId])
+}
+
+model CompareItem {
+  id        String   @id @default(cuid())
+  accountId String
+  productId Int
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, productId])
+  @@index([accountId])
+}

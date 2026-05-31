@@ -43,6 +43,24 @@ services:
     networks:
       - market-ai-network
 
+  cart-service:
+    build: ./services/cart-service
+    container_name: market-ai-cart
+    restart: always
+    ports:
+      - "4002:4002"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - CLIENT_URL=${CLIENT_URL}
+      - CART_SERVICE_PORT=4002
+      - NODE_ENV=production
+    depends_on:
+      - postgres
+      - auth-service
+    networks:
+      - market-ai-network
+
 volumes:
   postgres_data:
 

@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
+import { hydrateShoppingState } from "@/store/shoppingHydration";
 
 import {
   getCurrentUser,
@@ -211,6 +212,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         }),
       );
 
+      await hydrateShoppingState(dispatch).catch(() => undefined);
+
       router.push("/profile");
     } catch (error) {
       setSubmitError(
@@ -254,6 +257,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           isEmailVerified: currentUser.isEmailVerified,
         }),
       );
+
+      await hydrateShoppingState(dispatch).catch(() => undefined);
 
       router.push("/profile");
     } catch (error) {

@@ -1,4 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  addServerFavorite,
+  removeServerFavorite,
+} from "@/lib/shopping-api";
+import type { AppDispatch, RootState } from "./store";
 
 type FavoritesState = {
   ids: number[];
@@ -12,7 +17,11 @@ export const favoritesSlice = createSlice({
   name: "favorites",
   initialState,
   reducers: {
-    toggleFavorite: (state, action: PayloadAction<number>) => {
+    hydrateFavorites: (state, action: PayloadAction<number[]>) => {
+      state.ids = action.payload;
+    },
+
+    toggleFavoriteLocal: (state, action: PayloadAction<number>) => {
       if (state.ids.includes(action.payload)) {
         state.ids = state.ids.filter((id) => id !== action.payload);
       } else {
@@ -22,5 +31,24 @@ export const favoritesSlice = createSlice({
   },
 });
 
-export const { toggleFavorite } = favoritesSlice.actions;
+export const { hydrateFavorites, toggleFavoriteLocal } = favoritesSlice.actions;
+
+export function toggleFavorite(productId: number) {
+  return async (dispatch: AppDispatch, getState: () => RootState) => {
+    const wasFavorite = getState().favorites.ids.includes(productId);
+
+    dispatch(toggleFavoriteLocal(productId));
+
+    if (!getState().auth.user) {
+      return;
+    }
+
+    if (wasFavorite) {
+      await removeServerFavorite(productId).catch(() => undefined);
+    } else {
+      await addServerFavorite(productId).catch(() => undefined);
+    }
+  };
+}
+
 export default favoritesSlice.reducer;

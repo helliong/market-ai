@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import { getCurrentUser } from "@/lib/auth-api";
 import { setUser } from "@/store/authSlice";
+import { hydrateCart } from "@/store/cartSlice";
+import { hydrateCompare } from "@/store/compareSlice";
+import { hydrateFavorites } from "@/store/favoritesSlice";
 import { useAppDispatch } from "@/store/hooks";
+import { hydrateShoppingState } from "@/store/shoppingHydration";
 
 export function AuthSession() {
   const dispatch = useAppDispatch();
@@ -27,9 +31,14 @@ export function AuthSession() {
             isEmailVerified: user.isEmailVerified,
           }),
         );
+
+        await hydrateShoppingState(dispatch).catch(() => undefined);
       } catch {
         if (isMounted) {
           dispatch(setUser(null));
+          dispatch(hydrateCart([]));
+          dispatch(hydrateFavorites([]));
+          dispatch(hydrateCompare([]));
         }
       }
     }
