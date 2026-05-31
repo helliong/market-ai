@@ -7,6 +7,7 @@ export const products = [
     rating: 4.8,
     reviews: 234,
     badge: "Хит",
+    storeName: "MarketAI Tech",
     categoryIds: [1],
   },
   {
@@ -17,6 +18,7 @@ export const products = [
     rating: 4.7,
     reviews: 412,
     badge: "Скидка",
+    storeName: "Galaxy Store",
     categoryIds: [1, 2],
   },
   {
@@ -27,6 +29,7 @@ export const products = [
     rating: 4.9,
     reviews: 128,
     badge: "AI choice",
+    storeName: "Sound Point",
     categoryIds: [1],
   },
   {
@@ -37,6 +40,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Новинка",
+    storeName: "Smart Home Hub",
     categoryIds: [1, 4, 8],
   },
   {
@@ -47,6 +51,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Выбор блогеров",
+    storeName: "Creator Gear",
     categoryIds: [1, 8],
   },
   {
@@ -57,6 +62,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Лучший планшет",
+    storeName: "Apple Room",
     categoryIds: [1],
   },
   {
@@ -67,6 +73,7 @@ export const products = [
     rating: 4.6,
     reviews: 89,
     badge: "Выбор Samsung",
+    storeName: "Samsung Partner",
     categoryIds: [1],
   },
   {
@@ -77,6 +84,7 @@ export const products = [
     rating: 4.6, 
     reviews: 89,
     badge: "Выбор Покупателей",
+    storeName: "Sport Wear",
     categoryIds: [3],
   },
     {
@@ -87,6 +95,7 @@ export const products = [
     rating: 4.6, 
     reviews: 89,
     badge: "Выбор Покупателей",
+    storeName: "Adidas Outlet",
     categoryIds: [3],
   },
 ];

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Star,
+  Store,
   Truck,
 } from "lucide-react";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
@@ -26,6 +27,7 @@ type Product = {
   rating: number;
   reviews: number;
   badge?: string;
+  storeName?: string;
 };
 
 type ProductPageProps = {
@@ -183,6 +185,22 @@ export function ProductPage({ product }: ProductPageProps) {
             <ProductBenefit icon={<ShieldCheck size={20} />} label="Официальная гарантия" />
             <ProductBenefit icon={<RotateCcw size={20} />} label="Удобный возврат" />
           </div>
+
+          {product.storeName && (
+            <div className="mt-4 flex items-center gap-3 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                <Store size={21} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6B7280]">
+                  Продавец
+                </p>
+                <p className="mt-1 truncate text-base font-black text-[#111827]">
+                  {product.storeName}
+                </p>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
 

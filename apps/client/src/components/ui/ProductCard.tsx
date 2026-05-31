@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Minus, Plus, Scale, ShoppingCart, Star } from "lucide-react";
+import { Heart, Minus, Plus, Scale, ShoppingCart, Star, Store } from "lucide-react";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
@@ -15,6 +15,7 @@ type ProductCardProps = {
   rating: number;
   reviews: number;
   badge?: string;
+  storeName?: string;
 };
 
 export function ProductCard({
@@ -25,6 +26,7 @@ export function ProductCard({
   rating,
   reviews,
   badge,
+  storeName,
 }: ProductCardProps) {
   const dispatch = useAppDispatch();
   const cartItem = useAppSelector((state) =>
@@ -92,6 +94,13 @@ export function ProductCard({
         >
           {title}
         </Link>
+
+        {storeName && (
+          <div className="mt-2 flex min-h-[18px] items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] sm:text-xs">
+            <Store size={13} className="shrink-0 text-[#6D4AFF] sm:h-3.5 sm:w-3.5" />
+            <span className="line-clamp-1">{storeName}</span>
+          </div>
+        )}
 
         <div className="mt-3 hidden items-center gap-1 text-sm sm:flex">
           <Star size={16} className="fill-[#F59E0B] text-[#F59E0B]" />
