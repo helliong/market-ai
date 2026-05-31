@@ -28,15 +28,44 @@ type ResetPasswordPayload = {
   password: string;
 };
 
+export type SellerStatus =
+  | "PENDING_LEGAL_DATA"
+  | "UNDER_REVIEW"
+  | "ACTIVATED"
+  | "REJECTED"
+  | "SUSPENDED";
+
+export type SellerLegalProfilePayload = {
+  businessType: string;
+  taxId: string;
+  legalName: string;
+  legalAddress: string;
+  bankName: string;
+  iban: string;
+};
+
+export type SellerLegalProfile = SellerLegalProfilePayload & {
+  id: string;
+  sellerId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SellerProfile = {
   id: string;
   accountId: string;
   storeName: string;
-  status: string;
+  ownerEmail: string;
+  ownerName: string;
+  status: SellerStatus;
+  reviewComment: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
   agreementAcceptedAt: string;
   legalName: string | null;
   inn: string | null;
   phone: string | null;
+  legalProfile: SellerLegalProfile | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,6 +73,7 @@ export type SellerProfile = {
 async function authRequest<T>(
   path: string,
   options: RequestInit = {},
+  retryOnUnauthorized = true,
 ): Promise<T> {
   const response = await fetch(`${AUTH_API_URL}${path}`, {
     ...options,
@@ -57,10 +87,31 @@ async function authRequest<T>(
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      retryOnUnauthorized &&
+      path.startsWith("/auth/seller/") &&
+      path !== "/auth/seller/login" &&
+      path !== "/auth/seller/refresh"
+    ) {
+      await refreshSellerSession();
+      return authRequest<T>(path, options, false);
+    }
+
     throw new Error(data?.message ?? "Auth request failed");
   }
 
   return data as T;
+}
+
+function refreshSellerSession() {
+  return authRequest<{ message: string }>(
+    "/auth/seller/refresh",
+    {
+      method: "POST",
+    },
+    false,
+  );
 }
 
 export function registerSellerProfile(payload: SellerRegisterPayload) {
@@ -93,6 +144,22 @@ export function loginSellerAccount(payload: LoginPayload) {
 
 export function getCurrentSeller() {
   return authRequest<SellerProfile>("/auth/seller/me");
+}
+
+export function saveSellerLegalProfile(payload: SellerLegalProfilePayload) {
+  return authRequest<SellerLegalProfile>("/auth/seller/legal-profile", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function submitSellerLegalProfile() {
+  return authRequest<{ message: string; status: SellerStatus }>(
+    "/auth/seller/legal-profile/submit",
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function logoutSellerAccount() {

@@ -10,7 +10,13 @@ import {
   Sun,
   Users,
 } from "lucide-react";
-import { getCurrentSeller, logoutSellerAccount } from "./auth-api";
+import {
+  getCurrentSeller,
+  logoutSellerAccount,
+  saveSellerLegalProfile,
+  submitSellerLegalProfile,
+} from "./auth-api";
+import type { SellerProfile, SellerLegalProfilePayload } from "./auth-api";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
@@ -19,6 +25,7 @@ import { emptyProductForm } from "./admin/data";
 import { DashboardPage } from "./admin/pages/DashboardPage";
 import { OrdersPage } from "./admin/pages/OrdersPage";
 import { ProductsPage } from "./admin/pages/ProductsPage";
+import { SettingsPage } from "./admin/pages/SettingsPage";
 import { UsersPage } from "./admin/pages/UsersPage";
 import type {
   OrderStatus,
@@ -42,10 +49,10 @@ type Page =
   | "products"
   | "orders"
   | "users"
+  | "settings"
   | "register"
   | "login"
   | "agreement";
-type MenuPage = Exclude<Page, "welcome" | "register" | "login" | "agreement">;
 
 const pagePaths: Record<Page, string> = {
   welcome: "/",
@@ -53,10 +60,15 @@ const pagePaths: Record<Page, string> = {
   products: "/products",
   orders: "/orders",
   users: "/users",
+  settings: "/settings",
   register: "/register",
   login: "/login",
   agreement: "/agreement",
 };
+type MenuPage = Exclude<
+  Page,
+  "welcome" | "register" | "login" | "agreement" | "settings"
+>;
 
 function App() {
   const { t } = useLanguage();
@@ -68,6 +80,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
   const [storeName, setStoreName] = useState("MarketAI Store");
+  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -112,6 +125,7 @@ function App() {
         const seller = await getCurrentSeller();
         if (isMounted) {
           setStoreName(seller.storeName);
+          setSellerProfile(seller);
         }
       } catch {
         if (isMounted) {
@@ -258,6 +272,12 @@ function App() {
     setIsStoreMenuOpen(true);
   }
 
+  function openSettingsPage() {
+    setIsStoreMenuOpen(false);
+    setIsMenuOpen(true);
+    navigateToPage("settings");
+  }
+
   function toggleSidebar() {
     if (isStoreMenuOpen) {
       setIsStoreMenuOpen(false);
@@ -269,10 +289,12 @@ function App() {
   async function restoreSellerSession() {
     const seller = await getCurrentSeller();
     setStoreName(seller.storeName);
+    setSellerProfile(seller);
   }
 
   function registerSeller(seller: { name: string; email: string }) {
     setStoreName(seller.name);
+    setSellerProfile(null);
     navigateToPage("dashboard");
   }
 
@@ -288,6 +310,55 @@ function App() {
       setIsStoreMenuOpen(false);
       setIsMenuOpen(false);
       navigateToPage("login");
+    }
+  }
+
+  function handleDeactivateStore() {
+    setDialog({
+      title: t("settingsDeactivateTitle"),
+      message: t("settingsDeactivateDialog"),
+      variant: "danger",
+      confirmLabel: t("settingsDeactivate"),
+      cancelLabel: t("cancel"),
+    });
+  }
+
+  function handleDeleteStore() {
+    setDialog({
+      title: t("settingsDeleteTitle"),
+      message: t("settingsDeleteDialog"),
+      variant: "danger",
+      confirmLabel: t("settingsDelete"),
+      cancelLabel: t("cancel"),
+    });
+  }
+
+  async function handleSaveLegalProfile(payload: SellerLegalProfilePayload) {
+    await saveSellerLegalProfile(payload);
+    const seller = await getCurrentSeller();
+    setSellerProfile(seller);
+  }
+
+  async function handleSubmitLegalProfile() {
+    await submitSellerLegalProfile();
+    const seller = await getCurrentSeller();
+    setSellerProfile(seller);
+  }
+
+  function getSellerStatusMessage() {
+    switch (sellerProfile?.status) {
+      case "PENDING_LEGAL_DATA":
+        return t("sellerStatusPendingLegal");
+      case "UNDER_REVIEW":
+        return t("sellerStatusUnderReview");
+      case "REJECTED":
+        return sellerProfile.reviewComment
+          ? `${t("sellerStatusRejected")}: ${sellerProfile.reviewComment}`
+          : t("sellerStatusRejected");
+      case "SUSPENDED":
+        return t("sellerStatusSuspended");
+      default:
+        return "";
     }
   }
 
@@ -398,9 +469,15 @@ function App() {
         </div>
 
         <nav className="store-subsidebar-nav">
-          <button type="button">{t("settings")}</button>
-          <button type="button">{t("legalData")}</button>
-          <button type="button">{t("notificationSubscription")}</button>
+          <button type="button" onClick={openSettingsPage}>
+            {t("settings")}
+          </button>
+          <button type="button" onClick={openSettingsPage}>
+            {t("legalData")}
+          </button>
+          <button type="button" onClick={openSettingsPage}>
+            {t("settingsTeam")}
+          </button>
         </nav>
 
         <div className="store-subsidebar-actions">
@@ -452,6 +529,8 @@ function App() {
         {page === "products" && (
           <ProductsPage
             products={products}
+            canAddProducts={sellerProfile?.status === "ACTIVATED"}
+            inactiveReason={getSellerStatusMessage()}
             onAddProduct={openAddProductModal}
             onEditProduct={openEditProductModal}
             onDeleteProduct={deleteProduct}
@@ -465,6 +544,17 @@ function App() {
             users={users}
             onRoleChange={updateUserRole}
             onStatusChange={updateUserStatus}
+          />
+        )}
+        {page === "settings" && (
+          <SettingsPage
+            storeName={storeName}
+            sellerProfile={sellerProfile}
+            onStoreNameChange={setStoreName}
+            onSaveLegalProfile={handleSaveLegalProfile}
+            onSubmitLegalProfile={handleSubmitLegalProfile}
+            onDeactivateStore={handleDeactivateStore}
+            onDeleteStore={handleDeleteStore}
           />
         )}
       </main>

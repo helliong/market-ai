@@ -9,6 +9,7 @@ import { EmailModule } from '../email/email.module';
 import { JwtStrategy, SellerJwtStrategy } from './strategies/jwt-strategy';
 import { BuyerGuard } from './guards/buyer.guard';
 import { SellerGuard } from './guards/seller.guard';
+import { ModerationAdminGuard } from './guards/moderation-admin.guard';
 
 @Module({
   imports: [
@@ -24,6 +25,13 @@ import { SellerGuard } from './guards/seller.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, SellerJwtStrategy, BuyerGuard, SellerGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    SellerJwtStrategy,
+    BuyerGuard,
+    SellerGuard,
+    ModerationAdminGuard,
+  ],
 })
 export class AuthModule {}

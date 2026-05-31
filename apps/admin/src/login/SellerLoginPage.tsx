@@ -156,7 +156,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
           <span className="seller-logo-word">
             Market<span>AI</span>
           </span>
-          <small>Продавцам</small>
+          <small>{t("forSellers")}</small>
         </a>
       </div>
 

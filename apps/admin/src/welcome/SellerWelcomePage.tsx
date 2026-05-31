@@ -20,10 +20,10 @@ export function SellerWelcomePage() {
           <span className="seller-logo-word">
             Market<span>AI</span>
           </span>
-          <small>Продавцам</small>
+          <small>{t("forSellers")}</small>
         </a>
-        <nav className="seller-welcome-nav" aria-label="Навигация продавца">
-          <a className="seller-welcome-nav-secondary" href="/login">{t("login")}</a>
+        <nav className="seller-welcome-nav" aria-label={t("sellerNavigation")}>
+          <a className="seller-welcome-nav-secondary" href="/login">{t("loginButton")}</a>
           <a className="seller-welcome-nav-primary" href="/register">{t("createStore")}</a>
         </nav>
       </header>
@@ -42,7 +42,7 @@ export function SellerWelcomePage() {
           </div>
         </div>
 
-        <div className="seller-welcome-panel" aria-label="Обзор возможностей">
+        <div className="seller-welcome-panel" aria-label={t("sellerCabinet")}>
           <div className="seller-welcome-panel-header">
             <span><Boxes aria-hidden="true" /></span>
             <div>

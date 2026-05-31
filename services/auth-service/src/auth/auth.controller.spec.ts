@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -14,12 +15,23 @@ describe('AuthController', () => {
     refreshTokens: jest.fn(),
     getMe: jest.fn(),
     getUserMe: jest.fn(),
-  getSellerMe: jest.fn(),
-  forgotPassword: jest.fn(),
-  resendVerificationCode: jest.fn(),
-  resetPassword: jest.fn(),
-  logout: jest.fn(),
-};
+    getSellerMe: jest.fn(),
+    upsertSellerLegalProfile: jest.fn(),
+    submitSellerLegalProfile: jest.fn(),
+    getSellersForReview: jest.fn(),
+    approveSeller: jest.fn(),
+    rejectSeller: jest.fn(),
+    forgotPassword: jest.fn(),
+    forgotSellerPassword: jest.fn(),
+    resendVerificationCode: jest.fn(),
+    resetPassword: jest.fn(),
+    resetSellerPassword: jest.fn(),
+    logout: jest.fn(),
+  };
+
+  const configServiceMock = {
+    get: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -28,6 +40,10 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: authServiceMock,
+        },
+        {
+          provide: ConfigService,
+          useValue: configServiceMock,
         },
       ],
     }).compile();

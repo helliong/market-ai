@@ -3,10 +3,10 @@ import { useLanguage } from "../hooks/useLanguage";
 import { setTheme, useTheme } from "../settings-store";
 
 const footerLinks = [
-  { href: "/dashboard", labelKey: "overview" },
-  { href: "/register", labelKey: "register" },
-  { href: "/login", labelKey: "login" },
-  { href: "/agreement", labelKey: "agreement" },
+  { href: "/dashboard", labelKey: "dashboard" },
+  { href: "/register", labelKey: "createStore" },
+  { href: "/login", labelKey: "loginButton" },
+  { href: "/agreement", labelKey: "agreementTitle" },
 ];
 
 export function SellerAuthFooter() {
@@ -27,7 +27,7 @@ export function SellerAuthFooter() {
             <span className="seller-logo-word">
               Market<span>AI</span>
             </span>
-            <small>Продавцам</small>
+            <small>{t("forSellers")}</small>
           </a>
           <p>{t("sellerWorkplace")}</p>
         </div>
@@ -73,7 +73,7 @@ export function SellerAuthFooter() {
                   onClick={() => setTheme("light")}
                 >
                   <Sun size={16} aria-hidden="true" />
-                  {t("light")}
+                  {t("lightTheme")}
                 </button>
                 <button
                   type="button"
@@ -81,7 +81,7 @@ export function SellerAuthFooter() {
                   onClick={() => setTheme("dark")}
                 >
                   <Moon size={16} aria-hidden="true" />
-                  {t("dark")}
+                  {t("darkTheme")}
                 </button>
               </div>
             </div>

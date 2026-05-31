@@ -5,6 +5,8 @@ import type { Product } from "../types";
 
 type ProductsPageProps = {
   products: Product[];
+  canAddProducts: boolean;
+  inactiveReason?: string;
   onAddProduct: () => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => void;
@@ -12,6 +14,8 @@ type ProductsPageProps = {
 
 export function ProductsPage({
   products,
+  canAddProducts,
+  inactiveReason,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -25,10 +29,21 @@ export function ProductsPage({
           <h2>{t("manageProducts")}</h2>
           <p>{t("productsDescription")}</p>
         </div>
-        <button className="primary-button" onClick={onAddProduct}>
+        <button
+          className="primary-button"
+          disabled={!canAddProducts}
+          onClick={onAddProduct}
+          title={!canAddProducts ? inactiveReason : undefined}
+        >
           {t("addProduct")}
         </button>
       </div>
+
+      {!canAddProducts && inactiveReason && (
+        <div className="settings-notice product-access-notice">
+          {inactiveReason}
+        </div>
+      )}
 
       <div className="table-wrapper">
         <table>

@@ -7,8 +7,9 @@ datasource db {
 }
 
 enum SellerStatus {
-  PENDING
-  ACTIVE
+  PENDING_LEGAL_DATA
+  UNDER_REVIEW
+  ACTIVATED
   SUSPENDED
   REJECTED
 }
@@ -61,11 +62,32 @@ model UserSeller {
   accountId           String       @unique
   account             Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   storeName           String
-  status              SellerStatus @default(PENDING)
+  ownerEmail          String
+  ownerName           String
+  status              SellerStatus @default(PENDING_LEGAL_DATA)
+  reviewComment       String?
+  submittedAt         DateTime?
+  reviewedAt          DateTime?
   agreementAcceptedAt DateTime
   legalName           String?
   inn                 String?
   phone               String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
+
+  legalProfile        SellerLegalProfile?
+}
+
+model SellerLegalProfile {
+  id           String     @id @default(cuid())
+  sellerId     String     @unique
+  seller       UserSeller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  businessType String
+  taxId        String
+  legalName    String
+  legalAddress String
+  bankName     String
+  iban         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }

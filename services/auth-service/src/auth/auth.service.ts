@@ -5,7 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CredentialScope, Prisma } from '@prisma/client';
+import { CredentialScope, Prisma, SellerStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +17,7 @@ import {
   RegisterDto,
   ResetPasswordDto,
   SellerRegisterDto,
+  SellerLegalProfileDto,
   VerifyEmailDto,
 } from './dto';
 
@@ -133,6 +134,8 @@ export class AuthService {
             data: {
               accountId: existingAccount.id,
               storeName: dto.storeName,
+              ownerEmail: email,
+              ownerName: dto.storeName,
               agreementAcceptedAt: new Date(),
               legalName: dto.legalName,
               inn: dto.inn,
@@ -170,6 +173,8 @@ export class AuthService {
           seller: {
             create: {
               storeName: dto.storeName,
+              ownerEmail: email,
+              ownerName: dto.storeName,
               agreementAcceptedAt: new Date(),
               legalName: dto.legalName,
               inn: dto.inn,
@@ -380,11 +385,17 @@ export class AuthService {
         id: true,
         accountId: true,
         storeName: true,
+        ownerEmail: true,
+        ownerName: true,
         status: true,
+        reviewComment: true,
+        submittedAt: true,
+        reviewedAt: true,
         agreementAcceptedAt: true,
         legalName: true,
         inn: true,
         phone: true,
+        legalProfile: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -399,6 +410,84 @@ export class AuthService {
     }
 
     return seller;
+  }
+
+  async upsertSellerLegalProfile(
+    accountId: string,
+    dto: SellerLegalProfileDto,
+  ) {
+    const seller = await this.getSellerForLegalUpdate(accountId);
+    const legalProfile = this.normalizeSellerLegalProfile(dto);
+
+    return this.prisma.sellerLegalProfile.upsert({
+      where: { sellerId: seller.id },
+      create: {
+        sellerId: seller.id,
+        ...legalProfile,
+      },
+      update: legalProfile,
+    });
+  }
+
+  async submitSellerLegalProfile(accountId: string) {
+    const seller = await this.getSellerForLegalUpdate(accountId);
+    const legalProfile = await this.prisma.sellerLegalProfile.findUnique({
+      where: { sellerId: seller.id },
+    });
+
+    if (!legalProfile) {
+      throw new BadRequestException('Legal data must be filled first');
+    }
+
+    await this.prisma.userSeller.update({
+      where: { id: seller.id },
+      data: {
+        status: SellerStatus.UNDER_REVIEW,
+        reviewComment: null,
+        submittedAt: new Date(),
+        reviewedAt: null,
+      },
+    });
+
+    return {
+      message: 'Legal data submitted for review',
+      status: SellerStatus.UNDER_REVIEW,
+    };
+  }
+
+  async getSellersForReview() {
+    return this.prisma.userSeller.findMany({
+      where: { status: SellerStatus.UNDER_REVIEW },
+      include: {
+        account: { select: { email: true, isEmailVerified: true } },
+        legalProfile: true,
+      },
+      orderBy: { submittedAt: 'asc' },
+    });
+  }
+
+  async approveSeller(sellerId: string) {
+    return this.prisma.userSeller.update({
+      where: { id: sellerId },
+      data: {
+        status: SellerStatus.ACTIVATED,
+        reviewComment: null,
+        reviewedAt: new Date(),
+      },
+      include: { legalProfile: true },
+    });
+  }
+
+  async rejectSeller(sellerId: string, comment: string) {
+    return this.prisma.userSeller.update({
+      where: { id: sellerId },
+      data: {
+        status: SellerStatus.REJECTED,
+        reviewComment: comment,
+        reviewedAt: new Date(),
+      },
+      include: { legalProfile: true },
+    });
   }
 
   forgotPassword(dto: ForgotPasswordDto) {
@@ -452,6 +541,26 @@ export class AuthService {
       where: { accountId, scope },
       data: { refreshTokenHash: null },
     });
+  }
+
+  private async getSellerForLegalUpdate(accountId: string) {
+    const seller = await this.prisma.userSeller.findUnique({
+      where: { accountId },
+    });
+
+    if (!seller) {
+      throw new ForbiddenException('Seller profile not found');
+    }
+
+    if (seller.status === SellerStatus.SUSPENDED) {
+      throw new ForbiddenException('Seller profile is suspended');
+    }
+
+    if (seller.status === SellerStatus.ACTIVATED) {
+      throw new BadRequestException('Activated seller legal data is locked');
+    }
+
+    return seller;
   }
 
   private async forgotPasswordForScope(
@@ -618,6 +727,17 @@ export class AuthService {
 
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
+  }
+
+  private normalizeSellerLegalProfile(dto: SellerLegalProfileDto) {
+    return {
+      businessType: dto.businessType,
+      taxId: dto.taxId.replace(/\D/g, ''),
+      legalName: dto.legalName.trim(),
+      legalAddress: dto.legalAddress.trim(),
+      bankName: dto.bankName.trim(),
+      iban: dto.iban.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(),
+    };
   }
 
   private async createVerificationCode() {

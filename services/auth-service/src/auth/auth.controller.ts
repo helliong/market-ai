@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
+  Put,
   Req,
   Res,
   UnauthorizedException,
@@ -11,6 +13,7 @@ import {
 import {
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiResponse,
@@ -27,13 +30,19 @@ import {
   RegisterDto,
   ResetPasswordDto,
   SellerRegisterDto,
+  SellerLegalProfileDto,
+  SellerLegalProfileResponseDto,
+  SellerLegalSubmitResponseDto,
+  RejectSellerDto,
   AccountSummaryResponseDto,
   BuyerProfileResponseDto,
+  ModerationSellerResponseDto,
   SellerProfileResponseDto,
   VerifyEmailDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SellerJwtAuthGuard } from './guards/seller-jwt-auth.guard';
+import { ModerationAdminGuard } from './guards/moderation-admin.guard';
 
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
@@ -312,6 +321,145 @@ export class AuthController {
     }
 
     return this.authService.getSellerMe(accountId);
+  }
+
+  @Put('seller/legal-profile')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Save seller legal data',
+    description:
+      'Creates or updates legal data for the current seller while it is not activated. Masked tax ID and bank account values are normalized before saving.',
+  })
+  @ApiOkResponse({
+    type: SellerLegalProfileResponseDto,
+    description: 'Seller legal profile was saved.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Seller is activated or legal data is invalid.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller profile not found or suspended.',
+  })
+  async upsertSellerLegalProfile(
+    @Req() req: Request,
+    @Body() dto: SellerLegalProfileDto,
+  ) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.upsertSellerLegalProfile(accountId, dto);
+  }
+
+  @Post('seller/legal-profile/submit')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Submit seller legal data for review',
+    description:
+      'Moves seller status to UNDER_REVIEW after legal data has been filled. Rejected sellers may submit corrected legal data again.',
+  })
+  @ApiCreatedResponse({
+    type: SellerLegalSubmitResponseDto,
+    description: 'Legal data was submitted for manual review.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Legal data is missing or seller legal data is locked.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller profile not found or suspended.',
+  })
+  async submitSellerLegalProfile(@Req() req: Request) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.submitSellerLegalProfile(accountId);
+  }
+
+  @Get('admin/sellers/review')
+  @UseGuards(ModerationAdminGuard)
+  @ApiHeader({
+    name: 'x-admin-key',
+    description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'List sellers waiting for manual legal review',
+    description:
+      'Temporary manual moderation endpoint. Requires x-admin-key header matching MODERATION_ADMIN_KEY.',
+  })
+  @ApiOkResponse({
+    type: ModerationSellerResponseDto,
+    isArray: true,
+    description: 'Sellers currently waiting for manual legal review.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid moderation key.',
+  })
+  async getSellersForReview() {
+    return this.authService.getSellersForReview();
+  }
+
+  @Post('admin/sellers/:sellerId/approve')
+  @UseGuards(ModerationAdminGuard)
+  @ApiHeader({
+    name: 'x-admin-key',
+    description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Approve seller legal review',
+    description:
+      'Temporary manual moderation endpoint. Requires x-admin-key header matching MODERATION_ADMIN_KEY.',
+  })
+  @ApiCreatedResponse({
+    type: SellerProfileResponseDto,
+    description: 'Seller was activated.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid moderation key.',
+  })
+  async approveSeller(@Param('sellerId') sellerId: string) {
+    return this.authService.approveSeller(sellerId);
+  }
+
+  @Post('admin/sellers/:sellerId/reject')
+  @UseGuards(ModerationAdminGuard)
+  @ApiHeader({
+    name: 'x-admin-key',
+    description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Reject seller legal review',
+    description:
+      'Temporary manual moderation endpoint. Requires x-admin-key header matching MODERATION_ADMIN_KEY.',
+  })
+  @ApiCreatedResponse({
+    type: SellerProfileResponseDto,
+    description: 'Seller was rejected with a correction comment.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid moderation key.',
+  })
+  async rejectSeller(
+    @Param('sellerId') sellerId: string,
+    @Body() dto: RejectSellerDto,
+  ) {
+    return this.authService.rejectSeller(sellerId, dto.comment);
   }
 
   @Post('forgot-password')

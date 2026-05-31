@@ -125,7 +125,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
           <span className="seller-logo-word">
             Market<span>AI</span>
           </span>
-          <small>Продавцам</small>
+          <small>{t("forSellers")}</small>
         </a>
       </div>
 

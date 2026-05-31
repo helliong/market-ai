@@ -29,10 +29,13 @@ async function bootstrap() {
   const allowedOrigins = [
     process.env.CLIENT_URL ?? 'http://localhost:3000',
     process.env.ADMIN_CLIENT_URL ?? 'http://127.0.0.1:5173',
+    process.env.MODERATION_CLIENT_URL ?? 'http://127.0.0.1:5174',
     'http://127.0.0.1:3000',
     'http://localhost:3000',
     'http://127.0.0.1:5173',
     'http://localhost:5173',
+    'http://127.0.0.1:5174',
+    'http://localhost:5174',
   ];
 
   app.enableCors({
