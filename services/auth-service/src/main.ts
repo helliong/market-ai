@@ -1,13 +1,30 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NextFunction, Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const requestLogger = new Logger('HTTP');
 
   app.use(cookieParser());
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+
+    response.on('finish', () => {
+      const durationMs = Date.now() - startedAt;
+      const origin = request.get('origin');
+      const originSuffix = origin ? ` from ${origin}` : '';
+
+      requestLogger.log(
+        `${request.method} ${request.originalUrl} ${response.statusCode} ${durationMs}ms${originSuffix}`,
+      );
+    });
+
+    next();
+  });
 
   const allowedOrigins = [
     process.env.CLIENT_URL ?? 'http://localhost:3000',
