@@ -3,14 +3,15 @@
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Bot, Heart, Languages, Mail, MapPin, Moon, Phone, Sun } from "lucide-react";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const footerLinks = [
-  { href: "/catalog", label: "Каталог" },
-  { href: "/favorites", label: "Избранное" },
-  { href: "/compare", label: "Сравнение" },
-  { href: "/cart", label: "Корзина" },
-  { href: "/profile", label: "Профиль" },
-  { href: "/agreement", label: "Соглашение" },
+  { href: "/catalog", key: "catalogLink" },
+  { href: "/favorites", key: "favoritesLink" },
+  { href: "/compare", key: "compareLink" },
+  { href: "/cart", key: "cartLink" },
+  { href: "/profile", key: "profileLink" },
+  { href: "/agreement", key: "agreement" },
 ];
 
 const settingsEvent = "marketai-settings";
@@ -18,7 +19,6 @@ const settingsEvent = "marketai-settings";
 function subscribeToSettings(onChange: () => void) {
   window.addEventListener("storage", onChange);
   window.addEventListener(settingsEvent, onChange);
-
   return () => {
     window.removeEventListener("storage", onChange);
     window.removeEventListener(settingsEvent, onChange);
@@ -29,29 +29,12 @@ function getThemeSnapshot() {
   return localStorage.getItem("marketai-theme") === "dark" ? "dark" : "light";
 }
 
-function getLanguageSnapshot() {
-  return localStorage.getItem("marketai-language") || "Русский";
-}
-
 export function Footer() {
-  const theme = useSyncExternalStore(
-    subscribeToSettings,
-    getThemeSnapshot,
-    () => "light",
-  );
-  const language = useSyncExternalStore(
-    subscribeToSettings,
-    getLanguageSnapshot,
-    () => "Русский",
-  );
+  const { t, lang, changeLanguage } = useLanguage();
+  const theme = useSyncExternalStore(subscribeToSettings, getThemeSnapshot, () => "light");
 
   function handleThemeChange(nextTheme: "light" | "dark") {
     localStorage.setItem("marketai-theme", nextTheme);
-    window.dispatchEvent(new Event(settingsEvent));
-  }
-
-  function handleLanguageChange(nextLanguage: string) {
-    localStorage.setItem("marketai-language", nextLanguage);
     window.dispatchEvent(new Event(settingsEvent));
   }
 
@@ -67,17 +50,13 @@ export function Footer() {
               Market<span className="text-[#6D4AFF]">AI</span>
             </span>
           </Link>
-
           <p className="mt-4 max-w-[420px] text-sm leading-6 text-[#6B7280]">
-            Маркетплейс с ИИ-помощником для быстрого поиска товаров, сравнения
-            и удобных покупок.
+            {t("marketplaceDescription")}
           </p>
         </div>
 
         <div>
-          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">
-            Навигация
-          </h3>
+          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">{t("footerNav")}</h3>
           <nav className="mt-4 grid gap-3">
             {footerLinks.map((item) => (
               <Link
@@ -85,16 +64,14 @@ export function Footer() {
                 href={item.href}
                 className="text-sm font-semibold text-[#6B7280] transition hover:text-[#6D4AFF]"
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
           </nav>
         </div>
 
         <div>
-          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">
-            Контакты
-          </h3>
+          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">{t("footerContacts")}</h3>
           <div className="mt-4 grid gap-3 text-sm font-semibold text-[#6B7280]">
             <span className="flex items-center gap-3">
               <Phone size={17} className="text-[#6D4AFF]" />
@@ -112,13 +89,10 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">
-            Настройки
-          </h3>
-
+          <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#111827]">{t("footerSettings")}</h3>
           <div className="mt-4 space-y-4">
             <div>
-              <p className="mb-2 text-sm font-semibold text-[#6B7280]">Тема</p>
+              <p className="mb-2 text-sm font-semibold text-[#6B7280]">{t("theme")}</p>
               <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#F6F7FB] p-1">
                 <button
                   type="button"
@@ -130,7 +104,7 @@ export function Footer() {
                   }`}
                 >
                   <Sun size={16} />
-                  Светлая
+                  {t("light")}
                 </button>
                 <button
                   type="button"
@@ -142,7 +116,7 @@ export function Footer() {
                   }`}
                 >
                   <Moon size={16} />
-                  Темная
+                  {t("dark")}
                 </button>
               </div>
             </div>
@@ -150,16 +124,16 @@ export function Footer() {
             <label className="block">
               <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#6B7280]">
                 <Languages size={16} className="text-[#6D4AFF]" />
-                Язык
+                {t("language")}
               </span>
               <select
-                value={language}
-                onChange={(event) => handleLanguageChange(event.target.value)}
+                value={lang}
+                onChange={(e) => changeLanguage(e.target.value)}
                 className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm font-bold text-[#111827] outline-none transition focus:border-[#6D4AFF] focus:bg-white"
               >
-                <option>Русский</option>
-                <option>English</option>
-                <option>Қазақша</option>
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="kk">Қазақша</option>
               </select>
             </label>
           </div>
@@ -168,9 +142,9 @@ export function Footer() {
 
       <div className="border-t border-[#E5E7EB]">
         <div className="mx-auto flex min-h-14 max-w-[1440px] flex-col gap-2 px-4 py-4 text-sm text-[#6B7280] sm:flex-row sm:items-center sm:justify-between md:px-8">
-          <span>© 2026 MarketAI</span>
+          <span>{t("copyright")}</span>
           <span className="flex items-center gap-2">
-            Сделано для удобных покупок <Heart size={15} className="text-[#EF4444]" />
+            {t("madeFor")} <Heart size={15} className="text-[#EF4444]" />
           </span>
         </div>
       </div>
