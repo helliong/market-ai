@@ -110,7 +110,7 @@ export function Header() {
               alt="MarketAI logo"
               width={44}
               height={44}
-              className="rounded-2xl"
+              className="h-11 w-11 rounded-2xl"
             />
             <span className="hidden text-2xl font-bold tracking-tight sm:inline">
               Market<span className="text-[#6D4AFF]">AI</span>

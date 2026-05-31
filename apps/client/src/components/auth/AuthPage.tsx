@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
 import {
   ADMIN_LOGIN_URL,
@@ -10,8 +10,11 @@ import {
   ADMIN_SELLER_URL,
 } from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
-import { useAppDispatch } from "@/store/hooks";
-import { hydrateShoppingState } from "@/store/shoppingHydration";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  hydrateShoppingState,
+  persistLocalShoppingState,
+} from "@/store/shoppingHydration";
 
 import {
   getCurrentUser,
@@ -38,9 +41,14 @@ const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
 
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
+  const cartState = useAppSelector((state) => state.cart);
+  const favoritesState = useAppSelector((state) => state.favorites);
+  const compareState = useAppSelector((state) => state.compare);
   const isRegister = mode === "register";
   const isSeller = audience === "seller";
+  const redirectPath = getSafeRedirectPath(searchParams.get("redirect"));
   const authTheme = isSeller
     ? {
         accentText: "text-[#F59E0B]",
@@ -68,8 +76,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       ? ADMIN_LOGIN_URL
       : ADMIN_REGISTER_URL
     : isRegister
-      ? "/login"
-      : "/register";
+      ? buildAuthHref("/login", redirectPath)
+      : buildAuthHref("/register", redirectPath);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -201,6 +209,12 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         password: trimmedPassword,
       });
 
+      await persistLocalShoppingState({
+        cart: cartState,
+        favorites: favoritesState,
+        compare: compareState,
+      });
+
       const currentUser = await getCurrentUser();
 
       dispatch(
@@ -214,7 +228,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
       await hydrateShoppingState(dispatch).catch(() => undefined);
 
-      router.push("/profile");
+      router.push(redirectPath ?? "/profile");
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Auth request failed",
@@ -247,6 +261,12 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         password,
       });
 
+      await persistLocalShoppingState({
+        cart: cartState,
+        favorites: favoritesState,
+        compare: compareState,
+      });
+
       const currentUser = await getCurrentUser();
 
       dispatch(
@@ -260,7 +280,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
       await hydrateShoppingState(dispatch).catch(() => undefined);
 
-      router.push("/profile");
+      router.push(redirectPath ?? "/profile");
     } catch (error) {
       setVerificationError(
         error instanceof Error ? error.message : "Email verification failed",
@@ -805,6 +825,22 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       </form>
     </section>
   );
+}
+
+function getSafeRedirectPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  return value;
+}
+
+function buildAuthHref(path: string, redirectPath: string | null) {
+  if (!redirectPath) {
+    return path;
+  }
+
+  return `${path}?redirect=${encodeURIComponent(redirectPath)}`;
 }
 
 function AuthField({

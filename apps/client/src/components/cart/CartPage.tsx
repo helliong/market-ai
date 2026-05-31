@@ -17,12 +17,16 @@ function parsePrice(price: string) {
 export function CartPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.cart.items);
+  const user = useAppSelector((state) => state.auth.user);
 
   const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = items.reduce(
     (sum, item) => sum + parsePrice(item.price) * item.quantity,
     0,
   );
+  const checkoutHref = user
+    ? "/checkout"
+    : "/register?redirect=%2Fcheckout";
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -134,7 +138,7 @@ export function CartPage() {
             </div>
 
             <Link
-              href="/checkout"
+              href={checkoutHref}
               className="mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#6D4AFF] text-base font-bold text-white transition hover:bg-[#4F32D9]"
             >
               Оформить заказ

@@ -1,5 +1,8 @@
 import { products } from "@/data/products";
 import {
+  addServerCartItem,
+  addServerCompare,
+  addServerFavorite,
   getServerCart,
   getServerCompare,
   getServerFavorites,
@@ -7,7 +10,19 @@ import {
 import { hydrateCart } from "./cartSlice";
 import { hydrateCompare } from "./compareSlice";
 import { hydrateFavorites } from "./favoritesSlice";
-import type { AppDispatch } from "./store";
+import type { AppDispatch, RootState } from "./store";
+
+type ShoppingState = Pick<RootState, "cart" | "favorites" | "compare">;
+
+export async function persistLocalShoppingState(state: ShoppingState) {
+  await Promise.allSettled([
+    ...state.cart.items.map((item) =>
+      addServerCartItem(item.id, item.quantity),
+    ),
+    ...state.favorites.ids.map((productId) => addServerFavorite(productId)),
+    ...state.compare.ids.map((productId) => addServerCompare(productId)),
+  ]);
+}
 
 export async function hydrateShoppingState(dispatch: AppDispatch) {
   const [cart, favorites, compare] = await Promise.all([
