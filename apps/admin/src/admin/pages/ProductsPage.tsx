@@ -1,5 +1,6 @@
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
+import { useLanguage } from "../../hooks/useLanguage";
 import type { Product } from "../types";
 
 type ProductsPageProps = {
@@ -15,15 +16,17 @@ export function ProductsPage({
   onEditProduct,
   onDeleteProduct,
 }: ProductsPageProps) {
+  const { t } = useLanguage();
+
   return (
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Управление товарами</h2>
-          <p>Товары, категории, цены, остатки и статусы публикации.</p>
+          <h2>{t("manageProducts")}</h2>
+          <p>{t("productsDescription")}</p>
         </div>
         <button className="primary-button" onClick={onAddProduct}>
-          Добавить товар
+          {t("addProduct")}
         </button>
       </div>
 
@@ -31,12 +34,12 @@ export function ProductsPage({
         <table>
           <thead>
             <tr>
-              <th>Название</th>
-              <th>Категория</th>
-              <th>Цена</th>
-              <th>Остаток</th>
-              <th>Статус</th>
-              <th>Действия</th>
+              <th>{t("productListName")}</th>
+              <th>{t("productListCategory")}</th>
+              <th>{t("productListPrice")}</th>
+              <th>{t("productListStock")}</th>
+              <th>{t("productListStatus")}</th>
+              <th>{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -55,13 +58,13 @@ export function ProductsPage({
                       className="table-button"
                       onClick={() => onEditProduct(product)}
                     >
-                      Изменить
+                      {t("edit")}
                     </button>
                     <button
                       className="table-button danger"
                       onClick={() => onDeleteProduct(product.id)}
                     >
-                      Удалить
+                      {t("delete")}
                     </button>
                   </div>
                 </td>
@@ -71,7 +74,7 @@ export function ProductsPage({
             {products.length === 0 && (
               <tr>
                 <td colSpan={6} className="empty-cell">
-                  Товары пока не добавлены
+                  {t("noProducts")}
                 </td>
               </tr>
             )}

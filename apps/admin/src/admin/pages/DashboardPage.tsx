@@ -1,5 +1,6 @@
 import { StatCard } from "../components/StatCard";
 import { formatCurrency } from "../formatters";
+import { useLanguage } from "../../hooks/useLanguage";
 
 type DashboardPageProps = {
   stats: {
@@ -11,25 +12,23 @@ type DashboardPageProps = {
 };
 
 export function DashboardPage({ stats }: DashboardPageProps) {
+  const { t } = useLanguage();
   const hasActivity =
     stats.products > 0 || stats.orders > 0 || stats.users > 0 || stats.revenue > 0;
 
   return (
     <section>
       <div className="cards">
-        <StatCard title="Товары" value={String(stats.products)} />
-        <StatCard title="Заказы" value={String(stats.orders)} />
-        <StatCard title="Пользователи" value={String(stats.users)} />
-        <StatCard title="Выручка" value={formatCurrency(stats.revenue)} />
+        <StatCard title="products" value={String(stats.products)} />
+        <StatCard title="orders" value={String(stats.orders)} />
+        <StatCard title="users" value={String(stats.users)} />
+        <StatCard title="revenue" value={formatCurrency(stats.revenue)} />
       </div>
 
       {!hasActivity && (
         <div className="panel">
-          <h2>Обзор</h2>
-          <p>
-            Данных пока нет. Добавьте первый товар или дождитесь первого заказа,
-            чтобы здесь появилась статистика магазина.
-          </p>
+          <h2>{t("noDataYet")}</h2>
+          <p>{t("noDataMessage")}</p>
         </div>
       )}
     </section>

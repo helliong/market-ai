@@ -1,30 +1,18 @@
 import { SellerAuthFooter } from "../register/SellerAuthFooter";
+import { useLanguage } from "../hooks/useLanguage";
 import "../register/SellerRegisterPage.css";
 
 const sections = [
-  {
-    title: "1. Общие условия",
-    text: "Соглашение описывает базовые правила использования кабинета продавца MarketAI, включая настройку витрины, управление товарами и обработку заказов.",
-  },
-  {
-    title: "2. Аккаунт продавца",
-    text: "Продавец отвечает за актуальность данных аккаунта, информации о магазине, описаний товаров, цен и сведений по обработке заказов.",
-  },
-  {
-    title: "3. Информация о товарах",
-    text: "Карточки товаров должны содержать корректные названия, категории, цены, остатки и статусы. Демоданные можно заменить после подключения backend-сервисов.",
-  },
-  {
-    title: "4. Инструменты администрирования",
-    text: "Панель предоставляет интерфейсные инструменты для операций маркетплейса. Бизнес-правила, модерация, платежи и доставка могут быть расширены позже.",
-  },
-  {
-    title: "5. Обновления",
-    text: "MarketAI может обновлять условия по мере развития продукта продавца, добавления backend-сервисов и новых операционных функций.",
-  },
+  "sectionGeneral",
+  "sectionAccount",
+  "sectionProducts",
+  "sectionAdmin",
+  "sectionUpdates",
 ];
 
 export function SellerAgreementPage() {
+  const { t } = useLanguage();
+
   return (
     <main className="seller-agreement-page">
       <div className="seller-register-brand">
@@ -38,19 +26,15 @@ export function SellerAgreementPage() {
 
       <section className="seller-agreement-shell">
         <div className="seller-agreement-card">
-          <p className="seller-register-eyebrow">Продавцы MarketAI</p>
-          <h1>Пользовательское соглашение</h1>
-          <p>
-            Условия для продавцов, использующих панель MarketAI. Это
-            frontend-версия соглашения, которую можно расширить правилами
-            backend позже.
-          </p>
+          <p className="seller-register-eyebrow">{t("sellersMarketAI")}</p>
+          <h1>{t("agreementTitle")}</h1>
+          <p>{t("agreementDesc")}</p>
 
           <div className="seller-agreement-sections">
-            {sections.map((section) => (
-              <section key={section.title}>
-                <h2>{section.title}</h2>
-                <p>{section.text}</p>
+            {sections.map((key) => (
+              <section key={key}>
+                <h2>{t(key)}</h2>
+                <p>{t(`${key}Text`)}</p>
               </section>
             ))}
           </div>

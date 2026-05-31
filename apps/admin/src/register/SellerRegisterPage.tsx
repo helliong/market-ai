@@ -6,6 +6,7 @@ import {
   verifySellerEmail,
 } from "../auth-api";
 import { SellerAuthFooter } from "./SellerAuthFooter";
+import { useLanguage } from "../hooks/useLanguage";
 import "./SellerRegisterPage.css";
 
 type SellerRegisterPageProps = {
@@ -26,14 +27,13 @@ type FormErrors = {
 };
 
 export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
-  const [pendingSeller, setPendingSeller] = useState<PendingSeller | null>(
-    null,
-  );
+  const [pendingSeller, setPendingSeller] = useState<PendingSeller | null>(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState<string>();
   const [submitError, setSubmitError] = useState<string>();
@@ -44,44 +44,23 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const nextErrors: FormErrors = {};
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     const trimmedConfirmPassword = confirmPassword.trim();
 
-    if (!trimmedName) {
-      nextErrors.name = "Введите название магазина";
-    }
-
-    if (!trimmedEmail) {
-      nextErrors.email = "Введите email";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = "Введите корректный email";
-    }
-
-    if (!trimmedPassword) {
-      nextErrors.password = "Введите пароль";
-    } else if (trimmedPassword.length < 6) {
-      nextErrors.password = "Пароль должен быть не короче 6 символов";
-    }
-
-    if (!trimmedConfirmPassword) {
-      nextErrors.confirmPassword = "Подтвердите пароль";
-    } else if (trimmedPassword && trimmedPassword !== trimmedConfirmPassword) {
-      nextErrors.confirmPassword = "Пароли не совпадают";
-    }
-
-    if (!isAgreementAccepted) {
-      nextErrors.agreement = "Примите пользовательское соглашение";
-    }
+    if (!trimmedName) nextErrors.name = t("errorStoreNameRequired");
+    if (!trimmedEmail) nextErrors.email = t("errorEmailRequired");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) nextErrors.email = t("errorInvalidEmail");
+    if (!trimmedPassword) nextErrors.password = t("errorPasswordRequired");
+    else if (trimmedPassword.length < 6) nextErrors.password = t("errorPasswordMinLength");
+    if (!trimmedConfirmPassword) nextErrors.confirmPassword = t("errorConfirmPasswordRequired");
+    else if (trimmedPassword && trimmedPassword !== trimmedConfirmPassword) nextErrors.confirmPassword = t("errorPasswordsDoNotMatch");
+    if (!isAgreementAccepted) nextErrors.agreement = t("errorAgreementRequired");
 
     setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
+    if (Object.keys(nextErrors).length > 0) return;
 
     setIsSubmitting(true);
     setSubmitError(undefined);
@@ -94,72 +73,46 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
         storeName: trimmedName,
         agreementAccepted: isAgreementAccepted,
       });
-
-      setPendingSeller({
-        name: trimmedName,
-        email: trimmedEmail,
-      });
+      setPendingSeller({ name: trimmedName, email: trimmedEmail });
       setVerificationCode("");
       setVerificationError(undefined);
-      setNotice("Код подтверждения отправлен на email.");
+      setNotice(t("successRegistration"));
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Не удалось создать магазин",
-      );
+      setSubmitError(error instanceof Error ? error.message : t("errorAuthRequestFailed"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleEmailConfirmationSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleEmailConfirmationSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!pendingSeller) {
-      return;
-    }
-
+    if (!pendingSeller) return;
     if (!/^\d{6}$/.test(verificationCode.trim())) {
-      setVerificationError("Введите 6-значный код");
+      setVerificationError(t("errorVerificationCodeRequired"));
       return;
     }
-
     setIsSubmitting(true);
     setVerificationError(undefined);
-
     try {
-      await verifySellerEmail({
-        email: pendingSeller.email,
-        code: verificationCode,
-      });
-
+      await verifySellerEmail({ email: pendingSeller.email, code: verificationCode });
       onSubmit(pendingSeller);
     } catch (error) {
-      setVerificationError(
-        error instanceof Error ? error.message : "Неверный код подтверждения",
-      );
+      setVerificationError(error instanceof Error ? error.message : t("errorInvalidVerificationCode"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function handleResendCode() {
-    if (!pendingSeller) {
-      return;
-    }
-
+    if (!pendingSeller) return;
     setIsSubmitting(true);
     setVerificationError(undefined);
     setNotice(undefined);
-
     try {
       await resendSellerVerificationCode(pendingSeller.email);
-      setNotice("Новый код отправлен на email.");
+      setNotice(t("resendCode"));
     } catch (error) {
-      setVerificationError(
-        error instanceof Error ? error.message : "Не удалось отправить код",
-      );
+      setVerificationError(error instanceof Error ? error.message : t("errorResendCodeFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -178,75 +131,53 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
 
       <section className="seller-register-shell">
         <div className="seller-register-copy">
-          <p className="seller-register-eyebrow">Продавцы MarketAI</p>
-          <h1>Создание аккаунта продавца</h1>
-          <p>
-            Зарегистрируйте магазин, чтобы подготовить товары, управлять
-            заказами и открыть рабочую панель маркетплейса.
-          </p>
-
+          <p className="seller-register-eyebrow">{t("sellersMarketAI")}</p>
+          <h1>{t("createSellerAccount")}</h1>
+          <p>{t("registerDesc")}</p>
           <div className="seller-register-benefits">
-            <div>Настройка витрины</div>
-            <div>Карточки товаров</div>
-            <div>Заказы в работе</div>
+            {t("registerBenefits").split(",").map((item, idx) => (
+              <div key={idx}>{item}</div>
+            ))}
           </div>
         </div>
 
         <form
           className="seller-register-form"
           noValidate
-          onSubmit={
-            isEmailConfirmationStep
-              ? handleEmailConfirmationSubmit
-              : handleSubmit
-          }
+          onSubmit={isEmailConfirmationStep ? handleEmailConfirmationSubmit : handleSubmit}
         >
           {isEmailConfirmationStep ? (
             <>
               <div>
-                <h2>Подтверждение email</h2>
-                <p>
-                  Введите код подтверждения, отправленный на{" "}
-                  {pendingSeller?.email}.
-                </p>
+                <h2>{t("emailConfirmation")}</h2>
+                <p>{t("codeSentTo")} {pendingSeller?.email}.</p>
               </div>
-
               {notice && <p className="seller-register-notice">{notice}</p>}
-
               <label>
-                Код подтверждения
+                {t("verificationCode")}
                 <input
                   className={verificationError ? "is-invalid" : ""}
                   inputMode="numeric"
                   value={verificationCode}
                   onChange={(event) => {
-                    setVerificationCode(
-                      event.target.value.replace(/\D/g, "").slice(0, 6),
-                    );
+                    setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6));
                     setVerificationError(undefined);
                   }}
-                  placeholder="000000"
+                  placeholder={t("codePlaceholder")}
                 />
-                {verificationError && (
-                  <span className="seller-register-error">
-                    {verificationError}
-                  </span>
-                )}
+                {verificationError && <span className="seller-register-error">{verificationError}</span>}
               </label>
-
               <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Проверяем..." : "Подтвердить email"}
+                {isSubmitting ? t("loading") : t("confirmEmail")}
               </button>
-
               <button
                 className="seller-register-secondary-button"
                 type="button"
                 onClick={handleResendCode}
                 disabled={isSubmitting}
               >
-                Отправить код ещё раз
+                {t("resendCode")}
               </button>
-
               <button
                 className="seller-register-secondary-button"
                 type="button"
@@ -258,24 +189,18 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   setNotice(undefined);
                 }}
               >
-                Изменить данные регистрации
+                {t("changeRegistrationData")}
               </button>
-
-              <p className="seller-register-switch">
-                Проверьте почту и введите 6-значный код.
-              </p>
+              <p className="seller-register-switch">{t("codeSentTo")} {pendingSeller?.email}</p>
             </>
           ) : (
             <>
               <div>
-                <h2>Регистрация</h2>
-                <p>
-                  Заполните данные магазина, чтобы создать профиль продавца.
-                </p>
+                <h2>{t("registration")}</h2>
+                <p>{t("fillData")}</p>
               </div>
-
               <label>
-                Название магазина
+                {t("storeName")}
                 <input
                   className={errors.name ? "is-invalid" : ""}
                   value={name}
@@ -285,11 +210,8 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   }}
                   placeholder="Market store"
                 />
-                {errors.name && (
-                  <span className="seller-register-error">{errors.name}</span>
-                )}
+                {errors.name && <span className="seller-register-error">{errors.name}</span>}
               </label>
-
               <label>
                 Email
                 <input
@@ -302,13 +224,10 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   }}
                   placeholder="seller@example.com"
                 />
-                {errors.email && (
-                  <span className="seller-register-error">{errors.email}</span>
-                )}
+                {errors.email && <span className="seller-register-error">{errors.email}</span>}
               </label>
-
               <label>
-                Пароль
+                {t("password")}
                 <input
                   className={errors.password ? "is-invalid" : ""}
                   type="password"
@@ -321,59 +240,32 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                       confirmPassword: undefined,
                     }));
                   }}
-                  placeholder="Пароль от аккаунта"
+                  placeholder={t("password")}
                 />
-                {errors.password && (
-                  <span className="seller-register-error">
-                    {errors.password}
-                  </span>
-                )}
+                {errors.password && <span className="seller-register-error">{errors.password}</span>}
               </label>
-
               <label>
-                Подтверждение пароля
+                {t("confirmPassword")}
                 <input
                   className={errors.confirmPassword ? "is-invalid" : ""}
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => {
                     setConfirmPassword(event.target.value);
-                    setErrors((current) => ({
-                      ...current,
-                      confirmPassword: undefined,
-                    }));
+                    setErrors((current) => ({ ...current, confirmPassword: undefined }));
                   }}
-                  placeholder="Повторите пароль"
+                  placeholder={t("confirmPassword")}
                 />
-                {errors.confirmPassword && (
-                  <span className="seller-register-error">
-                    {errors.confirmPassword}
-                  </span>
-                )}
+                {errors.confirmPassword && <span className="seller-register-error">{errors.confirmPassword}</span>}
               </label>
-
               <label className="seller-register-agreement">
                 <span
-                  className={`seller-register-checkbox ${
-                    isAgreementAccepted ? "is-checked" : ""
-                  }`}
+                  className={`seller-register-checkbox ${isAgreementAccepted ? "is-checked" : ""}`}
                   aria-hidden="true"
                 >
                   {isAgreementAccepted && (
-                    <svg
-                      aria-hidden="true"
-                      fill="none"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      width="14"
-                    >
-                      <path
-                        d="M20 6 9 17l-5-5"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="3"
-                      />
+                    <svg aria-hidden="true" fill="none" height="14" viewBox="0 0 24 24" width="14">
+                      <path d="M20 6 9 17l-5-5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
                     </svg>
                   )}
                 </span>
@@ -382,41 +274,20 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   checked={isAgreementAccepted}
                   onChange={(event) => {
                     setIsAgreementAccepted(event.target.checked);
-                    setErrors((current) => ({
-                      ...current,
-                      agreement: undefined,
-                    }));
+                    setErrors((current) => ({ ...current, agreement: undefined }));
                   }}
                 />
                 <span>
-                  Я принимаю{" "}
-                  <a
-                    href="/agreement"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    пользовательское соглашение
-                  </a>
+                  {t("iAccept")} <a href="/agreement" target="_blank" rel="noopener noreferrer">{t("userAgreement")}</a>
                 </span>
               </label>
-              {errors.agreement && (
-                <span className="seller-register-error seller-register-agreement-error">
-                  {errors.agreement}
-                </span>
-              )}
-
-              {submitError && (
-                <p className="seller-register-error">{submitError}</p>
-              )}
-
+              {errors.agreement && <span className="seller-register-error seller-register-agreement-error">{errors.agreement}</span>}
+              {submitError && <p className="seller-register-error">{submitError}</p>}
               <button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Создаём..."
-                  : "Создать аккаунт продавца"}
+                {isSubmitting ? t("loading") : t("registerButton")}
               </button>
-
               <p className="seller-register-switch">
-                Уже продаёте на MarketAI? <a href="/login">Войти</a>
+                {t("alreadyHaveAccount")} <a href="/login">{t("loginLink")}</a>
               </p>
             </>
           )}
