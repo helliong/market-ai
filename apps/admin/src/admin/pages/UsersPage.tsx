@@ -1,3 +1,4 @@
+import { useLanguage } from "../../hooks/useLanguage";
 import { StatusBadge } from "../components/StatusBadge";
 import { userRoleLabel, userStatusLabel } from "../formatters";
 import type { User, UserRole, UserStatus } from "../types";
@@ -13,12 +14,14 @@ export function UsersPage({
   onRoleChange,
   onStatusChange,
 }: UsersPageProps) {
+  const { t } = useLanguage();
+
   return (
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Управление пользователями</h2>
-          <p>Роли, статусы аккаунтов и доступ к административным функциям.</p>
+          <h2>{t("manageUsers")}</h2>
+          <p>{t("usersDescription")}</p>
         </div>
       </div>
 
@@ -26,11 +29,11 @@ export function UsersPage({
         <table>
           <thead>
             <tr>
-              <th>Имя</th>
-              <th>Email</th>
-              <th>Роль</th>
-              <th>Статус</th>
-              <th>Управление</th>
+              <th>{t("userName")}</th>
+              <th>{t("userEmail")}</th>
+              <th>{t("userRole")}</th>
+              <th>{t("userStatus")}</th>
+              <th>{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -38,7 +41,7 @@ export function UsersPage({
               <tr key={user.id}>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
-                <td>{userRoleLabel(user.role)}</td>
+                <td>{t(userRoleLabel(user.role))}</td>
                 <td>
                   <StatusBadge label={userStatusLabel(user.status)} />
                 </td>
@@ -51,9 +54,9 @@ export function UsersPage({
                         onRoleChange(user.id, event.target.value as UserRole)
                       }
                     >
-                      <option value="admin">Администратор</option>
-                      <option value="seller">Продавец</option>
-                      <option value="user">Покупатель</option>
+                      <option value="admin">{t("roleAdmin")}</option>
+                      <option value="seller">{t("roleSeller")}</option>
+                      <option value="user">{t("roleUser")}</option>
                     </select>
 
                     <select
@@ -66,8 +69,8 @@ export function UsersPage({
                         )
                       }
                     >
-                      <option value="active">Активен</option>
-                      <option value="blocked">Заблокирован</option>
+                      <option value="active">{t("statusActive")}</option>
+                      <option value="blocked">{t("statusBlocked")}</option>
                     </select>
                   </div>
                 </td>
@@ -77,7 +80,7 @@ export function UsersPage({
             {users.length === 0 && (
               <tr>
                 <td colSpan={5} className="empty-cell">
-                  Пользователей пока нет
+                  {t("noUsers")}
                 </td>
               </tr>
             )}

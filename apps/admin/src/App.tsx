@@ -33,6 +33,7 @@ import { SellerLoginPage } from "./login/SellerLoginPage";
 import { SellerRegisterPage } from "./register/SellerRegisterPage";
 import { setTheme, useTheme } from "./settings-store";
 import { SellerWelcomePage } from "./welcome/SellerWelcomePage";
+import { useLanguage } from "./hooks/useLanguage";
 import "./App.css";
 
 type Page =
@@ -45,29 +46,6 @@ type Page =
   | "login"
   | "agreement";
 type MenuPage = Exclude<Page, "welcome" | "register" | "login" | "agreement">;
-type MenuItem = {
-  label: string;
-  icon: ReactNode;
-};
-
-const pageTitles: Record<MenuPage, MenuItem> = {
-  dashboard: {
-    label: "Обзор",
-    icon: <LayoutDashboard aria-hidden="true" />,
-  },
-  products: {
-    label: "Товары",
-    icon: <Package aria-hidden="true" />,
-  },
-  orders: {
-    label: "Заказы",
-    icon: <ClipboardList aria-hidden="true" />,
-  },
-  users: {
-    label: "Пользователи",
-    icon: <Users aria-hidden="true" />,
-  },
-};
 
 const pagePaths: Record<Page, string> = {
   welcome: "/",
@@ -81,6 +59,7 @@ const pagePaths: Record<Page, string> = {
 };
 
 function App() {
+  const { t } = useLanguage();
   const theme = useTheme();
   const [page, setPage] = useState<Page>(getInitialPage());
   const [products, setProducts] = useState<Product[]>([]);
@@ -93,15 +72,32 @@ function App() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [dialog, setDialog] = useState<AdminDialogState | null>(null);
-  const [productForm, setProductForm] =
-    useState<ProductForm>(emptyProductForm);
+  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
+
+  const pageTitles: Record<MenuPage, { label: string; icon: ReactNode }> = {
+    dashboard: {
+      label: t("dashboard"),
+      icon: <LayoutDashboard aria-hidden="true" />,
+    },
+    products: {
+      label: t("products"),
+      icon: <Package aria-hidden="true" />,
+    },
+    orders: {
+      label: t("orders"),
+      icon: <ClipboardList aria-hidden="true" />,
+    },
+    users: {
+      label: t("users"),
+      icon: <Users aria-hidden="true" />,
+    },
+  };
 
   useEffect(() => {
     function handlePopState() {
       setPage(getInitialPage());
       setIsMenuOpen(false);
     }
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -110,13 +106,10 @@ function App() {
     if (page === "welcome" || page === "register" || page === "login") {
       return;
     }
-
     let isMounted = true;
-
     async function loadSeller() {
       try {
         const seller = await getCurrentSeller();
-
         if (isMounted) {
           setStoreName(seller.storeName);
         }
@@ -126,9 +119,7 @@ function App() {
         }
       }
     }
-
     void loadSeller();
-
     return () => {
       isMounted = false;
     };
@@ -137,7 +128,6 @@ function App() {
   const dashboardStats = useMemo(() => {
     const activeOrders = orders.filter((order) => order.status !== "cancelled");
     const revenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
-
     return {
       products: products.length,
       orders: orders.length,
@@ -172,21 +162,17 @@ function App() {
 
   function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const name = productForm.name.trim();
     const category = productForm.category.trim();
     const price = Number(productForm.price);
     const stock = Number(productForm.stock);
-
     if (!name || !category || price <= 0 || stock < 0) {
       setDialog({
-        title: "Проверьте поля",
-        message:
-          "Заполните название, категорию, цену больше нуля и корректный остаток.",
+        title: t("checkFields"),
+        message: t("checkFieldsMessage"),
       });
       return;
     }
-
     if (editingProduct) {
       setProducts((currentProducts) =>
         currentProducts.map((product) =>
@@ -211,20 +197,18 @@ function App() {
         stock,
         status: productForm.status,
       };
-
       setProducts((currentProducts) => [newProduct, ...currentProducts]);
     }
-
     closeProductModal();
   }
 
   function deleteProduct(productId: number) {
     setDialog({
-      title: "Удалить товар?",
-      message: "Товар исчезнет из списка. Это действие нельзя отменить.",
+      title: t("deleteProductTitle"),
+      message: t("deleteProductMessage"),
       variant: "danger",
-      confirmLabel: "Удалить",
-      cancelLabel: "Оставить",
+      confirmLabel: t("delete"),
+      cancelLabel: t("cancel"),
       onConfirm: () => {
         setProducts((currentProducts) =>
           currentProducts.filter((product) => product.id !== productId),
@@ -266,7 +250,6 @@ function App() {
     if (!isMenuOpen) {
       setIsMenuOpen(true);
     }
-
     navigateToPage(nextPage);
   }
 
@@ -280,10 +263,7 @@ function App() {
       setIsStoreMenuOpen(false);
       return;
     }
-
-    setIsMenuOpen((current) => {
-      return !current;
-    });
+    setIsMenuOpen((current) => !current);
   }
 
   async function restoreSellerSession() {
@@ -314,15 +294,12 @@ function App() {
   if (page === "welcome") {
     return <SellerWelcomePage />;
   }
-
   if (page === "login") {
     return <SellerLoginPage onSubmit={loginSeller} />;
   }
-
   if (page === "agreement") {
     return <SellerAgreementPage />;
   }
-
   if (page === "register") {
     return <SellerRegisterPage onSubmit={registerSeller} />;
   }
@@ -348,7 +325,7 @@ function App() {
             <span className="logo-word">
               Market<span>AI</span>
             </span>
-            <small>Продавцам</small>
+            <small>{t("forSellers")}</small>
           </span>
         </button>
 
@@ -374,7 +351,7 @@ function App() {
           type="button"
           className="sidebar-store"
           title={storeName}
-          aria-label={`Настройки магазина: ${storeName}`}
+          aria-label={`${t("storeSettings")}: ${storeName}`}
           onClick={(event) => {
             event.stopPropagation();
             openStoreMenu();
@@ -392,7 +369,7 @@ function App() {
           className="store-menu-backdrop"
           role="button"
           tabIndex={0}
-          aria-label="Закрыть меню магазина"
+          aria-label={t("closeMenu")}
           onClick={() => setIsStoreMenuOpen(false)}
           onKeyDown={(event) => {
             if (event.key === "Escape" || event.key === "Enter") {
@@ -408,12 +385,12 @@ function App() {
       >
         <div className="store-subsidebar-header">
           <div>
-            <p>Магазин</p>
+            <p>{t("store")}</p>
             <h2>{storeName}</h2>
           </div>
           <button
             type="button"
-            aria-label="Закрыть"
+            aria-label={t("close")}
             onClick={() => setIsStoreMenuOpen(false)}
           >
             ×
@@ -421,22 +398,22 @@ function App() {
         </div>
 
         <nav className="store-subsidebar-nav">
-          <button type="button">Настройки</button>
-          <button type="button">Юридические данные</button>
-          <button type="button">Подписка на уведомления</button>
+          <button type="button">{t("settings")}</button>
+          <button type="button">{t("legalData")}</button>
+          <button type="button">{t("notificationSubscription")}</button>
         </nav>
 
         <div className="store-subsidebar-actions">
           <div
             className={`store-subsidebar-theme ${theme === "dark" ? "is-dark" : ""}`}
             role="group"
-            aria-label="Тема"
+            aria-label={t("themeLabel")}
           >
             <span className="theme-slider-thumb" aria-hidden="true" />
             <button
               type="button"
               className={theme === "light" ? "active" : ""}
-              aria-label="Светлая тема"
+              aria-label={t("lightTheme")}
               onClick={() => setTheme("light")}
             >
               <Sun aria-hidden="true" />
@@ -444,7 +421,7 @@ function App() {
             <button
               type="button"
               className={theme === "dark" ? "active" : ""}
-              aria-label="Темная тема"
+              aria-label={t("darkTheme")}
               onClick={() => setTheme("dark")}
             >
               <Moon aria-hidden="true" />
@@ -457,7 +434,7 @@ function App() {
             onClick={logoutSeller}
           >
             <LogOut aria-hidden="true" />
-            Logout
+            {t("logout")}
           </button>
         </div>
       </aside>
@@ -465,10 +442,10 @@ function App() {
       <main className="content">
         <header className="topbar">
           <div>
-            <h1>Панель администратора</h1>
-            <p>Управление маркетплейсом MarketAI</p>
+            <h1>{t("adminPanel")}</h1>
+            <p>{t("adminSubtitle")}</p>
           </div>
-          <button className="profile-button">Администратор</button>
+          <button className="profile-button">{t("adminButton")}</button>
         </header>
 
         {page === "dashboard" && <DashboardPage stats={dashboardStats} />}
@@ -514,13 +491,11 @@ function getInitialPage(): Page {
   if (path === "/terms") {
     return "agreement";
   }
-
   const matchedPage = (Object.keys(pagePaths) as Page[]).find(
     (item) =>
       pagePaths[item] === path ||
       (item === "welcome" && (path === "" || path === "/")),
   );
-
   return matchedPage ?? "welcome";
 }
 

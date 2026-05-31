@@ -1,26 +1,17 @@
-import {
-  Heart,
-  Languages,
-  Mail,
-  MapPin,
-  Moon,
-  Phone,
-  Sun,
-} from "lucide-react";
-import { setLanguage, setTheme, useLanguage, useTheme } from "../settings-store";
+import { Heart, Languages, Mail, MapPin, Moon, Phone, Sun } from "lucide-react";
+import { useLanguage } from "../hooks/useLanguage";
+import { setTheme, useTheme } from "../settings-store";
 
 const footerLinks = [
-  { href: "/dashboard", label: "Обзор" },
-  { href: "/register", label: "Регистрация" },
-  { href: "/login", label: "Вход" },
-  { href: "/agreement", label: "Соглашение" },
+  { href: "/dashboard", labelKey: "overview" },
+  { href: "/register", labelKey: "register" },
+  { href: "/login", labelKey: "login" },
+  { href: "/agreement", labelKey: "agreement" },
 ];
 
-const languages = ["Русский", "English", "Қазақша"];
-
 export function SellerAuthFooter() {
+  const { t, lang, changeLanguage } = useLanguage();
   const theme = useTheme();
-  const language = useLanguage();
 
   return (
     <footer className="seller-auth-footer">
@@ -38,25 +29,22 @@ export function SellerAuthFooter() {
             </span>
             <small>Продавцам</small>
           </a>
-          <p>
-            Рабочее пространство продавца для витрины, каталога и обработки
-            заказов.
-          </p>
+          <p>{t("sellerWorkplace")}</p>
         </div>
 
         <div>
-          <h3>Навигация</h3>
+          <h3>{t("sellerNavigation")}</h3>
           <nav>
             {footerLinks.map((item) => (
               <a key={item.href} href={item.href}>
-                {item.label}
+                {t(item.labelKey)}
               </a>
             ))}
           </nav>
         </div>
 
         <div>
-          <h3>Контакты</h3>
+          <h3>{t("sellerContacts")}</h3>
           <div className="seller-auth-footer-contacts">
             <span>
               <Phone size={17} aria-hidden="true" />
@@ -74,18 +62,18 @@ export function SellerAuthFooter() {
         </div>
 
         <div>
-          <h3>Настройки</h3>
+          <h3>{t("sellerSettings")}</h3>
           <div className="seller-auth-footer-settings">
             <div>
-              <span className="seller-auth-footer-label">Тема</span>
-              <div className="theme-switcher" role="group" aria-label="Выбор темы">
+              <span className="seller-auth-footer-label">{t("sellerTheme")}</span>
+              <div className="theme-switcher" role="group" aria-label={t("sellerTheme")}>
                 <button
                   type="button"
                   className={theme === "light" ? "active" : ""}
                   onClick={() => setTheme("light")}
                 >
                   <Sun size={16} aria-hidden="true" />
-                  Светлая
+                  {t("light")}
                 </button>
                 <button
                   type="button"
@@ -93,7 +81,7 @@ export function SellerAuthFooter() {
                   onClick={() => setTheme("dark")}
                 >
                   <Moon size={16} aria-hidden="true" />
-                  Темная
+                  {t("dark")}
                 </button>
               </div>
             </div>
@@ -101,15 +89,15 @@ export function SellerAuthFooter() {
             <label>
               <span className="seller-auth-footer-label seller-auth-footer-language-label">
                 <Languages size={16} aria-hidden="true" />
-                Язык
+                {t("sellerLanguage")}
               </span>
               <select
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
+                value={lang}
+                onChange={(event) => changeLanguage(event.target.value)}
               >
-                {languages.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="kk">Қазақша</option>
               </select>
             </label>
           </div>
@@ -117,9 +105,9 @@ export function SellerAuthFooter() {
       </div>
 
       <div className="seller-auth-footer-bottom">
-        <span>© 2026 MarketAI</span>
+        <span>{t("sellerFooterCopyright")}</span>
         <span>
-          Инструменты продавца для управления маркетплейсом
+          {t("sellerFooterTagline")}
           <Heart size={15} aria-hidden="true" />
         </span>
       </div>

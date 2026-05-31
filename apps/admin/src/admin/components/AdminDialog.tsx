@@ -1,3 +1,5 @@
+import { useLanguage } from "../../hooks/useLanguage";
+
 export type AdminDialogState = {
   title: string;
   message: string;
@@ -13,6 +15,7 @@ type AdminDialogProps = {
 };
 
 export function AdminDialog({ dialog, onClose }: AdminDialogProps) {
+  const { t } = useLanguage();
   const isDanger = dialog.variant === "danger";
 
   function handleConfirm() {
@@ -35,7 +38,7 @@ export function AdminDialog({ dialog, onClose }: AdminDialogProps) {
         <div className="dialog-actions">
           {dialog.onConfirm && (
             <button type="button" className="secondary-button" onClick={onClose}>
-              {dialog.cancelLabel ?? "Отмена"}
+              {dialog.cancelLabel ?? t("cancel")}
             </button>
           )}
           <button
@@ -43,7 +46,7 @@ export function AdminDialog({ dialog, onClose }: AdminDialogProps) {
             className={isDanger ? "danger-button" : "primary-button"}
             onClick={dialog.onConfirm ? handleConfirm : onClose}
           >
-            {dialog.confirmLabel ?? "Понятно"}
+            {dialog.confirmLabel ?? t("confirm")}
           </button>
         </div>
       </div>

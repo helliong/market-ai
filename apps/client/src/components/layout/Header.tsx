@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/hooks/useLanguage";
 import {
   ChevronRight,
   Heart,
@@ -29,6 +30,7 @@ import { logoutClient } from "@/lib/auth-api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function Header() {
+  const { t, lang, changeLanguage } = useLanguage();
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const addressRef = useRef<HTMLDivElement>(null);
@@ -37,16 +39,14 @@ export function Header() {
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [language, setLanguage] = useState("Русский");
   const [city, setCity] = useState("Екатеринбург");
   const cartCount = useAppSelector((state) =>
-    state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
+    state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
   );
-
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
-
   const compareCount = useAppSelector((state) => state.compare.ids.length);
   const user = useAppSelector((state) => state.auth.user);
+
   const mobileNavItemClass = (isActive: boolean) =>
     `relative flex h-12 items-center justify-center rounded-xl px-2 py-2 transition hover:bg-[#6D4AFF] hover:text-white active:bg-[#4F32D9] active:text-white [&>span:last-child]:hidden ${
       isActive
@@ -55,49 +55,30 @@ export function Header() {
     }`;
 
   useEffect(() => {
-    if (!isAddressOpen) {
-      return;
-    }
-
+    if (!isAddressOpen) return;
     function handleDocumentClick(event: MouseEvent) {
-      if (
-        addressRef.current &&
-        !addressRef.current.contains(event.target as Node)
-      ) {
+      if (addressRef.current && !addressRef.current.contains(event.target as Node)) {
         setIsAddressOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleDocumentClick);
-
-    return () => {
-      document.removeEventListener("mousedown", handleDocumentClick);
-    };
+    return () => document.removeEventListener("mousedown", handleDocumentClick);
   }, [isAddressOpen]);
 
   useEffect(() => {
-    if (!isProfileOpen) {
-      return;
-    }
-
+    if (!isProfileOpen) return;
     function handleDocumentPointerDown(event: PointerEvent) {
       const target = event.target as Node;
-
       if (
         desktopProfileRef.current?.contains(target) ||
         mobileProfileRef.current?.contains(target)
       ) {
         return;
       }
-
       setIsProfileOpen(false);
     }
-
     document.addEventListener("pointerdown", handleDocumentPointerDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handleDocumentPointerDown);
-    };
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
 
   return (
@@ -117,10 +98,7 @@ export function Header() {
             </span>
           </Link>
 
-          <div
-            ref={addressRef}
-            className="relative order-3 shrink-0 xl:order-none xl:ml-0"
-          >
+          <div ref={addressRef} className="relative order-3 shrink-0 xl:order-none xl:ml-0">
             <button
               onClick={() => {
                 setIsAddressOpen((prev) => !prev);
@@ -132,9 +110,8 @@ export function Header() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1EDFF] text-[#6D4AFF]">
                 <MapPin size={20} />
               </div>
-
               <div className="hidden leading-tight sm:block">
-                <p className="text-xs text-[#6B7280]">Доставка</p>
+                <p className="text-xs text-[#6B7280]">{t("delivery")}</p>
                 <p className="max-w-[92px] truncate text-sm font-bold text-[#111827] sm:max-w-[110px]">
                   {city}
                 </p>
@@ -143,26 +120,21 @@ export function Header() {
 
             {isAddressOpen && (
               <div className="fixed left-4 right-4 top-[76px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
-                <h3 className="text-lg font-black">Выберите город</h3>
-                <p className="mt-1 text-sm text-[#6B7280]">
-                  От города зависит срок и стоимость доставки
-                </p>
-
+                <h3 className="text-lg font-black">{t("chooseCity")}</h3>
+                <p className="mt-1 text-sm text-[#6B7280]">{t("cityNote")}</p>
                 <div className="mt-4 space-y-2">
-                  {["Екатеринбург", "Москва", "Санкт-Петербург", "Казань"].map(
-                    (item) => (
-                      <button
-                        key={item}
-                        onClick={() => {
-                          setCity(item);
-                          setIsAddressOpen(false);
-                        }}
-                        className="w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
-                      >
-                        {item}
-                      </button>
-                    ),
-                  )}
+                  {["Екатеринбург", "Москва", "Санкт-Петербург", "Казань"].map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => {
+                        setCity(item);
+                        setIsAddressOpen(false);
+                      }}
+                      className="w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
+                    >
+                      {item}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -179,17 +151,14 @@ export function Header() {
               className="catalog-toggle-button flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-semibold transition hover:bg-[#E8E0FF] sm:px-5"
             >
               <Menu size={18} />
-              Каталог
+              {t("catalog")}
             </button>
           </div>
 
           <div className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto">
-            <Search
-              size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
-            />
+            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]" />
             <input
-              placeholder="Найти товары или спросить ИИ..."
+              placeholder={t("searchPlaceholder")}
               className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] pl-12 pr-4 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
             />
           </div>
@@ -205,7 +174,7 @@ export function Header() {
                 </span>
               )}
               <Scale size={20} />
-              <span>Сравнить</span>
+              <span>{t("compare")}</span>
             </Link>
 
             <Link
@@ -218,7 +187,7 @@ export function Header() {
                 </span>
               )}
               <Heart size={20} />
-              <span>Избранное</span>
+              <span>{t("favorites")}</span>
             </Link>
 
             <Link
@@ -231,7 +200,7 @@ export function Header() {
                 </span>
               )}
               <ShoppingCart size={20} />
-              <span>Корзина</span>
+              <span>{t("cart")}</span>
             </Link>
 
             <div ref={desktopProfileRef} className="relative">
@@ -245,7 +214,7 @@ export function Header() {
                 className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
               >
                 <User size={20} />
-                <span>Профиль</span>
+                <span>{t("profile")}</span>
               </button>
 
               {isProfileOpen && (
@@ -255,13 +224,12 @@ export function Header() {
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
                         <User size={24} />
                       </div>
-
                       <div className="min-w-0">
                         <p className="truncate text-base font-black text-[#111827]">
-                          {user?.name || "Гость"}
+                          {user?.name || t("guest")}
                         </p>
                         <p className="mt-1 text-sm text-[#6B7280]">
-                          {user ? user.email : "Войдите или создайте аккаунт"}
+                          {user ? user.email : t("loginOrRegister")}
                         </p>
                       </div>
                     </div>
@@ -272,12 +240,12 @@ export function Header() {
                           <ProfileMenuLink
                             href="/profile"
                             icon={<User size={18} />}
-                            label="Мой профиль"
+                            label={t("myProfile")}
                             onClick={() => setIsProfileOpen(false)}
                           />
                           <ProfileMenuAction
                             icon={<Package size={18} />}
-                            label="История заказов"
+                            label={t("orderHistory")}
                             onClick={() => setIsProfileOpen(false)}
                           />
                         </>
@@ -286,21 +254,18 @@ export function Header() {
                           <ProfileMenuLink
                             href="/login"
                             icon={<User size={18} />}
-                            label="Войти"
+                            label={t("login")}
                             onClick={() => setIsProfileOpen(false)}
                           />
                           <ProfileMenuLink
                             href="/register"
                             icon={<UserPlus size={18} />}
-                            label="Регистрация"
+                            label={t("register")}
                             onClick={() => setIsProfileOpen(false)}
                           />
                         </>
                       )}
-                      <ProfileLanguageSelect
-                        value={language}
-                        onChange={setLanguage}
-                      />
+                      <ProfileLanguageSelect value={lang} onChange={changeLanguage} />
                     </div>
 
                     {user && (
@@ -320,7 +285,7 @@ export function Header() {
                         }}
                       >
                         <LogOut size={18} />
-                        Выйти
+                        {t("logout")}
                       </button>
                     )}
                   </div>
@@ -348,21 +313,16 @@ export function Header() {
                   className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#E8E0FF] xl:hidden"
                 >
                   <Menu size={18} />
-                  Каталог
+                  {t("catalog")}
                 </button>
-                <h3 className="text-lg font-black text-[#111827]">
-                  Каталог товаров
-                </h3>
-                <p className="mt-1 text-sm text-[#6B7280]">
-                  Выберите категорию для быстрого поиска
-                </p>
+                <h3 className="text-lg font-black text-[#111827]">{t("catalogTitle")}</h3>
+                <p className="mt-1 text-sm text-[#6B7280]">{t("categoryHint")}</p>
               </div>
-
               <button
                 type="button"
                 onClick={() => setIsCatalogOpen(false)}
                 className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF] xl:flex"
-                aria-label="Закрыть каталог"
+                aria-label={t("closeCatalog")}
               >
                 <X size={18} />
               </button>
@@ -371,7 +331,6 @@ export function Header() {
             <div className="mt-4 space-y-2">
               {categories.map((category) => {
                 const Icon = category.icon;
-
                 return (
                   <Link
                     key={category.id}
@@ -382,9 +341,7 @@ export function Header() {
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F6F7FB] text-[#6D4AFF]">
                       <Icon size={18} />
                     </span>
-                    <span className="min-w-0 flex-1 truncate">
-                      {category.title}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate">{t(category.title)}</span>
                     <ChevronRight size={16} className="text-[#9CA3AF]" />
                   </Link>
                 );
@@ -396,7 +353,7 @@ export function Header() {
               onClick={() => setIsCatalogOpen(false)}
               className="mt-4 flex h-12 items-center justify-between rounded-2xl bg-[#F6F7FB] px-4 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
             >
-              Все категории
+              {t("allCategories")}
               <ChevronRight size={18} />
             </Link>
           </aside>
@@ -404,17 +361,13 @@ export function Header() {
       )}
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-[#E5E7EB] bg-white/95 px-3 py-2 backdrop-blur xl:hidden">
-        <Link
-          href="/"
-          aria-label="Главная"
-          className={mobileNavItemClass(pathname === "/")}
-        >
+        <Link href="/" aria-label={t("home")} className={mobileNavItemClass(pathname === "/")}>
           <Home size={21} />
         </Link>
 
         <Link
           href="/catalog"
-          aria-label="Каталог"
+          aria-label={t("catalog")}
           onClick={() => {
             setIsCatalogOpen(false);
             setIsAddressOpen(false);
@@ -427,7 +380,7 @@ export function Header() {
 
         <Link
           href="/compare"
-          aria-label="Сравнить"
+          aria-label={t("compare")}
           className={mobileNavItemClass(pathname.startsWith("/compare"))}
         >
           {compareCount > 0 && (
@@ -436,12 +389,12 @@ export function Header() {
             </span>
           )}
           <Scale size={21} />
-          <span>Сравнить</span>
+          <span>{t("compare")}</span>
         </Link>
 
         <Link
           href="/favorites"
-          aria-label="Избранное"
+          aria-label={t("favorites")}
           className={mobileNavItemClass(pathname.startsWith("/favorites"))}
         >
           {favoritesCount > 0 && (
@@ -450,15 +403,13 @@ export function Header() {
             </span>
           )}
           <Heart size={21} />
-          <span>Избранное</span>
+          <span>{t("favorites")}</span>
         </Link>
 
         <Link
           href="/cart"
-          aria-label="Корзина"
-          className={mobileNavItemClass(
-            pathname.startsWith("/cart") || pathname.startsWith("/checkout"),
-          )}
+          aria-label={t("cart")}
+          className={mobileNavItemClass(pathname.startsWith("/cart") || pathname.startsWith("/checkout"))}
         >
           {cartCount > 0 && (
             <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -466,7 +417,7 @@ export function Header() {
             </span>
           )}
           <ShoppingCart size={21} />
-          <span>Корзина</span>
+          <span>{t("cart")}</span>
         </Link>
 
         <div ref={mobileProfileRef} className="relative">
@@ -477,16 +428,16 @@ export function Header() {
               setIsAddressOpen(false);
               setIsCatalogOpen(false);
             }}
-            aria-label="Профиль"
+            aria-label={t("profile")}
             className={`${mobileNavItemClass(
               isProfileOpen ||
                 pathname.startsWith("/profile") ||
                 pathname.startsWith("/login") ||
-                pathname.startsWith("/register"),
+                pathname.startsWith("/register")
             )} w-full`}
           >
             <User size={21} />
-            <span>Профиль</span>
+            <span>{t("profile")}</span>
           </button>
 
           {isProfileOpen && (
@@ -496,13 +447,12 @@ export function Header() {
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
                     <User size={24} />
                   </div>
-
                   <div className="min-w-0">
                     <p className="truncate text-base font-black text-[#111827]">
-                      {user?.name || "Гость"}
+                      {user?.name || t("guest")}
                     </p>
                     <p className="mt-1 text-sm text-[#6B7280]">
-                      {user ? user.email : "Войдите или создайте аккаунт"}
+                      {user ? user.email : t("loginOrRegister")}
                     </p>
                   </div>
                 </div>
@@ -513,12 +463,12 @@ export function Header() {
                       <ProfileMenuLink
                         href="/profile"
                         icon={<User size={18} />}
-                        label="Мой профиль"
+                        label={t("myProfile")}
                         onClick={() => setIsProfileOpen(false)}
                       />
                       <ProfileMenuAction
                         icon={<Package size={18} />}
-                        label="История заказов"
+                        label={t("orderHistory")}
                         onClick={() => setIsProfileOpen(false)}
                       />
                     </>
@@ -527,21 +477,18 @@ export function Header() {
                       <ProfileMenuLink
                         href="/login"
                         icon={<User size={18} />}
-                        label="Войти"
+                        label={t("login")}
                         onClick={() => setIsProfileOpen(false)}
                       />
                       <ProfileMenuLink
                         href="/register"
                         icon={<UserPlus size={18} />}
-                        label="Регистрация"
+                        label={t("register")}
                         onClick={() => setIsProfileOpen(false)}
                       />
                     </>
                   )}
-                  <ProfileLanguageSelect
-                    value={language}
-                    onChange={setLanguage}
-                  />
+                  <ProfileLanguageSelect value={lang} onChange={changeLanguage} />
                 </div>
 
                 {user && (
@@ -561,7 +508,7 @@ export function Header() {
                     }}
                   >
                     <LogOut size={18} />
-                    Выйти
+                    {t("logout")}
                   </button>
                 )}
               </div>
@@ -573,57 +520,25 @@ export function Header() {
   );
 }
 
-function ProfileMenuLink({
-  icon,
-  label,
-  href,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  onClick: () => void;
-}) {
+function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode; label: string; href: string; onClick: () => void }) {
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
-    >
+    <Link href={href} onClick={onClick} className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
       <span className="text-[#6D4AFF]">{icon}</span>
       <span>{label}</span>
     </Link>
   );
 }
 
-function ProfileMenuAction({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
+function ProfileMenuAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-12 w-full items-center gap-3 rounded-2xl px-4 text-left text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
-    >
+    <button type="button" onClick={onClick} className="flex h-12 w-full items-center gap-3 rounded-2xl px-4 text-left text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
       <span className="text-[#6D4AFF]">{icon}</span>
       <span>{label}</span>
     </button>
   );
 }
 
-function ProfileLanguageSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function ProfileLanguageSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <label className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
       <span className="text-[#6D4AFF]">
@@ -632,12 +547,12 @@ function ProfileLanguageSelect({
       <span className="flex-1">Смена языка</span>
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         className="max-w-[112px] rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-bold text-[#111827] outline-none transition focus:border-[#6D4AFF]"
       >
-        <option>Русский</option>
-        <option>English</option>
-        <option>Қазақша</option>
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+        <option value="kk">Қазақша</option>
       </select>
     </label>
   );

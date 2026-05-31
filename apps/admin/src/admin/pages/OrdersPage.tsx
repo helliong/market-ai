@@ -1,5 +1,6 @@
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, orderStatusLabel } from "../formatters";
+import { useLanguage } from "../../hooks/useLanguage";
 import type { Order, OrderStatus } from "../types";
 
 type OrdersPageProps = {
@@ -8,12 +9,14 @@ type OrdersPageProps = {
 };
 
 export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
+  const { t } = useLanguage();
+
   return (
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Управление заказами</h2>
-          <p>Просмотр заказов и изменение статуса обработки.</p>
+          <h2>{t("manageOrders")}</h2>
+          <p>{t("orderDescription")}</p>
         </div>
       </div>
 
@@ -21,11 +24,11 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
         <table>
           <thead>
             <tr>
-              <th>Заказ</th>
-              <th>Клиент</th>
-              <th>Сумма</th>
-              <th>Статус</th>
-              <th>Изменить статус</th>
+              <th>{t("orderId")}</th>
+              <th>{t("customer")}</th>
+              <th>{t("amount")}</th>
+              <th>{t("orderStatus")}</th>
+              <th>{t("changeStatus")}</th>
             </tr>
           </thead>
           <tbody>
@@ -45,10 +48,10 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
                       onStatusChange(order.id, event.target.value as OrderStatus)
                     }
                   >
-                    <option value="new">Новый</option>
-                    <option value="processing">В обработке</option>
-                    <option value="completed">Завершен</option>
-                    <option value="cancelled">Отменен</option>
+                    <option value="new">{t("statusNew")}</option>
+                    <option value="processing">{t("statusProcessing")}</option>
+                    <option value="completed">{t("statusCompleted")}</option>
+                    <option value="cancelled">{t("statusCancelled")}</option>
                   </select>
                 </td>
               </tr>
@@ -57,7 +60,7 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
             {orders.length === 0 && (
               <tr>
                 <td colSpan={5} className="empty-cell">
-                  Заказов пока нет
+                  {t("noOrders")}
                 </td>
               </tr>
             )}

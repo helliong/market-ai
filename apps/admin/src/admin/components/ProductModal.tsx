@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import type { ProductForm, ProductStatus } from "../types";
+import { useLanguage } from "../../hooks/useLanguage";
 
 type ProductModalProps = {
   form: ProductForm;
@@ -16,25 +17,24 @@ export function ProductModal({
   onChange,
   onSubmit,
 }: ProductModalProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="modal-backdrop">
       <div className="modal-card">
         <div className="modal-header">
           <div>
-            <h2>{isEditing ? "Редактировать товар" : "Добавить товар"}</h2>
-            <p>
-              Данные пока сохраняются локально. После готовности backend они
-              будут отправляться через API.
-            </p>
+            <h2>{isEditing ? t("editProduct") : t("addProduct")}</h2>
+            <p>{t("productFormNote")}</p>
           </div>
-          <button className="close-button" onClick={onClose} aria-label="Закрыть">
+          <button className="close-button" onClick={onClose} aria-label={t("close")}>
             ×
           </button>
         </div>
 
         <form className="product-form" onSubmit={onSubmit}>
           <label>
-            Название товара
+            {t("productName")}
             <input
               value={form.name}
               onChange={(event) =>
@@ -45,7 +45,7 @@ export function ProductModal({
           </label>
 
           <label>
-            Категория
+            {t("category")}
             <input
               value={form.category}
               onChange={(event) =>
@@ -56,7 +56,7 @@ export function ProductModal({
           </label>
 
           <label>
-            Цена
+            {t("price")}
             <input
               type="number"
               min="1"
@@ -69,7 +69,7 @@ export function ProductModal({
           </label>
 
           <label>
-            Остаток
+            {t("stock")}
             <input
               type="number"
               min="0"
@@ -82,7 +82,7 @@ export function ProductModal({
           </label>
 
           <label>
-            Статус
+            {t("status")}
             <select
               value={form.status}
               onChange={(event) =>
@@ -92,18 +92,18 @@ export function ProductModal({
                 })
               }
             >
-              <option value="active">Активный</option>
-              <option value="draft">Черновик</option>
-              <option value="archived">Архив</option>
+              <option value="active">{t("active")}</option>
+              <option value="draft">{t("draft")}</option>
+              <option value="archived">{t("archived")}</option>
             </select>
           </label>
 
           <div className="modal-actions">
             <button type="button" className="secondary-button" onClick={onClose}>
-              Отмена
+              {t("cancel")}
             </button>
             <button type="submit" className="primary-button">
-              {isEditing ? "Сохранить" : "Добавить"}
+              {isEditing ? t("save") : t("add")}
             </button>
           </div>
         </form>
