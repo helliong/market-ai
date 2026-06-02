@@ -27,6 +27,8 @@ import { hydrateCompare } from "@/store/compareSlice";
 import { hydrateFavorites } from "@/store/favoritesSlice";
 import { categories } from "@/data/categories";
 import { logoutClient } from "@/lib/auth-api";
+import { getCatalogSections } from "@/lib/catalog-data";
+import { getCatalogSlug } from "@/lib/catalog-slug";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function Header() {
@@ -40,6 +42,9 @@ export function Header() {
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [hoveredCatalogCategory, setHoveredCatalogCategory] = useState<number>(
+    categories[0]?.id ?? 1,
+  );
   const [city, setCity] = useState("Екатеринбург");
   const [searchQuery, setSearchQuery] = useState("");
   const cartCount = useAppSelector((state) =>
@@ -82,6 +87,17 @@ export function Header() {
     document.addEventListener("pointerdown", handleDocumentPointerDown);
     return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
+
+  useEffect(() => {
+    function handleOpenCatalog() {
+      setIsCatalogOpen(true);
+      setIsAddressOpen(false);
+      setIsProfileOpen(false);
+    }
+
+    window.addEventListener("open-catalog", handleOpenCatalog);
+    return () => window.removeEventListener("open-catalog", handleOpenCatalog);
+  }, []);
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,14 +170,19 @@ export function Header() {
           <div className="relative order-2 hidden xl:order-none xl:block">
             <button
               type="button"
+              aria-expanded={isCatalogOpen}
               onClick={() => {
                 setIsCatalogOpen((prev) => !prev);
                 setIsAddressOpen(false);
                 setIsProfileOpen(false);
               }}
-              className="catalog-toggle-button flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-semibold transition hover:bg-[#E8E0FF] sm:px-5"
+              className={`catalog-toggle-button flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-semibold transition sm:px-5 ${
+                isCatalogOpen
+                  ? "bg-[#6D4AFF] text-white shadow-[0_10px_24px_rgba(109,74,255,0.26)] hover:bg-[#4F32D9]"
+                  : "bg-[#F1EDFF] text-[#6D4AFF] hover:bg-[#E8E0FF]"
+              }`}
             >
-              <Menu size={18} />
+              {isCatalogOpen ? <X size={18} /> : <Menu size={18} />}
               {t("catalog")}
             </button>
           </div>
@@ -314,65 +335,99 @@ export function Header() {
 
       {isCatalogOpen && (
         <div
-          className="fixed inset-0 z-[60] hidden animate-[catalogFadeIn_160ms_ease-out] dark:dark-bg-main/45 xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:block xl:bg-[#111827]/45 xl:backdrop-blur-[2px] dark:backdrop-blur-[2px]"
+          className="fixed inset-0 z-[60] hidden animate-[catalogFadeIn_160ms_ease-out] bg-[var(--bg-main)] xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:block"
           onClick={() => setIsCatalogOpen(false)}
         >
-          <aside
-            className="h-full w-full animate-[catalogSlideIn_220ms_cubic-bezier(0.22,1,0.36,1)] overflow-y-auto bg-white p-5 xl:w-[min(340px,86vw)] xl:border-r xl:border-[#E5E7EB] xl:shadow-[24px_0_60px_rgba(15,23,42,0.18)]"
+          <section
+            className="relative mx-auto grid h-[calc(100vh-76px)] w-full max-w-[1440px] grid-cols-[300px_1fr] overflow-hidden bg-white"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] pb-4">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setIsCatalogOpen(false)}
-                  className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#F1EDFF] px-4 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#E8E0FF] xl:hidden"
-                >
-                  <Menu size={18} />
-                  {t("catalog")}
-                </button>
-                <h3 className="text-lg font-black text-[#111827]">{t("catalogTitle")}</h3>
-                <p className="mt-1 text-sm text-[#6B7280]">{t("categoryHint")}</p>
+            <aside className="h-full overflow-y-auto border-r border-[#E5E7EB] p-4">
+              <div className="mb-3 flex items-center justify-between px-2">
+                <h3 className="text-lg font-black text-[var(--text-main)]">
+                  Каталог
+                </h3>
               </div>
+              <div className="space-y-1">
+                {categories.map((category) => {
+                  const Icon = category.icon;
+                  const isActive = hoveredCatalogCategory === category.id;
+
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onMouseEnter={() => setHoveredCatalogCategory(category.id)}
+                      onFocus={() => setHoveredCatalogCategory(category.id)}
+                      className={`flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold transition ${
+                        isActive
+                          ? "bg-[#F1EDFF] text-[#6D4AFF]"
+                          : "text-[#111827] hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+                      }`}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F6F7FB] text-[#6D4AFF]">
+                        <Icon size={17} />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {t(category.title)}
+                      </span>
+                      <ChevronRight size={15} className="text-[#CBD5E1]" />
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <div className="h-full min-w-0 overflow-y-auto p-6">
               <button
                 type="button"
                 onClick={() => setIsCatalogOpen(false)}
-                className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF] xl:flex"
+                className="absolute right-6 top-6 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F6F7FB] text-[#6B7280] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
                 aria-label={t("closeCatalog")}
               >
                 <X size={18} />
               </button>
-            </div>
+              <div className="pr-12">
+                <p className="text-sm font-black text-[#6B7280]">
+                  Категории MarketAI
+                </p>
+                <h2 className="mt-2 text-4xl font-black tracking-[-0.04em] text-[var(--text-main)]">
+                  {t(
+                    categories.find((category) => category.id === hoveredCatalogCategory)
+                      ?.title ?? "Каталог",
+                  )}
+                </h2>
+              </div>
 
-            <div className="mt-4 space-y-2">
-              {categories.map((category) => {
-                const Icon = category.icon;
-                return (
-                  <Link
-                    key={category.id}
-                    href={`/catalog?category=${category.id}`}
-                    onClick={() => setIsCatalogOpen(false)}
-                    className="flex h-12 items-center gap-3 rounded-2xl px-3 text-sm font-bold text-[#111827] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F6F7FB] text-[#6D4AFF]">
-                      <Icon size={18} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">{t(category.title)}</span>
-                    <ChevronRight size={16} className="text-[#9CA3AF]" />
-                  </Link>
-                );
-              })}
+              <div className="mt-7 columns-1 gap-8 md:columns-2 xl:columns-3">
+                {getCatalogSections(hoveredCatalogCategory).map((section) => (
+                  <div key={section.title} className="mb-7 break-inside-avoid">
+                    <h3 className="text-base font-black text-[var(--text-main)]">
+                      {section.title}
+                    </h3>
+                    <div className="mt-3 space-y-2">
+                      {section.items.map((item) => (
+                        <Link
+                          key={item}
+                          href={`/catalog/${getCatalogSlug(item)}`}
+                          onClick={() => setIsCatalogOpen(false)}
+                          className="block text-sm font-semibold leading-6 text-[#64748B] transition hover:text-[#6D4AFF]"
+                        >
+                          {item}
+                        </Link>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-black text-[#6D4AFF] transition hover:text-[#4F32D9]"
+                    >
+                      Еще <ChevronRight size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <Link
-              href="/catalog"
-              onClick={() => setIsCatalogOpen(false)}
-              className="mt-4 flex h-12 items-center justify-between rounded-2xl bg-[#F6F7FB] px-4 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
-            >
-              {t("allCategories")}
-              <ChevronRight size={18} />
-            </Link>
-          </aside>
+          </section>
         </div>
       )}
 

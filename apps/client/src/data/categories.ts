@@ -1,6 +1,5 @@
 import {
   Laptop,
-  Smartphone,
   Shirt,
   Home,
   Dumbbell,
@@ -11,7 +10,6 @@ import {
 
 export const categories = [
   { id: 1, title: "Электроника", icon: Laptop },
-  { id: 2, title: "Смартфоны", icon: Smartphone },
   { id: 3, title: "Одежда", icon: Shirt },
   { id: 4, title: "Дом", icon: Home },
   { id: 5, title: "Спорт", icon: Dumbbell },

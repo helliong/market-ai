@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { Bot, Sparkles, Search, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
 export function Hero() {
   const { t } = useLanguage();
   function openAIWidget() { window.dispatchEvent(new Event("open-ai-widget")); }
+  function openCatalog() { window.dispatchEvent(new Event("open-catalog")); }
 
   return (
     <section className="mx-auto mt-6 grid max-w-[1440px] grid-cols-1 gap-5 px-4 md:mt-8 md:gap-8 md:px-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -16,7 +16,7 @@ export function Hero() {
         <p className="mt-6 max-w-[560px] text-lg leading-8 text-white/80">{t("describeWhatYouNeed")}</p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <button type="button" onClick={openAIWidget} className="hero-ai-button flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-[#4F32D9] transition hover:scale-[1.02]"><Bot size={20} /> {t("askMark")}</button>
-          <Link href="/catalog" className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10"><Search size={20} /> {t("goToCatalog")}</Link>
+          <button type="button" onClick={openCatalog} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/25 px-7 text-base font-bold text-white transition hover:bg-white/10"><Search size={20} /> {t("goToCatalog")}</button>
         </div>
       </div>
 
