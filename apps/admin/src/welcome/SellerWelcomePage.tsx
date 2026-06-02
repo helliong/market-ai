@@ -23,6 +23,9 @@ export function SellerWelcomePage() {
           <small>{t("forSellers")}</small>
         </a>
         <nav className="seller-welcome-nav" aria-label={t("sellerNavigation")}>
+          <a className="seller-welcome-nav-secondary" href="/agreement">
+            {t("agreementTitle")}
+          </a>
           <a className="seller-welcome-nav-secondary" href="/login">{t("loginButton")}</a>
           <a className="seller-welcome-nav-primary" href="/register">{t("createStore")}</a>
         </nav>

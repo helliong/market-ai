@@ -224,7 +224,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
             <>
               {resetPasswordStep === "email" && (
                 <label>
-                  Email
+                  {t("userEmail")}
                   <input
                     className={resetErrors.email ? "is-invalid" : ""}
                     type="email"
@@ -271,7 +271,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                           confirmPassword: undefined,
                         }));
                       }}
-                      placeholder={t("newPassword")}
+                      placeholder={t("newPasswordPlaceholder")}
                     />
                     {resetErrors.password && <span className="seller-register-error">{resetErrors.password}</span>}
                   </label>
@@ -288,7 +288,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                           confirmPassword: undefined,
                         }));
                       }}
-                      placeholder={t("confirmPassword")}
+                      placeholder={t("confirmPasswordPlaceholder")}
                     />
                     {resetErrors.confirmPassword && <span className="seller-register-error">{resetErrors.confirmPassword}</span>}
                   </label>
@@ -315,7 +315,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
           ) : (
             <>
               <label>
-                Email
+                {t("userEmail")}
                 <input
                   className={errors.email ? "is-invalid" : ""}
                   type="email"
@@ -338,7 +338,7 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                     setPassword(event.target.value);
                     setErrors((current) => ({ ...current, password: undefined }));
                   }}
-                  placeholder={t("password")}
+                  placeholder={t("passwordPlaceholder")}
                 />
                 {errors.password && <span className="seller-register-error">{errors.password}</span>}
               </label>

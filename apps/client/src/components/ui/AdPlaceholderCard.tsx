@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 
 type AdPlaceholderCardProps = {
@@ -7,34 +8,134 @@ type AdPlaceholderCardProps = {
   placement?: number;
 };
 
+type AdVariant = {
+  brand: string;
+  brandBg: string;
+  headline: string;
+  headlineColor: string;
+  subline: string;
+  cardBg: string;
+  hoverShadow: string;
+  gradient: string;
+  overlay: string;
+  decorPrimary: string;
+  decorSecondary: string;
+};
+
+const AD_VARIANTS: AdVariant[] = [
+  {
+    brand: "SNICKERS",
+    brandBg: "#1E3A8A",
+    headline: "Голоден?",
+    headlineColor: "#FFD166",
+    subline: "Сникерсни",
+    cardBg: "#34150F",
+    hoverShadow: "rgba(52,21,15,0.22)",
+    gradient: "linear-gradient(145deg,#45180f_0%,#7a2417_42%,#d59022_100%)",
+    overlay: "rgba(20,8,5,0.82)",
+    decorPrimary: "#F7C948",
+    decorSecondary: "#F9E0A0",
+  },
+  {
+    brand: "COCA-COLA",
+    brandBg: "#FFFFFF",
+    headline: "Открой",
+    headlineColor: "#FFFFFF",
+    subline: "счастье",
+    cardBg: "#6B0F12",
+    hoverShadow: "rgba(107,15,18,0.28)",
+    gradient: "linear-gradient(145deg,#3d0a0c_0%,#9b1c1f_45%,#e85d4a_100%)",
+    overlay: "rgba(35,5,7,0.85)",
+    decorPrimary: "#FFFFFF",
+    decorSecondary: "#FECACA",
+  },
+  {
+    brand: "LAY'S",
+    brandBg: "#FACC15",
+    headline: "Нельзя",
+    headlineColor: "#FEF08A",
+    subline: "остановиться",
+    cardBg: "#1E3A1A",
+    hoverShadow: "rgba(30,58,26,0.28)",
+    gradient: "linear-gradient(145deg,#1a3318_0%,#3d7a2e_42%,#f5c518_100%)",
+    overlay: "rgba(12,28,10,0.82)",
+    decorPrimary: "#FACC15",
+    decorSecondary: "#FEF9C3",
+  },
+  {
+    brand: "NESCAFÉ",
+    brandBg: "#7C2D12",
+    headline: "Утро",
+    headlineColor: "#FDE68A",
+    subline: "начинается здесь",
+    cardBg: "#2C1810",
+    hoverShadow: "rgba(44,24,16,0.28)",
+    gradient: "linear-gradient(145deg,#1f120c_0%,#5c3a2a_40%,#c48a5a_100%)",
+    overlay: "rgba(18,10,6,0.85)",
+    decorPrimary: "#D4A574",
+    decorSecondary: "#F5E6D3",
+  },
+];
+
+function getAdVariant(placement: number): AdVariant {
+  const index = (placement - 1) % AD_VARIANTS.length;
+  return AD_VARIANTS[index] ?? AD_VARIANTS[0];
+}
+
 export function AdPlaceholderCard({
   className = "",
   placement = 1,
 }: AdPlaceholderCardProps) {
+  const ad = getAdVariant(placement);
+  const brandTextColor = ad.brandBg === "#FFFFFF" ? "#DC2626" : "#FFFFFF";
+
   return (
     <Link
-      href="/catalog"
-      aria-label={`Открыть рекламную подборку ${placement}`}
-      className={`group relative flex min-h-[250px] overflow-hidden rounded-[18px] bg-[#34150F] p-4 text-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(52,21,15,0.22)] sm:min-h-[360px] sm:rounded-[24px] sm:p-5 ${className}`}
+      href="/"
+      aria-label={`Открыть рекламную подборку ${placement}: ${ad.brand}`}
+      className={`group relative flex min-h-[250px] overflow-hidden rounded-[18px] p-4 text-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_var(--ad-hover-shadow)] sm:min-h-[360px] sm:rounded-[24px] sm:p-5 ${className}`}
+      style={
+        {
+          backgroundColor: ad.cardBg,
+          "--ad-hover-shadow": ad.hoverShadow,
+        } as CSSProperties & { "--ad-hover-shadow": string }
+      }
     >
       <span className="absolute right-3 top-3 z-10 rounded-full bg-white/18 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white/80 backdrop-blur sm:right-4 sm:top-4">
         Реклама
       </span>
 
-      <div className="absolute inset-0 bg-[linear-gradient(145deg,#45180f_0%,#7a2417_42%,#d59022_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent_0%,rgba(20,8,5,0.82)_100%)]" />
-      <div className="absolute -right-12 top-10 h-36 w-36 rotate-12 rounded-[28px] bg-[#F7C948]/90 shadow-[0_24px_55px_rgba(0,0,0,0.28)] transition group-hover:scale-105 sm:h-48 sm:w-48" />
-      <div className="absolute right-5 top-20 h-24 w-28 rotate-12 rounded-[22px] bg-[#F9E0A0] shadow-inner sm:right-8 sm:top-28 sm:h-32 sm:w-40" />
+      <div className="absolute inset-0" style={{ background: ad.gradient }} />
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/2"
+        style={{
+          background: `linear-gradient(180deg,transparent_0%,${ad.overlay}_100%)`,
+        }}
+      />
+      <div
+        className="absolute -right-12 top-10 h-36 w-36 rotate-12 rounded-[28px] shadow-[0_24px_55px_rgba(0,0,0,0.28)] transition group-hover:scale-105 sm:h-48 sm:w-48"
+        style={{ backgroundColor: `${ad.decorPrimary}e6` }}
+      />
+      <div
+        className="absolute right-5 top-20 h-24 w-28 rotate-12 rounded-[22px] shadow-inner sm:right-8 sm:top-28 sm:h-32 sm:w-40"
+        style={{ backgroundColor: ad.decorSecondary }}
+      />
 
       <div className="relative z-10 mt-auto">
-        <div className="inline-flex rotate-[-3deg] rounded-md bg-[#1E3A8A] px-2.5 py-1 text-xl font-black italic leading-none text-white shadow-[0_8px_18px_rgba(0,0,0,0.2)] sm:text-3xl">
-          SNICKERS
+        <div
+          className="inline-flex rotate-[-3deg] rounded-md px-2.5 py-1 text-xl font-black italic leading-none shadow-[0_8px_18px_rgba(0,0,0,0.2)] sm:text-3xl"
+          style={{ backgroundColor: ad.brandBg, color: brandTextColor }}
+        >
+          {ad.brand}
         </div>
-        <p className="mt-4 max-w-[190px] text-2xl font-black leading-[0.95] tracking-[0] text-[#FFD166] sm:text-4xl">
-          Голоден?
+        <p
+          className="mt-4 max-w-[190px] text-2xl font-black leading-[0.95] tracking-[0] sm:text-4xl"
+          style={{ color: ad.headlineColor }}
+        >
+          {ad.headline}
         </p>
-        <p className="mt-1 max-w-[190px] text-2xl font-black leading-[0.95] tracking-[0] sm:text-4xl">
-          Сникерсни
+        <p className="mt-1 max-w-[190px] text-2xl font-black leading-[0.95] tracking-[0] text-white sm:text-4xl">
+          {ad.subline}
         </p>
       </div>
     </Link>

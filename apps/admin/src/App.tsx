@@ -70,6 +70,8 @@ type MenuPage = Exclude<
   "welcome" | "register" | "login" | "agreement" | "settings"
 >;
 
+const PUBLIC_PAGES: Page[] = ["welcome", "register", "login", "agreement"];
+
 function App() {
   const { t } = useLanguage();
   const theme = useTheme();
@@ -116,7 +118,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (page === "welcome" || page === "register" || page === "login") {
+    if (PUBLIC_PAGES.includes(page)) {
       return;
     }
     let isMounted = true;

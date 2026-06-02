@@ -233,12 +233,12 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                     setName(event.target.value);
                     setErrors((current) => ({ ...current, name: undefined }));
                   }}
-                  placeholder="Market store"
+                  placeholder={t("storeNamePlaceholder")}
                 />
                 {errors.name && <span className="seller-register-error">{errors.name}</span>}
               </label>
               <label>
-                Email
+                {t("userEmail")}
                 <input
                   className={errors.email ? "is-invalid" : ""}
                   type="email"
@@ -247,7 +247,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                     setEmail(event.target.value);
                     setErrors((current) => ({ ...current, email: undefined }));
                   }}
-                  placeholder="seller@example.com"
+                  placeholder={t("emailPlaceholder")}
                 />
                 {errors.email && <span className="seller-register-error">{errors.email}</span>}
               </label>
@@ -265,7 +265,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                       confirmPassword: undefined,
                     }));
                   }}
-                  placeholder={t("password")}
+                  placeholder={t("passwordPlaceholder")}
                 />
                 {errors.password && <span className="seller-register-error">{errors.password}</span>}
               </label>
@@ -279,7 +279,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                     setConfirmPassword(event.target.value);
                     setErrors((current) => ({ ...current, confirmPassword: undefined }));
                   }}
-                  placeholder={t("confirmPassword")}
+                  placeholder={t("confirmPasswordPlaceholder")}
                 />
                 {errors.confirmPassword && <span className="seller-register-error">{errors.confirmPassword}</span>}
               </label>
@@ -303,7 +303,8 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                   }}
                 />
                 <span>
-                  {t("iAccept")} <a href="/agreement" target="_blank" rel="noopener noreferrer">{t("userAgreement")}</a>
+                  {t("iAccept")}{" "}
+                  <a href="/agreement">{t("userAgreement")}</a>
                 </span>
               </label>
               {errors.agreement && <span className="seller-register-error seller-register-agreement-error">{errors.agreement}</span>}
