@@ -121,6 +121,66 @@ export const catalogQuickPicks = [
   "Все подборки",
 ];
 
+const quickPicksBySubcategory: Record<string, string[]> = {
+  "Смартфоны": [
+    "iPhone 17",
+    "iPhone 16",
+    "iPhone 15",
+    "Samsung Galaxy S25",
+    "Samsung Galaxy A",
+    "Pixel",
+    "Xiaomi",
+    "до 30 000",
+  ],
+  "Ноутбуки": [
+    "Игровые ноутбуки",
+    "Ультрабуки",
+    "Для учебы",
+    "Для работы",
+    "ASUS",
+    "Lenovo",
+    "до 60 000",
+  ],
+  "Наушники": [
+    "Беспроводные",
+    "Sony",
+    "Apple",
+    "Для спорта",
+    "С шумоподавлением",
+    "до 15 000",
+  ],
+  "Смарт-часы": [
+    "Apple Watch",
+    "Samsung Watch",
+    "Фитнес",
+    "С GPS",
+    "Для спорта",
+    "до 20 000",
+  ],
+  "Умный дом": [
+    "Роботы-пылесосы",
+    "Умные колонки",
+    "Датчики",
+    "Освещение",
+    "Розетки",
+  ],
+  "Внешние аккумуляторы": [
+    "Anker",
+    "20000 mAh",
+    "Быстрая зарядка",
+    "Для ноутбука",
+    "Компактные",
+  ],
+};
+
 export function getCatalogSections(categoryId?: number) {
   return categoryId === 1 ? electronicsSections : genericCatalogSections;
+}
+
+export function getCatalogQuickPicks(subcategory?: string) {
+  if (!subcategory) {
+    return catalogQuickPicks;
+  }
+
+  return quickPicksBySubcategory[subcategory] ?? catalogQuickPicks;
 }

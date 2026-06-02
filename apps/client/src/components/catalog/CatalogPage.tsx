@@ -12,7 +12,7 @@ import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { useLanguage } from "@/hooks/useLanguage";
-import { catalogQuickPicks, getCatalogSections } from "@/lib/catalog-data";
+import { getCatalogQuickPicks, getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
 
 type CatalogPageProps = {
@@ -54,6 +54,7 @@ export function CatalogPage({
     hoveredCategory ?? (selectedCategory === "all" ? categories[0]?.id : selectedCategory);
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const activeSections = getCatalogSections(activeCategoryId);
+  const quickPicks = getCatalogQuickPicks(initialSubcategory);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -105,7 +106,7 @@ export function CatalogPage({
         </div>
 
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          {catalogQuickPicks.map((pick) => (
+          {quickPicks.map((pick) => (
               <button
                 key={pick}
                 type="button"
@@ -345,7 +346,7 @@ export function CatalogPage({
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                {catalogQuickPicks.map((pick) => (
+                {quickPicks.map((pick) => (
                   <button
                     key={pick}
                     type="button"

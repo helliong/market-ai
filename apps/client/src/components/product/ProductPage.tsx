@@ -20,6 +20,7 @@ import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getStoreSlug } from "@/lib/store-slug";
+import { categories } from "@/data/categories";
 
 type Product = {
   id: number;
@@ -30,6 +31,7 @@ type Product = {
   reviews: number;
   badge?: string;
   storeName?: string;
+  categoryIds?: number[];
 };
 
 type ProductPageProps = {
@@ -50,11 +52,33 @@ export function ProductPage({ product }: ProductPageProps) {
   const isCompared = useAppSelector((state) => state.compare.ids.includes(product.id));
   const isCompareLimitReached = useAppSelector((state) => state.compare.ids.length >= 6);
   const isCompareDisabled = !isCompared && isCompareLimitReached;
+  const productCategory = product.categoryIds
+    ? categories.find((category) => product.categoryIds?.includes(category.id))
+    : undefined;
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#6B7280]">
-        <Link href="/" className="transition hover:text-[#6D4AFF]">{t("homeBreadcrumb")}</Link><span>/</span><span className="text-[#111827]">{product.title}</span>
+        <Link href="/" className="transition hover:text-[#6D4AFF]">
+          {t("homeBreadcrumb")}
+        </Link>
+        <span>/</span>
+        <Link href="/catalog" className="transition hover:text-[#6D4AFF]">
+          Каталог
+        </Link>
+        {productCategory && (
+          <>
+            <span>/</span>
+            <Link
+              href={`/catalog?category=${productCategory.id}`}
+              className="transition hover:text-[#6D4AFF]"
+            >
+              {t(productCategory.title)}
+            </Link>
+          </>
+        )}
+        <span>/</span>
+        <span className="line-clamp-1 text-[var(--text-main)]">{product.title}</span>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
