@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -97,18 +97,10 @@ function getAdVariant(placement: number): AdVariant {
   return AD_VARIANTS[index] ?? AD_VARIANTS[0];
 }
 
-function AdBadge({
-  corner,
-  visible,
-}: {
-  corner: BadgeCorner;
-  visible: boolean;
-}) {
+function AdBadge({ corner }: { corner: BadgeCorner }) {
   return (
     <span
-      className={`absolute z-10 rounded-full bg-white/18 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white/80 backdrop-blur transition-opacity duration-200 ${BADGE_CORNER_CLASSES[corner]} ${
-        visible ? "opacity-100" : "opacity-0"
-      }`}
+      className={`pointer-events-none absolute z-20 rounded-full bg-white/18 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white/80 backdrop-blur ${BADGE_CORNER_CLASSES[corner]}`}
     >
       Реклама
     </span>
@@ -124,18 +116,32 @@ export function AdPlaceholderCard({
   const isImageAd = Boolean(ad.imageSrc);
   const defaultCorner: BadgeCorner = ad.badgeCorner ?? "top-right";
   const [badgeCorner, setBadgeCorner] = useState<BadgeCorner>(defaultCorner);
-  const [badgeVisible, setBadgeVisible] = useState(!isImageAd);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  const applyBadgePlacement = useCallback(
+    (img: HTMLImageElement) => {
+      try {
+        setBadgeCorner(findDarkestBadgeCorner(img));
+      } catch {
+        setBadgeCorner(ad.badgeCorner ?? "top-right");
+      }
+    },
+    [ad.badgeCorner],
+  );
 
   useEffect(() => {
     setBadgeCorner(ad.badgeCorner ?? "top-right");
-    setBadgeVisible(!ad.imageSrc);
   }, [placement, ad.badgeCorner, ad.imageSrc]);
 
-  function handleAdImageLoad(event: SyntheticEvent<HTMLImageElement>) {
-    const corner = findDarkestBadgeCorner(event.currentTarget);
-    setBadgeCorner(corner);
-    setBadgeVisible(true);
-  }
+  useEffect(() => {
+    const img = imageRef.current;
+    if (!img || !isImageAd) {
+      return;
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      applyBadgePlacement(img);
+    }
+  }, [ad.imageSrc, applyBadgePlacement, isImageAd, placement]);
 
   return (
     <Link
@@ -151,17 +157,17 @@ export function AdPlaceholderCard({
         } as CSSProperties & { "--ad-hover-shadow": string }
       }
     >
-      <AdBadge corner={badgeCorner} visible={badgeVisible} />
-
       {isImageAd && ad.imageSrc ? (
         <Image
+          ref={imageRef}
           src={ad.imageSrc}
           alt={ad.imageAlt ?? ad.brand}
           fill
           unoptimized
           sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover transition duration-300 group-hover:scale-[1.02]"
-          onLoad={handleAdImageLoad}
+          onLoad={(event) => applyBadgePlacement(event.currentTarget)}
+          onLoadingComplete={(img) => applyBadgePlacement(img)}
         />
       ) : (
         <>
@@ -200,6 +206,8 @@ export function AdPlaceholderCard({
           </div>
         </>
       )}
+
+      <AdBadge corner={badgeCorner} />
     </Link>
   );
 }
