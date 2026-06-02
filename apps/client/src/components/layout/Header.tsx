@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
   ChevronRight,
@@ -33,6 +33,7 @@ export function Header() {
   const { t, lang, changeLanguage } = useLanguage();
   const dispatch = useAppDispatch();
   const pathname = usePathname();
+  const router = useRouter();
   const addressRef = useRef<HTMLDivElement>(null);
   const desktopProfileRef = useRef<HTMLDivElement>(null);
   const mobileProfileRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,7 @@ export function Header() {
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [city, setCity] = useState("Екатеринбург");
+  const [searchQuery, setSearchQuery] = useState("");
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
   );
@@ -80,6 +82,15 @@ export function Header() {
     document.addEventListener("pointerdown", handleDocumentPointerDown);
     return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
+
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    setIsAddressOpen(false);
+    setIsCatalogOpen(false);
+    setIsProfileOpen(false);
+    router.push(query ? `/catalog?q=${encodeURIComponent(query)}` : "/catalog");
+  }
 
   return (
     <>
@@ -155,13 +166,18 @@ export function Header() {
             </button>
           </div>
 
-          <div className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto"
+          >
             <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]" />
             <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t("searchPlaceholder")}
               className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] pl-12 pr-4 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
             />
-          </div>
+          </form>
 
           <nav className="order-none ml-auto hidden items-center gap-2 xl:flex">
             <Link

@@ -2,20 +2,41 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Search } from "lucide-react";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { useLanguage } from "@/hooks/useLanguage";
 
-export function CatalogPage({ initialCategory = "all" }: { initialCategory?: number | "all"; }) {
+export function CatalogPage({
+  initialCategory = "all",
+  initialQuery = "",
+}: {
+  initialCategory?: number | "all";
+  initialQuery?: string;
+}) {
   const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(initialCategory);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const currentCategory = selectedCategory === "all" ? undefined : categories.find((category) => category.id === selectedCategory);
 
   useEffect(() => { setSelectedCategory(initialCategory); }, [initialCategory]);
+  useEffect(() => { setSearchQuery(initialQuery); }, [initialQuery]);
 
-  const filteredProducts = useMemo(() => products.filter((product) => selectedCategory === "all" || product.categoryIds.includes(selectedCategory)), [selectedCategory]);
+  const filteredProducts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return products.filter((product) => {
+      const matchesCategory =
+        selectedCategory === "all" || product.categoryIds.includes(selectedCategory);
+      const matchesSearch =
+        !normalizedQuery ||
+        product.title.toLowerCase().includes(normalizedQuery) ||
+        product.storeName?.toLowerCase().includes(normalizedQuery) ||
+        product.badge?.toLowerCase().includes(normalizedQuery);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [selectedCategory, searchQuery]);
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -23,7 +44,13 @@ export function CatalogPage({ initialCategory = "all" }: { initialCategory?: num
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6D4AFF]">{t("catalogPageTitle")}</p>
           <h1 className="mt-3 text-3xl font-black md:text-4xl">{currentCategory ? t(currentCategory.title) : t("catalogTitleDefault")}</h1>
-          <p className="mt-2 text-[#6B7280]">{currentCategory ? `${t("productsInCategory")} «${t(currentCategory.title)}».` : t("chooseCategoryHint")}</p>
+          <p className="mt-2 text-[#6B7280]">
+            {searchQuery.trim()
+              ? `Результаты поиска: "${searchQuery.trim()}".`
+              : currentCategory
+                ? `${t("productsInCategory")} «${t(currentCategory.title)}».`
+                : t("chooseCategoryHint")}
+          </p>
         </div>
         <div className="hidden w-fit rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)] lg:block">
           {t("productsFound")} {filteredProducts.length}
@@ -49,7 +76,16 @@ export function CatalogPage({ initialCategory = "all" }: { initialCategory?: num
           </div>
         </aside>
 
-        <div className={selectedCategory === "all" ? "hidden lg:block" : ""}>
+        <div className={selectedCategory === "all" && !searchQuery.trim() ? "hidden lg:block" : ""}>
+          <label className="mb-4 flex h-12 items-center gap-3 rounded-2xl bg-white px-4 text-sm font-semibold text-[#6B7280] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+            <Search size={18} />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="w-full bg-transparent outline-none placeholder:text-[#9CA3AF]"
+              placeholder={t("searchPlaceholder")}
+            />
+          </label>
           {selectedCategory !== "all" && (
             <Link href="/catalog" onClick={() => setSelectedCategory("all")} className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-bold text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:bg-[#F1EDFF] lg:hidden">
               <ChevronLeft size={18} /> {t("allCategories")}
@@ -63,7 +99,7 @@ export function CatalogPage({ initialCategory = "all" }: { initialCategory?: num
             <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[32px] bg-white p-8 text-center shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
               <h2 className="text-2xl font-black">{t("nothingFound")}</h2>
               <p className="mt-3 max-w-[420px] text-[#6B7280]">{t("tryOtherCategory")}</p>
-              <button type="button" onClick={() => setSelectedCategory("all")} className="mt-6 rounded-2xl bg-[#6D4AFF] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#4F32D9]">{t("resetFilters")}</button>
+              <button type="button" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-6 rounded-2xl bg-[#6D4AFF] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#4F32D9]">{t("resetFilters")}</button>
             </div>
           )}
         </div>

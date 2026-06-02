@@ -7,6 +7,7 @@ import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
+import { getStoreSlug } from "@/lib/store-slug";
 const productCardText: Record<string, string> = {
   addToCompare: "Добавить к сравнению",
   addToFavorites: "Добавить в избранное",
@@ -69,10 +70,13 @@ export function ProductCard({
         </Link>
 
         {storeName && (
-          <div className="mt-2 flex min-h-[18px] items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] sm:text-xs">
+          <Link
+            href={`/stores/${getStoreSlug(storeName)}`}
+            className="mt-2 flex min-h-[18px] items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] transition hover:text-[#6D4AFF] sm:text-xs"
+          >
             <Store size={13} className="shrink-0 text-[#6D4AFF] sm:h-3.5 sm:w-3.5" />
             <span className="line-clamp-1">{storeName}</span>
-          </div>
+          </Link>
         )}
 
         <div className="mt-3 hidden items-center gap-1 text-sm sm:flex">
@@ -94,7 +98,10 @@ export function ProductCard({
         {cartItem ? (
           <div className="mt-3 grid h-10 grid-cols-[36px_1fr_36px] overflow-hidden rounded-xl bg-[#6D4AFF] text-white sm:mt-4 sm:h-11 sm:grid-cols-[44px_1fr_44px] sm:rounded-2xl">
             <button type="button" onClick={() => dispatch(decreaseQuantity(id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("decreaseQuantity")}><Minus size={16} /></button>
-            <div className="flex items-center justify-center text-sm font-black">{cartItem.quantity}<span className="hidden sm:inline"> {t("inCart")}</span></div>
+            <div className="flex items-center justify-center text-sm font-black">
+              {cartItem.quantity}
+              <span className="hidden sm:inline">&nbsp;{t("inCart")}</span>
+            </div>
             <button type="button" onClick={() => dispatch(increaseQuantity(id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("increaseQuantity")}><Plus size={16} /></button>
           </div>
         ) : (

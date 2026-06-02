@@ -352,3 +352,9 @@ npm run build --prefix services/auth-service
 - Подготовить Kubernetes / k3s deployment.
 - Добавить monitoring и logging.
 
+## Последние feature-коммиты
+
+```txt
+24c170b feat: add seller legal moderation flow
+62578d7 feat: use toast notifications in seller admin
+```

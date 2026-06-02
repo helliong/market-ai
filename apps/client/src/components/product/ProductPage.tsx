@@ -19,6 +19,7 @@ import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
+import { getStoreSlug } from "@/lib/store-slug";
 
 type Product = {
   id: number;
@@ -86,7 +87,7 @@ export function ProductPage({ product }: ProductPageProps) {
           </div>
 
           {product.storeName && (
-            <div className="mt-4 flex items-center gap-3 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
+            <Link href={`/stores/${getStoreSlug(product.storeName)}`} className="mt-4 flex items-center gap-3 rounded-[24px] border border-[#E5E7EB] bg-white p-5 transition hover:border-[#6D4AFF] hover:bg-[#F8F7FF]">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
                 <Store size={21} />
               </span>
@@ -98,7 +99,7 @@ export function ProductPage({ product }: ProductPageProps) {
                   {product.storeName}
                 </p>
               </div>
-            </div>
+            </Link>
           )}
         </aside>
       </div>
