@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+// Запускает auth-service, настраивает CORS, cookie parser, Swagger и глобальную валидацию DTO.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const requestLogger = new Logger('HTTP');

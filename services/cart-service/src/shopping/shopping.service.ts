@@ -7,6 +7,7 @@ const COMPARE_LIMIT = 6;
 export class ShoppingService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Возвращает корзину пользователя с товарами и количеством.
   async getCart(accountId: string) {
     const items = await this.prisma.cartItem.findMany({
       where: { accountId },
@@ -21,6 +22,7 @@ export class ShoppingService {
     };
   }
 
+  // Добавляет товар в корзину или увеличивает количество существующего товара.
   async addCartItem(accountId: string, productId: number, quantity = 1) {
     this.assertProductId(productId);
 
@@ -33,6 +35,7 @@ export class ShoppingService {
     return this.getCart(accountId);
   }
 
+  // Обновляет количество товара в корзине, удаляя товар при количестве 0 и меньше.
   async updateCartItem(accountId: string, productId: number, quantity: number) {
     this.assertProductId(productId);
 
@@ -45,6 +48,7 @@ export class ShoppingService {
     return this.getCart(accountId);
   }
 
+  // Удаляет конкретный товар из корзины пользователя.
   async removeCartItem(accountId: string, productId: number) {
     this.assertProductId(productId);
 
@@ -55,6 +59,7 @@ export class ShoppingService {
     return this.getCart(accountId);
   }
 
+  // Полностью очищает корзину пользователя.
   async clearCart(accountId: string) {
     await this.prisma.cartItem.deleteMany({
       where: { accountId },
@@ -63,6 +68,7 @@ export class ShoppingService {
     return { items: [] };
   }
 
+  // Возвращает список id товаров в избранном пользователя.
   async getFavorites(accountId: string) {
     const items = await this.prisma.favoriteItem.findMany({
       where: { accountId },
@@ -72,6 +78,7 @@ export class ShoppingService {
     return { ids: items.map((item) => item.productId) };
   }
 
+  // Добавляет товар в избранное, не создавая дубль при повторном запросе.
   async addFavorite(accountId: string, productId: number) {
     this.assertProductId(productId);
 
@@ -84,6 +91,7 @@ export class ShoppingService {
     return this.getFavorites(accountId);
   }
 
+  // Удаляет товар из избранного пользователя.
   async removeFavorite(accountId: string, productId: number) {
     this.assertProductId(productId);
 
@@ -94,6 +102,7 @@ export class ShoppingService {
     return this.getFavorites(accountId);
   }
 
+  // Возвращает список id товаров в сравнении пользователя.
   async getCompare(accountId: string) {
     const items = await this.prisma.compareItem.findMany({
       where: { accountId },
@@ -103,6 +112,7 @@ export class ShoppingService {
     return { ids: items.map((item) => item.productId), limit: COMPARE_LIMIT };
   }
 
+  // Добавляет товар в сравнение с ограничением максимум на четыре товара.
   async addCompare(accountId: string, productId: number) {
     this.assertProductId(productId);
 
@@ -129,6 +139,7 @@ export class ShoppingService {
     return this.getCompare(accountId);
   }
 
+  // Удаляет товар из списка сравнения пользователя.
   async removeCompare(accountId: string, productId: number) {
     this.assertProductId(productId);
 

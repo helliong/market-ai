@@ -15,10 +15,12 @@ export class PrismaService
     super({ adapter });
   }
 
+  // Открывает подключение Prisma к базе при старте Nest-модуля.
   async onModuleInit() {
     await this.$connect();
   }
 
+  // Закрывает подключение Prisma при остановке Nest-модуля.
   async onModuleDestroy() {
     await this.$disconnect();
   }

@@ -44,6 +44,7 @@ export type ModerationSeller = {
   };
 };
 
+// Базовый HTTP-клиент moderation API: добавляет admin key и обрабатывает ошибки ответа.
 async function moderationRequest<T>(
   adminKey: string,
   path: string,
@@ -68,6 +69,7 @@ async function moderationRequest<T>(
   return data as T;
 }
 
+// Загружает список продавцов, ожидающих ручной проверки legal data.
 export function getModerationSellers(adminKey: string) {
   return moderationRequest<ModerationSeller[]>(
     adminKey,
@@ -75,6 +77,7 @@ export function getModerationSellers(adminKey: string) {
   );
 }
 
+// Одобряет продавца после проверки юридических данных.
 export function approveModerationSeller(adminKey: string, sellerId: string) {
   return moderationRequest<ModerationSeller>(
     adminKey,
@@ -83,6 +86,7 @@ export function approveModerationSeller(adminKey: string, sellerId: string) {
   );
 }
 
+// Отклоняет продавца и отправляет комментарий с причиной отказа.
 export function rejectModerationSeller(
   adminKey: string,
   sellerId: string,

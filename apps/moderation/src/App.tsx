@@ -25,6 +25,7 @@ type ToastState = {
   variant: "success" | "error";
 };
 
+// Главный экран модерации: загрузка заявок продавцов, одобрение и отклонение legal review.
 function App() {
   const [adminKey, setAdminKey] = useState(
     () => localStorage.getItem(MODERATION_KEY_STORAGE) ?? "",
@@ -47,6 +48,7 @@ function App() {
     }
   }, [adminKey]);
 
+  // Загружает список продавцов на проверке по введенному MODERATION_ADMIN_KEY.
   async function loadSellers() {
     const key = adminKey.trim();
     if (!key) {
@@ -68,6 +70,7 @@ function App() {
     }
   }
 
+  // Одобряет выбранного продавца и убирает его карточку из списка проверки.
   async function approveSeller(seller: ModerationSeller) {
     try {
       await approveModerationSeller(adminKey.trim(), seller.id);
@@ -78,6 +81,7 @@ function App() {
     }
   }
 
+  // Отклоняет выбранного продавца с обязательным комментарием для исправлений.
   async function rejectSeller() {
     if (!rejectingSeller) return;
 
@@ -99,11 +103,13 @@ function App() {
     }
   }
 
+  // Закрывает модалку отклонения и очищает введенный комментарий.
   function closeRejectModal() {
     setRejectingSeller(null);
     setRejectComment("");
   }
 
+  // Показывает временное toast-уведомление о результате действия модератора.
   function showToast(message: string, variant: ToastState["variant"]) {
     const id = Date.now();
     setToast({ id, message, variant });
@@ -311,6 +317,7 @@ function App() {
   );
 }
 
+// Отображает одну пару "поле-значение" в карточке продавца.
 function Detail({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
@@ -320,6 +327,7 @@ function Detail({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+// Toast-уведомление для успешных и ошибочных действий модератора.
 function ToastNotification({
   message,
   variant,
@@ -342,6 +350,7 @@ function ToastNotification({
   );
 }
 
+// Форматирует дату отправки заявки в читаемый русский формат.
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("ru-RU", {
     dateStyle: "medium",
@@ -349,6 +358,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+// Достает текст ошибки из Error или возвращает общий fallback.
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Не удалось выполнить действие.";
 }

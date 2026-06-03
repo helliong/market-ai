@@ -59,6 +59,7 @@ export class ShoppingController {
     type: CartResponseDto,
     description: 'Current buyer cart.',
   })
+  // GET /shopping/cart: возвращает корзину текущего buyer-пользователя.
   getCart(@Req() req: AuthenticatedRequest) {
     return this.shoppingService.getCart(this.getAccountId(req));
   }
@@ -77,6 +78,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId or quantity.',
   })
+  // POST /shopping/cart/items: добавляет товар в корзину текущего пользователя.
   addCartItem(@Req() req: AuthenticatedRequest, @Body() dto: AddCartItemDto) {
     return this.shoppingService.addCartItem(
       this.getAccountId(req),
@@ -104,6 +106,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId or quantity.',
   })
+  // PUT /shopping/cart/items/:productId: обновляет количество товара в корзине.
   updateCartItem(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
@@ -133,6 +136,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId.',
   })
+  // DELETE /shopping/cart/items/:productId: удаляет товар из корзины.
   removeCartItem(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
@@ -152,6 +156,7 @@ export class ShoppingController {
     type: CartResponseDto,
     description: 'Empty buyer cart.',
   })
+  // DELETE /shopping/cart: очищает корзину текущего пользователя.
   clearCart(@Req() req: AuthenticatedRequest) {
     return this.shoppingService.clearCart(this.getAccountId(req));
   }
@@ -166,6 +171,7 @@ export class ShoppingController {
     type: IdsResponseDto,
     description: 'Current favorite product ids.',
   })
+  // GET /shopping/favorites: возвращает избранные товары текущего пользователя.
   getFavorites(@Req() req: AuthenticatedRequest) {
     return this.shoppingService.getFavorites(this.getAccountId(req));
   }
@@ -188,6 +194,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId.',
   })
+  // POST /shopping/favorites/:productId: добавляет товар в избранное.
   addFavorite(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
@@ -212,6 +219,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId.',
   })
+  // DELETE /shopping/favorites/:productId: удаляет товар из избранного.
   removeFavorite(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
@@ -232,6 +240,7 @@ export class ShoppingController {
     type: CompareResponseDto,
     description: 'Current compare product ids and limit.',
   })
+  // GET /shopping/compare: возвращает список товаров для сравнения.
   getCompare(@Req() req: AuthenticatedRequest) {
     return this.shoppingService.getCompare(this.getAccountId(req));
   }
@@ -254,6 +263,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId or compare limit reached.',
   })
+  // POST /shopping/compare/:productId: добавляет товар в сравнение.
   addCompare(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,
@@ -278,6 +288,7 @@ export class ShoppingController {
   @ApiBadRequestResponse({
     description: 'Invalid productId.',
   })
+  // DELETE /shopping/compare/:productId: удаляет товар из сравнения.
   removeCompare(
     @Req() req: AuthenticatedRequest,
     @Param('productId', ParseIntPipe) productId: number,

@@ -31,6 +31,7 @@ export class AuthService {
     private emailService: EmailService,
   ) {}
 
+  // Регистрирует buyer-профиль и отправляет код подтверждения email.
   async register(dto: RegisterDto) {
     const email = this.normalizeEmail(dto.email);
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -109,6 +110,7 @@ export class AuthService {
     }
   }
 
+  // Регистрирует seller-профиль, юридические базовые данные и отдельные seller credentials.
   async registerSeller(dto: SellerRegisterDto) {
     if (!dto.agreementAccepted) {
       throw new BadRequestException('Seller agreement must be accepted');
@@ -203,6 +205,7 @@ export class AuthService {
     }
   }
 
+  // Подтверждает email аккаунта по последнему действующему коду.
   async verifyEmail(dto: VerifyEmailDto) {
     const email = this.normalizeEmail(dto.email);
 
@@ -235,6 +238,7 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
+  // Авторизует покупателя, проверяет email verification и создает buyer tokens.
   async login(dto: LoginDto) {
     const account = await this.validateAccountCredentials(
       dto.email,
@@ -256,6 +260,7 @@ export class AuthService {
     return tokens;
   }
 
+  // Авторизует продавца, проверяет seller-профиль и создает seller tokens.
   async sellerLogin(dto: LoginDto) {
     const account = await this.validateAccountCredentials(
       dto.email,
@@ -289,6 +294,7 @@ export class AuthService {
     return tokens;
   }
 
+  // Проверяет refresh token нужного scope и выпускает новую пару токенов.
   async refreshTokens(refreshToken: string, scope: CredentialScope) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
@@ -334,6 +340,7 @@ export class AuthService {
     }
   }
 
+  // Возвращает сводную информацию аккаунта для текущей buyer-сессии.
   async getMe(accountId: string) {
     const account = await this.prisma.account.findUnique({
       where: { id: accountId },
@@ -360,6 +367,7 @@ export class AuthService {
     };
   }
 
+  // Возвращает buyer-профиль текущего аккаунта.
   async getUserMe(accountId: string) {
     const user = await this.prisma.user.findUnique({
       where: { accountId },
@@ -379,6 +387,7 @@ export class AuthService {
     return user;
   }
 
+  // Возвращает seller-профиль текущего аккаунта и блокирует suspended sellers.
   async getSellerMe(accountId: string) {
     const seller = await this.prisma.userSeller.findUnique({
       where: { accountId },
@@ -413,6 +422,7 @@ export class AuthService {
     return seller;
   }
 
+  // Создает или обновляет юридические данные продавца до активации магазина.
   async upsertSellerLegalProfile(
     accountId: string,
     dto: SellerLegalProfileDto,
@@ -430,6 +440,7 @@ export class AuthService {
     });
   }
 
+  // Отправляет заполненные юридические данные продавца на ручную модерацию.
   async submitSellerLegalProfile(accountId: string) {
     const seller = await this.getSellerForLegalUpdate(accountId);
     const legalProfile = await this.prisma.sellerLegalProfile.findUnique({
@@ -456,6 +467,7 @@ export class AuthService {
     };
   }
 
+  // Возвращает продавцов, ожидающих ручной legal review.
   async getSellersForReview() {
     return this.prisma.userSeller.findMany({
       where: { status: SellerStatus.UNDER_REVIEW },
@@ -467,6 +479,7 @@ export class AuthService {
     });
   }
 
+  // Активирует продавца после успешной модерации legal data.
   async approveSeller(sellerId: string) {
     return this.prisma.userSeller.update({
       where: { id: sellerId },
@@ -479,6 +492,7 @@ export class AuthService {
     });
   }
 
+  // Отклоняет legal review продавца и сохраняет комментарий модератора.
   async rejectSeller(sellerId: string, comment: string) {
     return this.prisma.userSeller.update({
       where: { id: sellerId },
@@ -491,34 +505,41 @@ export class AuthService {
     });
   }
 
+  // Запускает восстановление buyer-пароля.
   forgotPassword(dto: ForgotPasswordDto) {
     return this.forgotPasswordForScope(dto, CredentialScope.BUYER);
   }
 
+  // Запускает восстановление seller-пароля.
   forgotSellerPassword(dto: ForgotPasswordDto) {
     return this.forgotPasswordForScope(dto, CredentialScope.SELLER);
   }
 
+  // Меняет buyer-пароль по валидному reset-коду.
   resetPassword(dto: ResetPasswordDto) {
     return this.resetPasswordForScope(dto, CredentialScope.BUYER);
   }
 
+  // Проверяет buyer reset-код до ввода нового пароля.
   async verifyResetPasswordCode(dto: ResetPasswordCodeDto) {
     await this.findValidResetCredential(dto, CredentialScope.BUYER);
 
     return { message: 'Reset code is valid' };
   }
 
+  // Проверяет seller reset-код до ввода нового пароля.
   async verifySellerResetPasswordCode(dto: ResetPasswordCodeDto) {
     await this.findValidResetCredential(dto, CredentialScope.SELLER);
 
     return { message: 'Reset code is valid' };
   }
 
+  // Меняет seller-пароль по валидному reset-коду.
   resetSellerPassword(dto: ResetPasswordDto) {
     return this.resetPasswordForScope(dto, CredentialScope.SELLER);
   }
 
+  // Генерирует и отправляет новый код подтверждения email.
   async resendVerificationCode(dto: ForgotPasswordDto) {
     const email = this.normalizeEmail(dto.email);
     const account = await this.prisma.account.findUnique({
@@ -549,6 +570,7 @@ export class AuthService {
     };
   }
 
+  // Сбрасывает refresh token hash для выхода из buyer или seller-сессии.
   async logout(accountId: string, scope: CredentialScope) {
     await this.prisma.accountCredential.updateMany({
       where: { accountId, scope },
@@ -556,6 +578,7 @@ export class AuthService {
     });
   }
 
+  // Находит seller-профиль, который еще можно редактировать по legal data.
   private async getSellerForLegalUpdate(accountId: string) {
     const seller = await this.prisma.userSeller.findUnique({
       where: { accountId },
@@ -576,6 +599,7 @@ export class AuthService {
     return seller;
   }
 
+  // Создает reset-код для buyer или seller credentials и отправляет письмо нужного назначения.
   private async forgotPasswordForScope(
     dto: ForgotPasswordDto,
     scope: CredentialScope,
@@ -630,6 +654,7 @@ export class AuthService {
     };
   }
 
+  // Меняет пароль для buyer или seller credentials и инвалидирует refresh-сессии.
   private async resetPasswordForScope(
     dto: ResetPasswordDto,
     scope: CredentialScope,
@@ -651,6 +676,7 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
+  // Находит credentials с действующим reset-кодом и проверяет код через bcrypt.
   private async findValidResetCredential(
     dto: ResetPasswordCodeDto,
     scope: CredentialScope,
@@ -686,6 +712,7 @@ export class AuthService {
     return credential;
   }
 
+  // Проверяет scoped credentials аккаунта по email и паролю.
   private async validateAccountCredentials(
     email: string,
     password: string,
@@ -720,6 +747,7 @@ export class AuthService {
     return account;
   }
 
+  // Выпускает access и refresh JWT для указанного account scope.
   private async generateTokens(accountId: string, scope: CredentialScope) {
     const payload = { sub: accountId, scope };
     const accessToken = this.jwtService.sign(payload, {
@@ -735,6 +763,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  // Хэширует refresh token и сохраняет его в scoped credentials.
   private async storeRefreshToken(
     accountId: string,
     scope: CredentialScope,
@@ -753,10 +782,12 @@ export class AuthService {
     });
   }
 
+  // Нормализует email для единых lookup-операций.
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
   }
 
+  // Очищает и нормализует юридические данные продавца перед записью.
   private normalizeSellerLegalProfile(dto: SellerLegalProfileDto) {
     return {
       businessType: dto.businessType,
@@ -768,6 +799,7 @@ export class AuthService {
     };
   }
 
+  // Создает шестизначный код, bcrypt-хэш и срок действия на 15 минут.
   private async createVerificationCode() {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedCode = await bcrypt.hash(code, 8);
@@ -776,6 +808,7 @@ export class AuthService {
     return { code, hashedCode, expiresAt };
   }
 
+  // Превращает Prisma unique conflict в понятный ConflictException.
   private handleUniqueConflict(error: unknown) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

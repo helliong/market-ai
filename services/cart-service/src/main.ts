@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
+// Запускает cart-service, настраивает CORS, cookie parser, Swagger и глобальную валидацию DTO.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

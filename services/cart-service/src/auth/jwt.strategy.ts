@@ -26,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
+  // Проверяет JWT payload корзины и пропускает только buyer-токены.
   validate(payload: JwtPayload) {
     if (payload.scope !== 'BUYER') {
       throw new UnauthorizedException('Invalid token scope');

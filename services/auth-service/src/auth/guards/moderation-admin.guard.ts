@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 export class ModerationAdminGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
+  // Проверяет x-admin-key для ручной модерации продавцов.
   canActivate(context: ExecutionContext) {
     const expectedKey = this.configService.get<string>('MODERATION_ADMIN_KEY');
 

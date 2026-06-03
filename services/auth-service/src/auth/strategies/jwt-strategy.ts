@@ -26,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
+  // Проверяет buyer JWT payload и пропускает только токены scope BUYER.
   validate(payload: JwtPayload) {
     if (payload.scope !== 'BUYER') {
       throw new UnauthorizedException('Invalid token scope');
@@ -53,6 +54,7 @@ export class SellerJwtStrategy extends PassportStrategy(Strategy, 'seller-jwt') 
     });
   }
 
+  // Проверяет seller JWT payload и пропускает только токены scope SELLER.
   validate(payload: JwtPayload) {
     if (payload.scope !== 'SELLER') {
       throw new UnauthorizedException('Invalid token scope');

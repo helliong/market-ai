@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class SellerGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Проверяет, что у текущего аккаунта есть seller-профиль.
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
     const accountId = request.user?.sub;

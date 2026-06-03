@@ -65,6 +65,7 @@ export class AuthController {
     status: 409,
     description: 'Buyer profile already exists.',
   })
+  // POST /auth/register: регистрирует buyer-профиль.
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -87,6 +88,7 @@ export class AuthController {
     status: 409,
     description: 'Seller profile already exists.',
   })
+  // POST /auth/seller/register: регистрирует seller-профиль.
   async registerSeller(@Body() dto: SellerRegisterDto) {
     return this.authService.registerSeller(dto);
   }
@@ -105,6 +107,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired verification code.',
   })
+  // POST /auth/verify-email: подтверждает email по коду.
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
@@ -123,6 +126,7 @@ export class AuthController {
     status: 401,
     description: 'Invalid credentials or email is not verified.',
   })
+  // POST /auth/login: авторизует buyer и выставляет buyer cookies.
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -155,6 +159,7 @@ export class AuthController {
     status: 403,
     description: 'Seller profile not found or suspended.',
   })
+  // POST /auth/seller/login: авторизует seller и выставляет seller cookies.
   async sellerLogin(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -185,6 +190,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid refresh token.',
   })
+  // POST /auth/refresh: обновляет buyer tokens по refresh cookie.
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -222,6 +228,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid seller refresh token.',
   })
+  // POST /auth/seller/refresh: обновляет seller tokens по seller refresh cookie.
   async sellerRefresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -262,6 +269,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid access token.',
   })
+  // GET /auth/me: возвращает summary текущего buyer account.
   async me(@Req() req: Request) {
     const accountId = (req as any).user?.sub;
 
@@ -288,6 +296,7 @@ export class AuthController {
     status: 403,
     description: 'Buyer profile not found.',
   })
+  // GET /auth/user/me: возвращает buyer-профиль текущего аккаунта.
   async userMe(@Req() req: Request) {
     const accountId = (req as any).user?.sub;
 
@@ -314,6 +323,7 @@ export class AuthController {
     status: 403,
     description: 'Seller profile not found or suspended.',
   })
+  // GET /auth/seller/me: возвращает seller-профиль текущего аккаунта.
   async sellerMe(@Req() req: Request) {
     const accountId = (req as any).user?.sub;
 
@@ -344,6 +354,7 @@ export class AuthController {
     status: 403,
     description: 'Seller profile not found or suspended.',
   })
+  // PUT /auth/seller/legal-profile: сохраняет юридические данные продавца.
   async upsertSellerLegalProfile(
     @Req() req: Request,
     @Body() dto: SellerLegalProfileDto,
@@ -377,6 +388,7 @@ export class AuthController {
     status: 403,
     description: 'Seller profile not found or suspended.',
   })
+  // POST /auth/seller/legal-profile/submit: отправляет legal data на модерацию.
   async submitSellerLegalProfile(@Req() req: Request) {
     const accountId = (req as any).user?.sub;
 
@@ -408,6 +420,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid moderation key.',
   })
+  // GET /auth/admin/sellers/review: список продавцов для ручной модерации.
   async getSellersForReview() {
     return this.authService.getSellersForReview();
   }
@@ -432,6 +445,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid moderation key.',
   })
+  // POST /auth/admin/sellers/:sellerId/approve: одобряет продавца.
   async approveSeller(@Param('sellerId') sellerId: string) {
     return this.authService.approveSeller(sellerId);
   }
@@ -456,6 +470,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid moderation key.',
   })
+  // POST /auth/admin/sellers/:sellerId/reject: отклоняет продавца с комментарием.
   async rejectSeller(
     @Param('sellerId') sellerId: string,
     @Body() dto: RejectSellerDto,
@@ -473,6 +488,7 @@ export class AuthController {
     type: MessageResponseDto,
     description: 'Buyer reset instructions were sent if buyer credentials exist.',
   })
+  // POST /auth/forgot-password: отправляет buyer reset-код.
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
@@ -487,6 +503,7 @@ export class AuthController {
     type: MessageResponseDto,
     description: 'Reset instructions were sent if seller account exists.',
   })
+  // POST /auth/seller/forgot-password: отправляет seller reset-код.
   async forgotSellerPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotSellerPassword(dto);
   }
@@ -501,6 +518,7 @@ export class AuthController {
     type: MessageResponseDto,
     description: 'Verification code was sent if account exists.',
   })
+  // POST /auth/resend-verification: повторно отправляет код подтверждения email.
   async resendVerificationCode(@Body() dto: ForgotPasswordDto) {
     return this.authService.resendVerificationCode(dto);
   }
@@ -519,6 +537,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired reset code.',
   })
+  // POST /auth/reset-password/verify-code: проверяет buyer reset-код.
   async verifyResetPasswordCode(@Body() dto: ResetPasswordCodeDto) {
     return this.authService.verifyResetPasswordCode(dto);
   }
@@ -537,6 +556,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired reset code.',
   })
+  // POST /auth/reset-password: меняет buyer-пароль.
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -555,6 +575,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired reset code.',
   })
+  // POST /auth/seller/reset-password/verify-code: проверяет seller reset-код.
   async verifySellerResetPasswordCode(@Body() dto: ResetPasswordCodeDto) {
     return this.authService.verifySellerResetPasswordCode(dto);
   }
@@ -573,6 +594,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired reset code.',
   })
+  // POST /auth/seller/reset-password: меняет seller-пароль.
   async resetSellerPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetSellerPassword(dto);
   }
@@ -593,6 +615,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid access token.',
   })
+  // POST /auth/logout: завершает buyer-сессию и очищает buyer cookies.
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const accountId = (req as any).user?.sub;
 
@@ -622,6 +645,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid seller access token.',
   })
+  // POST /auth/seller/logout: завершает seller-сессию и очищает seller cookies.
   async sellerLogout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,

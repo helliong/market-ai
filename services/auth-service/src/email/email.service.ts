@@ -8,6 +8,7 @@ export class EmailService {
 
   constructor(private readonly configService: ConfigService) {}
 
+  // Отправляет код по email или логирует его в non-production окружении.
   async sendVerificationCode(
     email: string,
     code: string,
@@ -55,6 +56,7 @@ export class EmailService {
     });
   }
 
+  // Подбирает subject, заголовок и текст письма под назначение кода.
   private getCodeEmailContent(
     purpose: 'emailVerification' | 'buyerPasswordReset' | 'sellerPasswordReset',
   ) {
