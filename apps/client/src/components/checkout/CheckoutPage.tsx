@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, CreditCard, MapPin, PackageCheck, ShoppingBag, Truck, User } from "lucide-react";
-import { clearCart } from "@/store/cartSlice";
+import { clearCart, removeFromCart } from "@/store/cartSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 
@@ -25,17 +26,32 @@ function formatRussianPhone(value: string) {
 export function CheckoutPage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
   const items = useAppSelector((state) => state.cart.items);
   const user = useAppSelector((state) => state.auth.user);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [phone, setPhone] = useState("");
-  const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const total = items.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0);
+  const selectedIds = searchParams
+    .get("items")
+    ?.split(",")
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id));
+  const checkoutItems = selectedIds?.length
+    ? items.filter((item) => selectedIds.includes(item.id))
+    : items;
+  const itemsCount = checkoutItems.reduce((sum, item) => sum + item.quantity, 0);
+  const total = checkoutItems.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsOrderPlaced(true);
-    dispatch(clearCart());
+    if (selectedIds?.length) {
+      checkoutItems.forEach((item) => {
+        dispatch(removeFromCart(item.id));
+      });
+    } else {
+      dispatch(clearCart());
+    }
   }
 
   if (isOrderPlaced) {
@@ -51,7 +67,7 @@ export function CheckoutPage() {
     );
   }
 
-  if (items.length === 0) {
+  if (checkoutItems.length === 0) {
     return (
       <section className="mx-auto max-w-[960px] px-4 py-10 md:px-8 md:py-14">
         <div className="flex min-h-[420px] flex-col items-center justify-center rounded-[32px] bg-white p-8 text-center shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
@@ -116,7 +132,7 @@ export function CheckoutPage() {
             <div><h2 className="text-xl font-black">{t("yourOrder")}</h2><p className="text-sm text-[#6B7280]">{itemsCount} {t("items")}</p></div>
           </div>
           <div className="mt-6 max-h-[300px] space-y-4 overflow-y-auto pr-1">
-            {items.map((item) => (
+            {checkoutItems.map((item) => (
               <div key={item.id} className="flex gap-3">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]"><div className="h-8 w-10 rounded-xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9]" /></div>
                 <div className="min-w-0 flex-1"><p className="line-clamp-2 text-sm font-bold">{item.title}</p><p className="mt-1 text-xs text-[#6B7280]">{item.quantity} шт. × {item.price}</p></div>
