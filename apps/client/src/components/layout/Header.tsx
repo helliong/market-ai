@@ -111,6 +111,22 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white/90 backdrop-blur">
+        <div
+          className="h-[34px] md:h-11"
+          style={{
+            background:
+              "linear-gradient(90deg, #BDEBEC 0%, #C3ECEC 32%, #B1E7E8 68%, #A9E3E4 100%)",
+          }}
+        >
+          <Image
+            src="/aviasales-ad-header.png?v=20260603-2"
+            alt="Aviasales advertisement"
+            width={3318}
+            height={474}
+            priority
+            className="mx-auto h-full w-full object-contain"
+          />
+        </div>
         <div className="mx-auto flex min-h-[76px] max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 md:px-8 xl:flex-nowrap">
           <Link href="/" className="hidden shrink-0 items-center gap-3 xl:flex">
             <Image
@@ -146,7 +162,7 @@ export function Header() {
             </button>
 
             {isAddressOpen && (
-              <div className="fixed left-4 right-4 top-[76px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
+              <div className="fixed left-4 right-4 top-[110px] z-50 rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)] sm:absolute sm:left-0 sm:right-auto sm:top-[58px] sm:w-[320px]">
                 <h3 className="text-lg font-black">{t("chooseCity")}</h3>
                 <p className="mt-1 text-sm text-[#6B7280]">{t("cityNote")}</p>
                 <div className="mt-4 space-y-2">
@@ -335,11 +351,11 @@ export function Header() {
 
       {isCatalogOpen && (
         <div
-          className="fixed inset-0 z-[60] hidden animate-[catalogFadeIn_160ms_ease-out] bg-[var(--bg-main)] xl:inset-x-0 xl:bottom-0 xl:top-[76px] xl:z-40 xl:block"
+          className="fixed inset-0 z-[60] hidden animate-[catalogFadeIn_160ms_ease-out] bg-[var(--bg-main)] xl:inset-x-0 xl:bottom-0 xl:top-[120px] xl:z-40 xl:block"
           onClick={() => setIsCatalogOpen(false)}
         >
           <section
-            className="relative mx-auto grid h-[calc(100vh-76px)] w-full max-w-[1440px] grid-cols-[300px_1fr] overflow-hidden bg-white"
+            className="relative mx-auto grid h-[calc(100vh-120px)] w-full max-w-[1440px] grid-cols-[300px_1fr] overflow-hidden bg-white"
             onClick={(event) => event.stopPropagation()}
           >
             <aside className="h-full overflow-y-auto border-r border-[#E5E7EB] p-4">

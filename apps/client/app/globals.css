@@ -23,6 +23,7 @@
 body {
   background: var(--bg-main);
   color: var(--text-main);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .dark [class~="bg-white"],
