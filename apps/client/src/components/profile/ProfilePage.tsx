@@ -32,6 +32,7 @@ export function ProfilePage() {
             <ProfileButton icon={<ShoppingCart size={18} />} label={`${t("cart")} (${cartCount})`} href="/cart" />
             <ProfileButton icon={<Heart size={18} />} label={`${t("favorites")} (${favoritesCount})`} href="/favorites" />
             <ProfileButton icon={<Star size={18} />} label={`${t("compare")} (${compareCount})`} href="/compare" />
+            <ProfileButton icon={<Package size={18} />} label={t("orderHistory")} href="/orders" />
             {user && (
               <a href={ADMIN_SELLER_URL} className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]">
                 <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" /><span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />

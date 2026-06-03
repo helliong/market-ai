@@ -18,7 +18,6 @@ import {
   ShoppingCart,
   UserPlus,
   User,
-  Scale,
   X,
 } from "lucide-react";
 import { logout } from "@/store/authSlice";
@@ -52,7 +51,6 @@ export function Header() {
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
   );
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
-  const compareCount = useAppSelector((state) => state.compare.ids.length);
   const user = useAppSelector((state) => state.auth.user);
 
   const mobileNavItemClass = (isActive: boolean) =>
@@ -250,16 +248,11 @@ export function Header() {
 
           <nav className="order-none ml-auto hidden items-center gap-2 xl:flex">
             <Link
-              href="/compare"
+              href="/orders"
               className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
             >
-              {compareCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
-                  {compareCount}
-                </span>
-              )}
-              <Scale size={20} />
-              <span>{t("compare")}</span>
+              <Package size={20} />
+              <span>{t("orderHistory")}</span>
             </Link>
 
             <Link
@@ -328,7 +321,8 @@ export function Header() {
                             label={t("myProfile")}
                             onClick={() => setIsProfileOpen(false)}
                           />
-                          <ProfileMenuAction
+                          <ProfileMenuLink
+                            href="/orders"
                             icon={<Package size={18} />}
                             label={t("orderHistory")}
                             onClick={() => setIsProfileOpen(false)}
@@ -500,17 +494,12 @@ export function Header() {
         </Link>
 
         <Link
-          href="/compare"
-          aria-label={t("compare")}
-          className={mobileNavItemClass(pathname.startsWith("/compare"))}
+          href="/orders"
+          aria-label={t("orderHistory")}
+          className={mobileNavItemClass(pathname.startsWith("/orders"))}
         >
-          {compareCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
-              {compareCount}
-            </span>
-          )}
-          <Scale size={21} />
-          <span>{t("compare")}</span>
+          <Package size={21} />
+          <span>{t("orderHistory")}</span>
         </Link>
 
         <Link
@@ -587,7 +576,8 @@ export function Header() {
                         label={t("myProfile")}
                         onClick={() => setIsProfileOpen(false)}
                       />
-                      <ProfileMenuAction
+                      <ProfileMenuLink
+                        href="/orders"
                         icon={<Package size={18} />}
                         label={t("orderHistory")}
                         onClick={() => setIsProfileOpen(false)}
@@ -647,15 +637,6 @@ function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode
       <span className="text-[#6D4AFF]">{icon}</span>
       <span>{label}</span>
     </Link>
-  );
-}
-
-function ProfileMenuAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="flex h-12 w-full items-center gap-3 rounded-2xl px-4 text-left text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
-      <span className="text-[#6D4AFF]">{icon}</span>
-      <span>{label}</span>
-    </button>
   );
 }
 

@@ -118,6 +118,36 @@ body {
   color: #ffffff !important;
 }
 
+.orders-tabs {
+  background-color: #6d4aff;
+}
+
+.orders-tab-idle:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark .orders-tabs {
+  background-color: #201a3f !important;
+  border: 1px solid rgba(109, 74, 255, 0.5);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22) !important;
+}
+
+.dark .orders-tab-active {
+  border-color: rgba(196, 181, 253, 0.72) !important;
+  background-color: #6d4aff !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(109, 74, 255, 0.24) !important;
+}
+
+.dark .orders-tab-idle {
+  color: #c4b5fd !important;
+}
+
+.dark .orders-tab-idle:hover {
+  background-color: rgba(109, 74, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
 .dark .seller-profile-cta {
   border-color: rgba(245, 158, 11, 0.58) !important;
   background-color: rgba(245, 158, 11, 0.08) !important;
