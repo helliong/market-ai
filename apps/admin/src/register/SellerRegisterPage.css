@@ -177,6 +177,37 @@
   line-height: 1.4;
 }
 
+.seller-auth-inline-notice {
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  padding: 12px 14px;
+}
+
+.dark .seller-auth-inline-notice {
+  border-color: #7f1d1d;
+  background: #1f1217;
+  color: #fecaca;
+}
+
+.seller-login-rate-notice {
+  margin: 0;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.dark .seller-login-rate-notice {
+  border-color: rgba(251, 191, 36, 0.42);
+  background: #3a2412;
+  color: #fdba74;
+}
+
 .seller-register-agreement {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);

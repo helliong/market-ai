@@ -8,6 +8,7 @@ type OrdersPageProps = {
   onStatusChange: (orderId: string, status: OrderStatus) => void;
 };
 
+// Страница заказов продавца с изменением статусов заказов.
 export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
   const { t } = useLanguage();
 

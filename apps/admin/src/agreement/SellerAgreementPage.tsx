@@ -10,6 +10,7 @@ const sections = [
   "sectionUpdates",
 ];
 
+// Страница пользовательского соглашения продавца с юридическими условиями подключения.
 export function SellerAgreementPage() {
   const { t } = useLanguage();
 

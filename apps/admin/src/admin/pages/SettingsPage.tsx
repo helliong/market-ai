@@ -60,6 +60,7 @@ const initialTeam: TeamMember[] = [
   },
 ];
 
+// Страница настроек магазина: профиль, юридические данные, команда и опасные действия.
 export function SettingsPage({
   storeName,
   sellerProfile,
@@ -662,6 +663,7 @@ export function SettingsPage({
   );
 }
 
+// Заголовок секции настроек с названием и поясняющим описанием.
 function SettingsSectionTitle({
   icon,
   title,
@@ -682,6 +684,7 @@ function SettingsSectionTitle({
   );
 }
 
+// Toast-уведомление для действий в настройках ЛК продавца.
 function ToastNotification({
   message,
   variant,
@@ -704,6 +707,7 @@ function ToastNotification({
   );
 }
 
+// Собирает payload юридических данных в формате, который ожидает backend.
 function prepareLegalPayload(
   legal: SellerLegalProfilePayload,
 ): SellerLegalProfilePayload {
@@ -714,6 +718,7 @@ function prepareLegalPayload(
   };
 }
 
+// Форматирует телефон продавца при вводе в форме юридических данных.
 function formatPhone(value: string) {
   const digits = digitsOnly(value);
   const normalized =
@@ -742,24 +747,29 @@ function formatPhone(value: string) {
   return formatted;
 }
 
+// Оставляет в налоговом номере только цифры и ограничивает длину.
 function formatTaxId(value: string) {
   return digitsOnly(value).slice(0, 12).replace(/(\d{3})(?=\d)/g, "$1 ");
 }
 
+// Форматирует банковский счет группами символов для удобного чтения.
 function formatBankAccount(value: string) {
   return compactBankAccount(value)
     .slice(0, 20)
     .replace(/(.{4})(?=.)/g, "$1 ");
 }
 
+// Убирает пробелы из банковского счета перед отправкой на backend.
 function compactBankAccount(value: string) {
   return value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }
 
+// Возвращает только цифры из строки ввода.
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
 }
 
+// Достает текст ошибки из Error или возвращает общий fallback.
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Request failed";
 }

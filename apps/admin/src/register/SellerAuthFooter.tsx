@@ -9,6 +9,7 @@ const footerLinks = [
   { href: "/agreement", labelKey: "agreementTitle" },
 ];
 
+// Общий footer auth-страниц продавца с навигацией, контактами, темой и языком.
 export function SellerAuthFooter() {
   const { t, lang, changeLanguage } = useLanguage();
   const theme = useTheme();

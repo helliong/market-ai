@@ -11,6 +11,7 @@ type DashboardPageProps = {
   };
 };
 
+// Главная страница ЛК продавца со сводной статистикой магазина.
 export function DashboardPage({ stats }: DashboardPageProps) {
   const { t } = useLanguage();
   const hasActivity =

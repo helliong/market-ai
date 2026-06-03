@@ -9,6 +9,7 @@ type UsersPageProps = {
   onStatusChange: (userId: number, status: UserStatus) => void;
 };
 
+// Страница пользователей магазина с управлением ролями и статусами.
 export function UsersPage({
   users,
   onRoleChange,

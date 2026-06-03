@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CheckCircle2, X, XCircle } from "lucide-react";
 import {
   loginSellerAccount,
   requestSellerPasswordReset,
   resetSellerPassword,
+  verifySellerPasswordResetCode,
 } from "../auth-api";
 import { SellerAuthFooter } from "../register/SellerAuthFooter";
 import { useLanguage } from "../hooks/useLanguage";
@@ -21,12 +21,6 @@ type FormErrors = {
 
 type ResetPasswordStep = "email" | "code" | "password";
 
-type ToastState = {
-  id: number;
-  message: string;
-  variant: "success" | "error";
-};
-
 type ResetErrors = {
   email?: string;
   code?: string;
@@ -34,6 +28,24 @@ type ResetErrors = {
   confirmPassword?: string;
 };
 
+const LOGIN_RATE_LIMIT_STORAGE_KEY = "marketai.admin.loginRateLimit";
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const LOGIN_RATE_LIMIT_WINDOW_MS = 60_000;
+const LOGIN_RATE_LIMIT_LOCK_MS = 5 * 60_000;
+
+type LoginRateLimitState = {
+  attempts: number;
+  windowStartedAt: number;
+  lockedUntil: number;
+};
+
+const initialLoginRateLimitState: LoginRateLimitState = {
+  attempts: 0,
+  windowStartedAt: 0,
+  lockedUntil: 0,
+};
+
+// Страница входа продавца: логин, rate limit и восстановление seller-пароля.
 export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
   const { t } = useLanguage();
   const [email, setEmail] = useState("");
@@ -44,12 +56,31 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
   const [resetCode, setResetCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [toast, setToast] = useState<ToastState | null>(null);
   const [resetErrors, setResetErrors] = useState<ResetErrors>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string>();
+  const [loginRateLimit, setLoginRateLimit] =
+    useState<LoginRateLimitState>(() => readLoginRateLimitState());
+  const [now, setNow] = useState(() => Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPasswordResetStep = Boolean(resetPasswordStep);
+  const loginCooldownMs =
+    !isPasswordResetStep && loginRateLimit.lockedUntil > now
+      ? loginRateLimit.lockedUntil - now
+      : 0;
+  const isLoginRateLimited = loginCooldownMs > 0;
+
+  useEffect(() => {
+    if (!isLoginRateLimited) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoginRateLimited]);
 
   function validateEmail(value: string) {
     if (!value) return t("errorEmailRequired");
@@ -85,12 +116,13 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
         setResetEmail(trimmedEmail);
         setResetCode("");
         setResetPasswordStep("code");
-        showToast(`${t("resetPasswordEmailSent")} ${trimmedEmail}.`, "success");
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : t("errorPasswordResetFailed");
+        const message = getLocalizedAuthError(
+          error,
+          t,
+          t("errorPasswordResetFailed"),
+        );
         setSubmitError(message);
-        showToast(message, "error");
       } finally {
         setIsSubmitting(false);
       }
@@ -101,8 +133,26 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
       if (resetCode.length !== 6) nextErrors.code = t("errorVerificationCodeRequired");
       setResetErrors(nextErrors);
       if (nextErrors.code) return;
-      setResetPasswordStep("password");
-      showToast(t("resetCodeAccepted"), "success");
+      setIsSubmitting(true);
+      setSubmitError(undefined);
+
+      try {
+        await verifySellerPasswordResetCode({
+          email: resetEmail,
+          code: resetCode,
+        });
+        setResetPasswordStep("password");
+      } catch (error) {
+        setResetErrors({
+          code: getLocalizedAuthError(
+            error,
+            t,
+            t("errorInvalidVerificationCode"),
+          ),
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -126,12 +176,13 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
       setPassword("");
       resetPasswordFlow();
       setSubmitError(undefined);
-      showToast(t("resetCodeAccepted"), "success");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("errorPasswordResetFailed");
+      const message = getLocalizedAuthError(
+        error,
+        t,
+        t("errorPasswordResetFailed"),
+      );
       setSubmitError(message);
-      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -139,6 +190,14 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const currentTime = Date.now();
+
+    if (loginRateLimit.lockedUntil > currentTime) {
+      setNow(currentTime);
+      setSubmitError(undefined);
+      return;
+    }
+
     const nextErrors: FormErrors = {};
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
@@ -152,35 +211,28 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
     setSubmitError(undefined);
     try {
       await loginSellerAccount({ email: trimmedEmail, password: trimmedPassword });
+      resetLoginRateLimitState(setLoginRateLimit);
       await onSubmit();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t("errorInvalidCredentials");
+      const nextRateLimit = recordFailedLoginAttempt();
+      const currentTime = Date.now();
+      setLoginRateLimit(nextRateLimit);
+      setNow(currentTime);
+
+      if (nextRateLimit.lockedUntil > currentTime) {
+        setSubmitError(undefined);
+        return;
+      }
+
+      const message = getLocalizedAuthError(error, t, t("errorInvalidCredentials"));
       setSubmitError(message);
-      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  function showToast(message: string, variant: ToastState["variant"]) {
-    const id = Date.now();
-    setToast({ id, message, variant });
-    window.setTimeout(() => {
-      setToast((current) => (current?.id === id ? null : current));
-    }, 4200);
-  }
-
   return (
     <main className="seller-register-page">
-      {toast && (
-        <ToastNotification
-          message={toast.message}
-          variant={toast.variant}
-          onClose={() => setToast(null)}
-        />
-      )}
-
       <div className="seller-register-brand">
         <a className="seller-register-logo" href="/">
           <span className="seller-logo-word">
@@ -294,7 +346,11 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                   </label>
                 </>
               )}
-              {submitError && <p className="seller-register-error">{submitError}</p>}
+              {submitError && (
+                <p className="seller-register-error seller-auth-inline-notice">
+                  {submitError}
+                </p>
+              )}
               <button type="submit" disabled={isSubmitting}>
                 {isSubmitting
                   ? t("loading")
@@ -342,8 +398,17 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
                 />
                 {errors.password && <span className="seller-register-error">{errors.password}</span>}
               </label>
-              {submitError && <p className="seller-register-error">{submitError}</p>}
-              <button type="submit" disabled={isSubmitting}>
+              {submitError && !isLoginRateLimited && (
+                <p className="seller-register-error seller-auth-inline-notice">
+                  {submitError}
+                </p>
+              )}
+              {isLoginRateLimited && (
+                <p className="seller-login-rate-notice">
+                  {getLoginRateLimitMessage(loginCooldownMs, t)}
+                </p>
+              )}
+              <button type="submit" disabled={isSubmitting || isLoginRateLimited}>
                 {isSubmitting ? t("loading") : t("loginButton")}
               </button>
               <p className="seller-register-switch">
@@ -374,24 +439,111 @@ export function SellerLoginPage({ onSubmit }: SellerLoginPageProps) {
   );
 }
 
-function ToastNotification({
-  message,
-  variant,
-  onClose,
-}: {
-  message: string;
-  variant: ToastState["variant"];
-  onClose: () => void;
-}) {
-  const Icon = variant === "success" ? CheckCircle2 : XCircle;
+// Читает сохраненное состояние лимита попыток входа из localStorage.
+function readLoginRateLimitState(): LoginRateLimitState {
+  try {
+    const storedValue = window.localStorage.getItem(LOGIN_RATE_LIMIT_STORAGE_KEY);
 
-  return (
-    <div className={`toast-notification toast-notification-${variant}`}>
-      <Icon aria-hidden="true" />
-      <span>{message}</span>
-      <button type="button" aria-label="Close notification" onClick={onClose}>
-        <X aria-hidden="true" />
-      </button>
-    </div>
+    if (!storedValue) {
+      return initialLoginRateLimitState;
+    }
+
+    const parsed = JSON.parse(storedValue) as Partial<LoginRateLimitState>;
+
+    return {
+      attempts: typeof parsed.attempts === "number" ? parsed.attempts : 0,
+      windowStartedAt:
+        typeof parsed.windowStartedAt === "number" ? parsed.windowStartedAt : 0,
+      lockedUntil:
+        typeof parsed.lockedUntil === "number" ? parsed.lockedUntil : 0,
+    };
+  } catch {
+    return initialLoginRateLimitState;
+  }
+}
+
+// Сохраняет состояние лимита попыток входа между перезагрузками страницы.
+function writeLoginRateLimitState(state: LoginRateLimitState) {
+  window.localStorage.setItem(
+    LOGIN_RATE_LIMIT_STORAGE_KEY,
+    JSON.stringify(state),
   );
+}
+
+// Регистрирует неудачную попытку входа и включает cooldown при превышении лимита.
+function recordFailedLoginAttempt() {
+  const currentTime = Date.now();
+  const currentState = readLoginRateLimitState();
+
+  if (currentState.lockedUntil > currentTime) {
+    return currentState;
+  }
+
+  const isWithinWindow =
+    currentState.windowStartedAt > 0 &&
+    currentTime - currentState.windowStartedAt < LOGIN_RATE_LIMIT_WINDOW_MS;
+  const nextAttempts = isWithinWindow ? currentState.attempts + 1 : 1;
+  const nextState = {
+    attempts: nextAttempts,
+    windowStartedAt: isWithinWindow ? currentState.windowStartedAt : currentTime,
+    lockedUntil:
+      nextAttempts >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+        ? currentTime + LOGIN_RATE_LIMIT_LOCK_MS
+        : 0,
+  };
+
+  writeLoginRateLimitState(nextState);
+  return nextState;
+}
+
+// Сбрасывает счетчик попыток после успешного входа продавца.
+function resetLoginRateLimitState(
+  setLoginRateLimit: (state: LoginRateLimitState) => void,
+) {
+  window.localStorage.removeItem(LOGIN_RATE_LIMIT_STORAGE_KEY);
+  setLoginRateLimit(initialLoginRateLimitState);
+}
+
+// Формирует локализованное сообщение о временной блокировке входа.
+function getLoginRateLimitMessage(
+  cooldownMs: number,
+  t: (key: string) => string,
+) {
+  return `${t("errorLoginRateLimited")} ${formatCooldown(cooldownMs)}.`;
+}
+
+// Форматирует оставшееся время блокировки в короткий вид.
+function formatCooldown(cooldownMs: number) {
+  const totalSeconds = Math.max(1, Math.ceil(cooldownMs / 1_000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes === 0) {
+    return `${seconds}s`;
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+}
+
+// Превращает известные backend-ошибки на английском в локализованные сообщения.
+function getLocalizedAuthError(
+  error: unknown,
+  t: (key: string) => string,
+  fallback: string,
+) {
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
+
+  const normalizedMessage = error.message.trim().toLowerCase();
+  const messageMap: Record<string, string> = {
+    "invalid credentials": "errorInvalidCredentials",
+    "invalid reset code": "errorInvalidVerificationCode",
+    "invalid verification code": "errorInvalidVerificationCode",
+    "invalid or expired reset code": "errorInvalidVerificationCode",
+    "invalid or expired verification code": "errorInvalidVerificationCode",
+  };
+  const translationKey = messageMap[normalizedMessage];
+
+  return translationKey ? t(translationKey) : error.message;
 }

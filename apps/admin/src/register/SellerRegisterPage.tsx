@@ -33,6 +33,7 @@ type FormErrors = {
   agreement?: string;
 };
 
+// Страница регистрации продавца: создает seller-профиль и подтверждает email кодом.
 export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   const { t } = useLanguage();
   const [name, setName] = useState("");
@@ -308,7 +309,11 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
                 </span>
               </label>
               {errors.agreement && <span className="seller-register-error seller-register-agreement-error">{errors.agreement}</span>}
-              {submitError && <p className="seller-register-error">{submitError}</p>}
+              {submitError && (
+                <p className="seller-register-error seller-auth-inline-notice">
+                  {submitError}
+                </p>
+              )}
               <button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? t("loading") : t("registerButton")}
               </button>
@@ -325,6 +330,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
   );
 }
 
+// Toast-уведомление для регистрации продавца и подтверждения email.
 function ToastNotification({
   message,
   variant,

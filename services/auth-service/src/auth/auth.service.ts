@@ -509,6 +509,12 @@ export class AuthService {
     return { message: 'Reset code is valid' };
   }
 
+  async verifySellerResetPasswordCode(dto: ResetPasswordCodeDto) {
+    await this.findValidResetCredential(dto, CredentialScope.SELLER);
+
+    return { message: 'Reset code is valid' };
+  }
+
   resetSellerPassword(dto: ResetPasswordDto) {
     return this.resetPasswordForScope(dto, CredentialScope.SELLER);
   }
@@ -611,7 +617,13 @@ export class AuthService {
       },
     });
 
-    await this.emailService.sendVerificationCode(email, code);
+    await this.emailService.sendVerificationCode(
+      email,
+      code,
+      scope === CredentialScope.SELLER
+        ? 'sellerPasswordReset'
+        : 'buyerPasswordReset',
+    );
 
     return {
       message: 'If this email exists, reset instructions were sent.',

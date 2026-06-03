@@ -106,6 +106,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "errorPasswordsDoNotMatch": "Пароли не совпадают",
     "errorAgreementRequired": "Подтвердите пользовательское соглашение",
     "errorInvalidCredentials": "Неверный email или пароль",
+    "errorLoginRateLimited": "Слишком много попыток входа. Попробуйте снова через",
     "errorAuthRequestFailed": "Ошибка авторизации",
     "errorEmailVerificationFailed": "Не удалось подтвердить email",
     "errorVerificationCodeRequired": "Введите 6-значный код",
@@ -359,6 +360,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "errorPasswordsDoNotMatch": "Passwords do not match",
     "errorAgreementRequired": "Please accept the user agreement",
     "errorInvalidCredentials": "Invalid email or password",
+    "errorLoginRateLimited": "Too many login attempts. Try again in",
     "errorAuthRequestFailed": "Authentication failed",
     "errorEmailVerificationFailed": "Failed to verify email",
     "errorVerificationCodeRequired": "Enter the 6-digit code",
@@ -607,6 +609,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "errorPasswordsDoNotMatch": "Құпия сөздер сәйкес келмейді",
     "errorAgreementRequired": "Пайдаланушы келісімін қабылдаңыз",
     "errorInvalidCredentials": "Email немесе құпия сөз қате",
+    "errorLoginRateLimited": "Кіру әрекеттері тым көп. Қайталап көріңіз",
     "errorAuthRequestFailed": "Авторизация сәтсіз аяқталды",
     "errorEmailVerificationFailed": "Email растау сәтсіз аяқталды",
     "errorVerificationCodeRequired": "6 таңбалы кодты енгізіңіз",
@@ -855,6 +858,7 @@ const getInitialLanguage = (): Lang => {
   return 'ru'; // Фолбэк на русский
 };
 
+// Хук возвращает текущий язык продавческой админки, смену языка и переводчик по ключу.
 export function useLanguage() {
   const [lang, setLang] = useState<Lang>(getInitialLanguage);
 

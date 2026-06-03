@@ -5,11 +5,16 @@ import "../register/SellerRegisterPage.css";
 import "./SellerWelcomePage.css";
 
 const highlights = [
-  { key: "highlightStoreControl", icon: <Store aria-hidden="true" /> },
+  {
+    key: "highlightStoreControl",
+    textKey: "highlightStoreText",
+    icon: <Store aria-hidden="true" />,
+  },
   { key: "highlightOrders", icon: <ClipboardCheck aria-hidden="true" /> },
   { key: "highlightPulse", icon: <BarChart3 aria-hidden="true" /> },
 ];
 
+// Приветственная страница продавца с переходами к регистрации и входу.
 export function SellerWelcomePage() {
   const { t } = useLanguage();
 
@@ -80,7 +85,7 @@ export function SellerWelcomePage() {
           <article key={item.key}>
             <span>{item.icon}</span>
             <h2>{t(item.key)}</h2>
-            <p>{t(`${item.key}Text`)}</p>
+            <p>{t(item.textKey ?? `${item.key}Text`)}</p>
           </article>
         ))}
       </section>

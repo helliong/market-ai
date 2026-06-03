@@ -14,6 +14,7 @@ type ProductsPageProps = {
   onDeleteProduct: (productId: number) => void;
 };
 
+// Страница товаров продавца: список, добавление, редактирование, удаление и toast-уведомления.
 export function ProductsPage({
   products,
   canAddProducts,
@@ -125,6 +126,7 @@ export function ProductsPage({
   );
 }
 
+// Toast-уведомление для действий с товарами внутри ЛК.
 function ToastNotification({
   message,
   variant,

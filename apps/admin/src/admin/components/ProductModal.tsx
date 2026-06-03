@@ -10,6 +10,7 @@ type ProductModalProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
+// Модальное окно добавления и редактирования товара продавца.
 export function ProductModal({
   form,
   isEditing,

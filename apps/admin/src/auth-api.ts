@@ -28,6 +28,11 @@ type ResetPasswordPayload = {
   password: string;
 };
 
+type ResetPasswordCodePayload = {
+  email: string;
+  code: string;
+};
+
 export type SellerStatus =
   | "PENDING_LEGAL_DATA"
   | "UNDER_REVIEW"
@@ -70,6 +75,7 @@ export type SellerProfile = {
   updatedAt: string;
 };
 
+// Базовый HTTP-клиент auth-service для продавца: добавляет cookies, JSON-заголовки и обновляет seller-сессию при 401.
 async function authRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -104,6 +110,7 @@ async function authRequest<T>(
   return data as T;
 }
 
+// Обновляет seller access/refresh cookies через refresh endpoint.
 function refreshSellerSession() {
   return authRequest<{ message: string }>(
     "/auth/seller/refresh",
@@ -114,6 +121,7 @@ function refreshSellerSession() {
   );
 }
 
+// Регистрирует профиль продавца и запускает отправку кода подтверждения email.
 export function registerSellerProfile(payload: SellerRegisterPayload) {
   return authRequest<{ message: string }>("/auth/seller/register", {
     method: "POST",
@@ -121,6 +129,7 @@ export function registerSellerProfile(payload: SellerRegisterPayload) {
   });
 }
 
+// Подтверждает email продавца по шестизначному коду.
 export function verifySellerEmail(payload: VerifyEmailPayload) {
   return authRequest<{ message: string }>("/auth/verify-email", {
     method: "POST",
@@ -128,6 +137,7 @@ export function verifySellerEmail(payload: VerifyEmailPayload) {
   });
 }
 
+// Повторно отправляет код подтверждения email продавца.
 export function resendSellerVerificationCode(email: string) {
   return authRequest<{ message: string }>("/auth/resend-verification", {
     method: "POST",
@@ -135,6 +145,7 @@ export function resendSellerVerificationCode(email: string) {
   });
 }
 
+// Авторизует продавца и получает seller auth cookies.
 export function loginSellerAccount(payload: LoginPayload) {
   return authRequest<{ message: string }>("/auth/seller/login", {
     method: "POST",
@@ -142,10 +153,12 @@ export function loginSellerAccount(payload: LoginPayload) {
   });
 }
 
+// Загружает текущий профиль продавца по активной seller-сессии.
 export function getCurrentSeller() {
   return authRequest<SellerProfile>("/auth/seller/me");
 }
 
+// Сохраняет юридические данные продавца без отправки на модерацию.
 export function saveSellerLegalProfile(payload: SellerLegalProfilePayload) {
   return authRequest<SellerLegalProfile>("/auth/seller/legal-profile", {
     method: "PUT",
@@ -153,6 +166,7 @@ export function saveSellerLegalProfile(payload: SellerLegalProfilePayload) {
   });
 }
 
+// Отправляет заполненные юридические данные продавца на модерацию.
 export function submitSellerLegalProfile() {
   return authRequest<{ message: string; status: SellerStatus }>(
     "/auth/seller/legal-profile/submit",
@@ -162,12 +176,14 @@ export function submitSellerLegalProfile() {
   );
 }
 
+// Завершает seller-сессию и очищает auth cookies продавца.
 export function logoutSellerAccount() {
   return authRequest<{ message: string }>("/auth/seller/logout", {
     method: "POST",
   });
 }
 
+// Запрашивает письмо с кодом восстановления seller-пароля.
 export function requestSellerPasswordReset(payload: ForgotPasswordPayload) {
   return authRequest<{ message: string }>("/auth/seller/forgot-password", {
     method: "POST",
@@ -175,6 +191,15 @@ export function requestSellerPasswordReset(payload: ForgotPasswordPayload) {
   });
 }
 
+// Проверяет код восстановления seller-пароля до перехода к новому паролю.
+export function verifySellerPasswordResetCode(payload: ResetPasswordCodePayload) {
+  return authRequest<{ message: string }>("/auth/seller/reset-password/verify-code", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// Меняет seller-пароль по валидному коду восстановления.
 export function resetSellerPassword(payload: ResetPasswordPayload) {
   return authRequest<{ message: string }>("/auth/seller/reset-password", {
     method: "POST",

@@ -541,6 +541,24 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
+  @Post('seller/reset-password/verify-code')
+  @ApiOperation({
+    summary: 'Verify seller password reset code',
+    description:
+      'Checks a seller reset code before the user proceeds to create a new password. The code remains valid until password reset is completed or it expires.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Reset code is valid.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired reset code.',
+  })
+  async verifySellerResetPasswordCode(@Body() dto: ResetPasswordCodeDto) {
+    return this.authService.verifySellerResetPasswordCode(dto);
+  }
+
   @Post('seller/reset-password')
   @ApiOperation({
     summary: 'Reset seller password',

@@ -72,6 +72,7 @@ type MenuPage = Exclude<
 
 const PUBLIC_PAGES: Page[] = ["welcome", "register", "login", "agreement"];
 
+// Корневой компонент продавческой админки: маршрутизация, меню, seller-сессия и состояние ЛК.
 function App() {
   const { t } = useLanguage();
   const theme = useTheme();
@@ -578,6 +579,7 @@ function App() {
   );
 }
 
+// Определяет стартовую страницу админки по текущему URL.
 function getInitialPage(): Page {
   const path = window.location.pathname.replace(/\/$/, "");
   if (path === "/terms") {

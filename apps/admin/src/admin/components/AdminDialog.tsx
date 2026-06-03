@@ -14,6 +14,7 @@ type AdminDialogProps = {
   onClose: () => void;
 };
 
+// Универсальное подтверждающее окно для опасных или важных действий в ЛК.
 export function AdminDialog({ dialog, onClose }: AdminDialogProps) {
   const { t } = useLanguage();
   const isDanger = dialog.variant === "danger";
