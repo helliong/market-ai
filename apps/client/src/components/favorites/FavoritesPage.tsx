@@ -30,7 +30,7 @@ export function FavoritesPage() {
           <Link href="/" className="mt-6 rounded-2xl bg-[#6D4AFF] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#4F32D9]">{t("goHome")}</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">{favoriteProducts.map((product) => <ProductCard key={product.id} {...product} />)}</div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">{favoriteProducts.map((product) => <ProductCard key={product.id} {...product} showTomorrowCartButton />)}</div>
       )}
     </section>
   );

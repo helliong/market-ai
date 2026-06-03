@@ -91,7 +91,7 @@ export function ProductPage({ product }: ProductPageProps) {
           <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">{product.title}</h1>
           <div className="mt-4 flex items-center gap-2 text-sm"><Star size={18} className="fill-[#F59E0B] text-[#F59E0B]" /><span className="font-black">{product.rating}</span><span className="text-[#6B7280]">• {product.reviews} {t("reviewsCount")}</span></div>
           <div className="mt-6 flex items-end gap-3"><span className="text-3xl font-black tracking-[-0.04em] md:text-4xl">{product.price}</span>{product.oldPrice && <span className="mb-1 text-lg text-[#9CA3AF] line-through">{product.oldPrice}</span>}</div>
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="product-actions mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {cartItem ? (
               <div className="col-span-2 grid h-13 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
                 <button type="button" onClick={() => dispatch(decreaseQuantity(product.id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("decreaseQuantity")}><Minus size={19} /></button>
