@@ -9,6 +9,7 @@ type ProductRouteProps = {
   }>;
 };
 
+// Маршрут товара находит продукт по id из URL или показывает 404, если продукта нет.
 export default async function Product({ params }: ProductRouteProps) {
   const { id } = await params;
   const product = products.find((item) => item.id === Number(id));

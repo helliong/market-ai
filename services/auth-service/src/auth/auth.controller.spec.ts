@@ -24,6 +24,7 @@ describe('AuthController', () => {
     forgotPassword: jest.fn(),
     forgotSellerPassword: jest.fn(),
     resendVerificationCode: jest.fn(),
+    verifyResetPasswordCode: jest.fn(),
     resetPassword: jest.fn(),
     resetSellerPassword: jest.fn(),
     logout: jest.fn(),

@@ -9,6 +9,7 @@ import { hydrateFavorites } from "@/store/favoritesSlice";
 import { useAppDispatch } from "@/store/hooks";
 import { hydrateShoppingState } from "@/store/shoppingHydration";
 
+// Восстанавливает пользователя из backend-сессии и кладет его в Redux при загрузке приложения.
 export function AuthSession() {
   const dispatch = useAppDispatch();
 

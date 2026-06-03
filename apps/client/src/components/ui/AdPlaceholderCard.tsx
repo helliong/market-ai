@@ -92,11 +92,13 @@ const AD_VARIANTS: AdVariant[] = [
   },
 ];
 
+// Выбирает рекламный креатив по номеру placement.
 function getAdVariant(placement: number): AdVariant {
   const index = (placement - 1) % AD_VARIANTS.length;
   return AD_VARIANTS[index] ?? AD_VARIANTS[0];
 }
 
+// Рендерит бейдж "Ad" в выбранном углу рекламной карточки.
 function AdBadge({ corner }: { corner: BadgeCorner }) {
   return (
     <span
@@ -107,6 +109,7 @@ function AdBadge({ corner }: { corner: BadgeCorner }) {
   );
 }
 
+// Рекламная карточка показывает баннер и автоматически подбирает угол для бейджа.
 export function AdPlaceholderCard({
   className = "",
   placement = 1,

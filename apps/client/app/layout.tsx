@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     "Маркетплейс с ИИ-помощником для поиска лучших товаров по лучшим ценам",
 };
 
+// Корневой layout задает HTML-обертку, метаданные и общие провайдеры для всего клиентского приложения.
 export default function RootLayout({
   children,
 }: Readonly<{

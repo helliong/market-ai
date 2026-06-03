@@ -17,6 +17,7 @@ type ProductGridSlot =
       placement: number;
     };
 
+// Блок главной страницы с популярными товарами и рекламными слотами.
 export function ProductSection() {
   const { t } = useLanguage();
 
@@ -36,6 +37,7 @@ export function ProductSection() {
   );
 }
 
+// Рендерит адаптивную сетку товаров с учетом количества колонок на экране.
 function ResponsiveProductGrid({
   columns,
   className,
@@ -61,6 +63,7 @@ function ResponsiveProductGrid({
   );
 }
 
+// Раскладывает товары и рекламные вставки по слотам сетки без ручной верстки каждого ряда.
 function buildProductGridSlots(productList: Product[], columns: number) {
   const slots: ProductGridSlot[] = [];
   let productIndex = 0;
@@ -92,6 +95,7 @@ function buildProductGridSlots(productList: Product[], columns: number) {
   return slots;
 }
 
+// Выбирает колонку для рекламного слота так, чтобы реклама распределялась по сетке.
 function getAdColumn(placement: number, columns: number) {
   return (placement + Math.floor(columns / 2) - 1) % columns;
 }

@@ -8,8 +8,10 @@ import { clearCart, removeFromCart } from "@/store/cartSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Преобразует цену из строки в число для расчета суммы заказа.
 function parsePrice(price: string) { return Number(price.replace(/[^\d]/g, "")); }
 
+// Форматирует ввод телефона в привычный вид российского номера.
 function formatRussianPhone(value: string) {
   let digits = value.replace(/\D/g, "");
   if (digits.startsWith("7") || digits.startsWith("8")) digits = digits.slice(1);
@@ -23,6 +25,7 @@ function formatRussianPhone(value: string) {
   return phone;
 }
 
+// Экран оформления заказа собирает контакты, адрес, способ доставки и оплату.
 export function CheckoutPage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
@@ -152,6 +155,7 @@ export function CheckoutPage() {
   );
 }
 
+// Секция формы оформления с иконкой, заголовком и описанием.
 function CheckoutBlock({ icon, title, description, children }: { icon: React.ReactNode; title: string; description: string; children: React.ReactNode }) {
   return (
     <section className="rounded-[32px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:p-6">
@@ -161,6 +165,7 @@ function CheckoutBlock({ icon, title, description, children }: { icon: React.Rea
   );
 }
 
+// Универсальное текстовое поле оформления заказа с подписью и дополнительным описанием.
 function TextField({
   label,
   name,
@@ -209,6 +214,7 @@ function TextField({
   );
 }
 
+// Карточка radio-выбора для доставки или оплаты.
 function RadioCard({ name, value, title, description, defaultChecked }: { name: string; value: string; title: string; description: string; defaultChecked?: boolean }) {
   return (
     <label className="flex min-h-[92px] gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition hover:border-[#6D4AFF] hover:bg-white">

@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/ui/ProductCard";
 import { useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Экран избранного показывает товары, которые пользователь сохранил для будущей покупки.
 export function FavoritesPage() {
   const { t } = useLanguage();
   const favoriteIds = useAppSelector((state) => state.favorites.ids);

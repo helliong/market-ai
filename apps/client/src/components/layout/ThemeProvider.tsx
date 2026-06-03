@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 const themeEvent = "marketai-settings";
 
+// Следит за выбранной темой и добавляет класс dark для всей клиентской оболочки.
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 

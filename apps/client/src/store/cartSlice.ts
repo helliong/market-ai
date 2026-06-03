@@ -85,10 +85,12 @@ export const {
   clearCartLocal,
 } = cartSlice.actions;
 
+// Проверяет, есть ли авторизованный пользователь для синхронизации корзины с сервером.
 function hasUser(state: RootState) {
   return Boolean(state.auth.user);
 }
 
+// Добавляет товар в корзину локально и, если пользователь вошел, синхронизирует с сервером.
 export function addToCart(item: Omit<CartItem, "quantity">) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(addToCartLocal(item));
@@ -101,6 +103,7 @@ export function addToCart(item: Omit<CartItem, "quantity">) {
   };
 }
 
+// Увеличивает количество товара и отправляет новое значение на сервер для авторизованного пользователя.
 export function increaseQuantity(productId: number) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(increaseQuantityLocal(productId));
@@ -116,6 +119,7 @@ export function increaseQuantity(productId: number) {
   };
 }
 
+// Уменьшает количество товара или удаляет его, затем синхронизирует результат с сервером.
 export function decreaseQuantity(productId: number) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(decreaseQuantityLocal(productId));
@@ -137,6 +141,7 @@ export function decreaseQuantity(productId: number) {
   };
 }
 
+// Удаляет товар из корзины локально и на сервере, если пользователь авторизован.
 export function removeFromCart(productId: number) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(removeFromCartLocal(productId));
@@ -149,6 +154,7 @@ export function removeFromCart(productId: number) {
   };
 }
 
+// Очищает всю корзину локально и на сервере для авторизованного пользователя.
 export function clearCart() {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(clearCartLocal());

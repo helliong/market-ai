@@ -14,6 +14,7 @@ import type { AppDispatch, RootState } from "./store";
 
 type ShoppingState = Pick<RootState, "cart" | "favorites" | "compare">;
 
+// Переносит локальную корзину, избранное и сравнение на сервер после входа пользователя.
 export async function persistLocalShoppingState(state: ShoppingState) {
   await Promise.allSettled([
     ...state.cart.items.map((item) =>
@@ -24,6 +25,7 @@ export async function persistLocalShoppingState(state: ShoppingState) {
   ]);
 }
 
+// Загружает серверные shopping-списки и кладет их в Redux после авторизации.
 export async function hydrateShoppingState(dispatch: AppDispatch) {
   const [cart, favorites, compare] = await Promise.all([
     getServerCart(),

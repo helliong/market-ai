@@ -11,6 +11,7 @@ type CatalogSubcategoryRouteProps = {
   }>;
 };
 
+// Маршрут подкатегории превращает slug из URL в поисковый запрос для каталога.
 export default async function CatalogSubcategoryRoute({
   params,
 }: CatalogSubcategoryRouteProps) {

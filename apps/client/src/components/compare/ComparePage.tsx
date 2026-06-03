@@ -8,6 +8,7 @@ import { COMPARE_LIMIT, toggleCompare } from "@/store/compareSlice";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Экран сравнения выводит выбранные товары и их основные характеристики рядом.
 export function ComparePage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
@@ -59,6 +60,7 @@ export function ComparePage() {
   );
 }
 
+// Кнопки управления корзиной прямо внутри таблицы сравнения.
 function CompareCartAction({ product, quantity, onAdd, onDecrease, onIncrease }: any) {
   const { t } = useLanguage();
   if (quantity) {
@@ -75,6 +77,7 @@ function CompareCartAction({ product, quantity, onAdd, onDecrease, onIncrease }:
   );
 }
 
+// Одна строка сравнительной таблицы с названием характеристики и значениями товаров.
 function CompareRow({ label, values }: { label: string; values: string[] }) {
   return (
     <>

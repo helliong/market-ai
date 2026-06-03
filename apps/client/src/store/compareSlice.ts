@@ -34,6 +34,7 @@ export const compareSlice = createSlice({
 
 export const { hydrateCompare, toggleCompareLocal } = compareSlice.actions;
 
+// Переключает товар в списке сравнения и синхронизирует действие с сервером при авторизации.
 export function toggleCompare(productId: number) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     const stateBefore = getState();

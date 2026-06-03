@@ -37,6 +37,7 @@ import {
   AccountSummaryResponseDto,
   BuyerProfileResponseDto,
   ModerationSellerResponseDto,
+  ResetPasswordCodeDto,
   SellerProfileResponseDto,
   VerifyEmailDto,
 } from './dto';
@@ -502,6 +503,24 @@ export class AuthController {
   })
   async resendVerificationCode(@Body() dto: ForgotPasswordDto) {
     return this.authService.resendVerificationCode(dto);
+  }
+
+  @Post('reset-password/verify-code')
+  @ApiOperation({
+    summary: 'Verify buyer password reset code',
+    description:
+      'Checks a buyer reset code before the user proceeds to create a new password. The code remains valid until password reset is completed or it expires.',
+  })
+  @ApiCreatedResponse({
+    type: MessageResponseDto,
+    description: 'Reset code is valid.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired reset code.',
+  })
+  async verifyResetPasswordCode(@Body() dto: ResetPasswordCodeDto) {
+    return this.authService.verifyResetPasswordCode(dto);
   }
 
   @Post('reset-password')

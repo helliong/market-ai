@@ -9,6 +9,7 @@ import { useAppSelector } from "@/store/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Экран профиля показывает данные пользователя, заказы, адрес и быстрые действия.
 export function ProfilePage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
@@ -69,6 +70,7 @@ export function ProfilePage() {
   );
 }
 
+// Кнопка-ссылка в профиле для перехода в связанный раздел.
 function ProfileButton({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
   return <Link href={href} className="flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"><div className="text-[#6D4AFF]">{icon}</div>{label}</Link>;
 }

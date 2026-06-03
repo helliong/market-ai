@@ -9,6 +9,7 @@ type StoreRouteProps = {
   }>;
 };
 
+// Маршрут магазина находит название магазина по slug и открывает витрину магазина.
 export default async function StoreRoute({ params }: StoreRouteProps) {
   const { slug } = await params;
   const storeName = findStoreNameBySlug(slug);

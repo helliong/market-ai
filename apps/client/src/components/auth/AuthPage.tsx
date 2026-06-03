@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
@@ -18,6 +18,7 @@ import {
   registerClient,
   requestClientPasswordReset,
   resetClientPassword,
+  verifyClientPasswordResetCode,
   verifyClientEmail,
 } from "@/lib/auth-api";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -35,9 +36,26 @@ type AuthUser = {
 type ResetPasswordStep = "email" | "code" | "password";
 
 const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
+const LOGIN_RATE_LIMIT_STORAGE_KEY = "marketai.client.loginRateLimit";
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const LOGIN_RATE_LIMIT_WINDOW_MS = 60_000;
+const LOGIN_RATE_LIMIT_LOCK_MS = 5 * 60_000;
 
+type LoginRateLimitState = {
+  attempts: number;
+  windowStartedAt: number;
+  lockedUntil: number;
+};
+
+const initialLoginRateLimitState: LoginRateLimitState = {
+  attempts: 0,
+  windowStartedAt: 0,
+  lockedUntil: 0,
+};
+
+// Универсальная auth-страница: вход, регистрация, подтверждение email и сброс пароля.
 export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
@@ -99,6 +117,9 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
+  const [loginRateLimit, setLoginRateLimit] =
+    useState<LoginRateLimitState>(initialLoginRateLimitState);
+  const [now, setNow] = useState(0);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -108,6 +129,32 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   }>({});
   const isEmailVerificationStep = Boolean(pendingUser);
   const isPasswordResetStep = Boolean(resetPasswordStep);
+  const loginCooldownMs =
+    !isRegister && loginRateLimit.lockedUntil > now
+      ? loginRateLimit.lockedUntil - now
+      : 0;
+  const isLoginRateLimited = loginCooldownMs > 0;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setNow(Date.now());
+      setLoginRateLimit(readLoginRateLimitState());
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoginRateLimited) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoginRateLimited]);
 
   function validateEmail(value: string) {
     if (!value) return t("errorEmailRequired");
@@ -128,6 +175,14 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const currentTime = Date.now();
+
+    if (!isRegister && loginRateLimit.lockedUntil > currentTime) {
+      setNow(currentTime);
+      setSubmitError(undefined);
+      return;
+    }
+
     const nextErrors: typeof errors = {};
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
@@ -178,6 +233,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     setIsSubmitting(true);
     setSubmitError(undefined);
 
+    let isLoginRequestSuccessful = false;
+
     try {
       if (isRegister) {
         await registerClient({
@@ -196,6 +253,9 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         email: trimmedEmail,
         password: trimmedPassword,
       });
+      isLoginRequestSuccessful = true;
+
+      resetLoginRateLimitState(setLoginRateLimit);
 
       await persistLocalShoppingState({
         cart: cartState,
@@ -218,8 +278,23 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
       router.push(redirectPath ?? "/profile");
     } catch (error) {
+      let isRateLimited = false;
+
+      if (!isRegister && !isLoginRequestSuccessful) {
+        const nextRateLimit = recordFailedLoginAttempt();
+        const currentTime = Date.now();
+        setLoginRateLimit(nextRateLimit);
+        setNow(currentTime);
+
+        if (nextRateLimit.lockedUntil > currentTime) {
+          isRateLimited = true;
+        }
+      }
+
       setSubmitError(
-        error instanceof Error ? error.message : t("errorAuthRequestFailed"),
+        isRateLimited
+          ? undefined
+          : getLocalizedAuthError(error, t, t("errorAuthRequestFailed")),
       );
     } finally {
       setIsSubmitting(false);
@@ -271,7 +346,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       router.push(redirectPath ?? "/profile");
     } catch (error) {
       setVerificationError(
-        error instanceof Error ? error.message : t("errorEmailVerificationFailed"),
+        getLocalizedAuthError(error, t, t("errorEmailVerificationFailed")),
       );
     } finally {
       setIsSubmitting(false);
@@ -310,9 +385,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         setResetNotice(`${t("resetPasswordEmailSent")} ${trimmedEmail}.`);
       } catch (error) {
         setSubmitError(
-          error instanceof Error
-            ? error.message
-            : t("errorPasswordResetFailed"),
+          getLocalizedAuthError(error, t, t("errorPasswordResetFailed")),
         );
       } finally {
         setIsSubmitting(false);
@@ -331,8 +404,24 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         return;
       }
 
-      setResetPasswordStep("password");
-      setResetNotice(t("resetCodeAccepted"));
+      setIsSubmitting(true);
+      setSubmitError(undefined);
+
+      try {
+        await verifyClientPasswordResetCode({
+          email: resetEmail,
+          code: resetCode,
+        });
+        setResetPasswordStep("password");
+        setResetNotice(t("resetCodeAccepted"));
+      } catch (error) {
+        setResetErrors({
+          code:
+            getLocalizedAuthError(error, t, t("errorInvalidVerificationCode")),
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -374,7 +463,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       setSubmitError(undefined);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : t("errorPasswordResetFailed"),
+        getLocalizedAuthError(error, t, t("errorPasswordResetFailed")),
       );
     } finally {
       setIsSubmitting(false);
@@ -435,7 +524,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
 
         {isPasswordResetStep ? (
           <div className="space-y-4">
-            {resetNotice && <p className="rounded-2xl bg-[#F4F0FF] px-4 py-3 text-sm font-bold text-[#4F32D9]">{resetNotice}</p>}
+            {resetNotice && <p className="auth-reset-notice rounded-2xl border px-4 py-3 text-sm font-bold">{resetNotice}</p>}
             {resetPasswordStep === "email" && (
               <AuthField
                 icon={<Mail size={18} />} label="Email" value={resetEmail}
@@ -531,8 +620,16 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
                 </label>
               )}
             </div>
-            {submitError && <p className="mt-4 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#EF4444]">{submitError}</p>}
-            <button type="submit" disabled={isSubmitting} className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}>
+            {submitError && !isLoginRateLimited && <p className="mt-4 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#EF4444]">{submitError}</p>}
+            {isLoginRateLimited && (
+              <p className="auth-login-rate-notice mt-4 rounded-2xl px-4 py-3 text-sm font-bold">
+                {getLoginRateLimitMessage(
+                  loginCooldownMs,
+                  lang,
+                )}
+              </p>
+            )}
+            <button type="submit" disabled={isSubmitting || isLoginRateLimited} className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}>
               {isSubmitting ? "Загрузка..." : isRegister ? t("registerNow") : t("login")}
             </button>
             <p className="mt-5 text-center text-sm text-[#6B7280]">
@@ -563,6 +660,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   );
 }
 
+// Проверяет redirect-путь, чтобы не допустить внешние или небезопасные URL.
 function getSafeRedirectPath(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return null;
@@ -571,6 +669,7 @@ function getSafeRedirectPath(value: string | null) {
   return value;
 }
 
+// Собирает ссылку на auth-страницу и сохраняет redirect-параметр, если он есть.
 function buildAuthHref(path: string, redirectPath: string | null) {
   if (!redirectPath) {
     return path;
@@ -579,6 +678,123 @@ function buildAuthHref(path: string, redirectPath: string | null) {
   return `${path}?redirect=${encodeURIComponent(redirectPath)}`;
 }
 
+// Превращает известные backend-ошибки на английском в локализованные сообщения интерфейса.
+function getLocalizedAuthError(
+  error: unknown,
+  t: (key: string) => string,
+  fallback: string,
+) {
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
+
+  const normalizedMessage = error.message.trim().toLowerCase();
+  const messageMap: Record<string, string> = {
+    "invalid credentials": "errorInvalidCredentials",
+    "invalid reset code": "errorInvalidVerificationCode",
+    "invalid verification code": "errorInvalidVerificationCode",
+    "invalid or expired reset code": "errorInvalidVerificationCode",
+    "invalid or expired verification code": "errorInvalidVerificationCode",
+  };
+  const translationKey = messageMap[normalizedMessage];
+
+  return translationKey ? t(translationKey) : error.message;
+}
+
+// Читает сохраненное состояние лимита попыток входа из localStorage.
+function readLoginRateLimitState(): LoginRateLimitState {
+  if (typeof window === "undefined") {
+    return initialLoginRateLimitState;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(LOGIN_RATE_LIMIT_STORAGE_KEY);
+
+    if (!storedValue) {
+      return initialLoginRateLimitState;
+    }
+
+    const parsed = JSON.parse(storedValue) as Partial<LoginRateLimitState>;
+
+    return {
+      attempts: typeof parsed.attempts === "number" ? parsed.attempts : 0,
+      windowStartedAt:
+        typeof parsed.windowStartedAt === "number" ? parsed.windowStartedAt : 0,
+      lockedUntil:
+        typeof parsed.lockedUntil === "number" ? parsed.lockedUntil : 0,
+    };
+  } catch {
+    return initialLoginRateLimitState;
+  }
+}
+
+// Сохраняет состояние лимита попыток входа между перезагрузками страницы.
+function writeLoginRateLimitState(state: LoginRateLimitState) {
+  window.localStorage.setItem(
+    LOGIN_RATE_LIMIT_STORAGE_KEY,
+    JSON.stringify(state),
+  );
+}
+
+// Регистрирует неудачную попытку входа и при необходимости включает cooldown.
+function recordFailedLoginAttempt() {
+  const currentTime = Date.now();
+  const currentState = readLoginRateLimitState();
+
+  if (currentState.lockedUntil > currentTime) {
+    return currentState;
+  }
+
+  const isWithinWindow =
+    currentState.windowStartedAt > 0 &&
+    currentTime - currentState.windowStartedAt < LOGIN_RATE_LIMIT_WINDOW_MS;
+  const nextAttempts = isWithinWindow ? currentState.attempts + 1 : 1;
+  const nextState = {
+    attempts: nextAttempts,
+    windowStartedAt: isWithinWindow ? currentState.windowStartedAt : currentTime,
+    lockedUntil:
+      nextAttempts >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+        ? currentTime + LOGIN_RATE_LIMIT_LOCK_MS
+        : 0,
+  };
+
+  writeLoginRateLimitState(nextState);
+  return nextState;
+}
+
+// Сбрасывает счетчик попыток после успешного входа пользователя.
+function resetLoginRateLimitState(
+  setLoginRateLimit: (state: LoginRateLimitState) => void,
+) {
+  window.localStorage.removeItem(LOGIN_RATE_LIMIT_STORAGE_KEY);
+  setLoginRateLimit(initialLoginRateLimitState);
+}
+
+// Формирует локализованное сообщение о временной блокировке входа.
+function getLoginRateLimitMessage(cooldownMs: number, lang: string) {
+  const messages: Record<string, string> = {
+    en: "Too many login attempts. Try again in",
+    kk: "Кіру әрекеттері тым көп. Қайталап көріңіз",
+    ru: "Слишком много попыток входа. Попробуйте снова через",
+  };
+
+  return `${messages[lang] ?? messages.ru} ${formatCooldown(cooldownMs)}.`;
+}
+
+// Форматирует оставшееся время блокировки в короткий вид для кнопки и notice.
+function formatCooldown(cooldownMs: number) {
+  const totalSeconds = Math.max(1, Math.ceil(cooldownMs / 1_000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes === 0) {
+    return `${seconds}s`;
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+}
+
+// Переиспользуемое поле формы авторизации с иконкой, подписью и ошибкой.
 function AuthField({
   icon,
   label,

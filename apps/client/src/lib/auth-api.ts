@@ -27,6 +27,11 @@ type ResetPasswordPayload = {
   password: string;
 };
 
+type ResetPasswordCodePayload = {
+  email: string;
+  code: string;
+};
+
 export type CurrentUser = {
   id: string;
   name: string | null;
@@ -39,6 +44,7 @@ export type CurrentUser = {
   createdAt: string;
 };
 
+// Базовый HTTP-клиент auth-service: добавляет cookies, JSON-заголовки и обрабатывает ошибки.
 async function authRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -61,6 +67,7 @@ async function authRequest<T>(
   return data as T;
 }
 
+// Регистрирует покупателя и запускает отправку кода подтверждения email.
 export function registerClient(payload: RegisterPayload) {
   return authRequest<{ message: string }>("/auth/register", {
     method: "POST",
@@ -68,6 +75,7 @@ export function registerClient(payload: RegisterPayload) {
   });
 }
 
+// Подтверждает email покупателя по шестизначному коду из письма.
 export function verifyClientEmail(payload: VerifyEmailPayload) {
   return authRequest<{ message: string }>("/auth/verify-email", {
     method: "POST",
@@ -75,6 +83,7 @@ export function verifyClientEmail(payload: VerifyEmailPayload) {
   });
 }
 
+// Авторизует покупателя и получает auth cookies от backend.
 export function loginClient(payload: LoginPayload) {
   return authRequest<{ message: string }>("/auth/login", {
     method: "POST",
@@ -82,16 +91,19 @@ export function loginClient(payload: LoginPayload) {
   });
 }
 
+// Завершает buyer-сессию и очищает auth cookies на backend.
 export function logoutClient() {
   return authRequest<{ message: string }>("/auth/logout", {
     method: "POST",
   });
 }
 
+// Загружает текущего пользователя по активной buyer-сессии.
 export function getCurrentUser() {
   return authRequest<CurrentUser>("/auth/me");
 }
 
+// Запрашивает письмо с кодом восстановления пароля покупателя.
 export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
   return authRequest<{ message: string }>("/auth/forgot-password", {
     method: "POST",
@@ -99,6 +111,15 @@ export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
   });
 }
 
+// Проверяет код восстановления до перехода к вводу нового пароля.
+export function verifyClientPasswordResetCode(payload: ResetPasswordCodePayload) {
+  return authRequest<{ message: string }>("/auth/reset-password/verify-code", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// Меняет пароль покупателя по валидному коду восстановления.
 export function resetClientPassword(payload: ResetPasswordPayload) {
   return authRequest<{ message: string }>("/auth/reset-password", {
     method: "POST",

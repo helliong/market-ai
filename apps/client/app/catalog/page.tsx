@@ -8,6 +8,7 @@ type CatalogRouteProps = {
   }>;
 };
 
+// Маршрут каталога читает query-параметры и передает начальные фильтры в экран каталога.
 export default async function Catalog({ searchParams }: CatalogRouteProps) {
   const { category, q } = await searchParams;
   const categoryId = Number(category);

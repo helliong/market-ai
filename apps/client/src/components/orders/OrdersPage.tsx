@@ -27,6 +27,7 @@ type Order = {
 const activeOrders: Order[] = [];
 const completedOrders: Order[] = [];
 
+// Экран заказов разделяет активные и завершенные заказы пользователя.
 export function OrdersPage() {
   const [view, setView] = useState<"active" | "completed">("active");
   const orders = view === "active" ? activeOrders : completedOrders;
@@ -75,6 +76,7 @@ export function OrdersPage() {
   );
 }
 
+// Кнопка вкладки заказов с количеством элементов в выбранной группе.
 function OrderTab({
   active,
   label,
@@ -100,6 +102,7 @@ function OrderTab({
   );
 }
 
+// Пустое состояние для вкладок заказов, когда подходящих заказов нет.
 function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
   const isActive = type === "active";
 
@@ -127,6 +130,7 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
   );
 }
 
+// Карточка заказа с составом, статусом, датой и суммой.
 function OrderCard({ order }: { order: Order }) {
   const isCancelled = order.status === "cancelled";
   const isCompleted = order.status === "received" || order.status === "cancelled";

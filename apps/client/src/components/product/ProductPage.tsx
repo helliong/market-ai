@@ -44,6 +44,7 @@ const specs = [
   ["paymentOption", "cardOnDelivery"],
   ["returnOption", "14days"],
 ];
+// Страница товара показывает фото, цену, характеристики и действия покупки.
 export function ProductPage({ product }: ProductPageProps) {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
@@ -148,6 +149,7 @@ export function ProductPage({ product }: ProductPageProps) {
   );
 }
 
+// Небольшой бейдж преимущества товара, например доставка или гарантия.
 function ProductBenefit({ icon, label }: { icon: React.ReactNode; label: string }) {
   const { t } = useLanguage();
   return (

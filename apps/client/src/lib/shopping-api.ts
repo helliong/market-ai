@@ -19,6 +19,7 @@ export type ServerIdsResponse = {
   limit?: number;
 };
 
+// Базовый HTTP-клиент cart-service: отправляет запросы с cookies и JSON-обработкой ошибок.
 async function shoppingRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -41,10 +42,12 @@ async function shoppingRequest<T>(
   return data as T;
 }
 
+// Получает корзину текущего пользователя с сервера.
 export function getServerCart() {
   return shoppingRequest<ServerCartResponse>("/cart");
 }
 
+// Добавляет товар в серверную корзину или увеличивает его количество.
 export function addServerCartItem(productId: number, quantity = 1) {
   return shoppingRequest<ServerCartResponse>("/cart/items", {
     method: "POST",
@@ -52,6 +55,7 @@ export function addServerCartItem(productId: number, quantity = 1) {
   });
 }
 
+// Устанавливает точное количество товара в серверной корзине.
 export function updateServerCartItem(productId: number, quantity: number) {
   return shoppingRequest<ServerCartResponse>(`/cart/items/${productId}`, {
     method: "PATCH",
@@ -59,44 +63,52 @@ export function updateServerCartItem(productId: number, quantity: number) {
   });
 }
 
+// Удаляет товар из серверной корзины.
 export function removeServerCartItem(productId: number) {
   return shoppingRequest<ServerCartResponse>(`/cart/items/${productId}`, {
     method: "DELETE",
   });
 }
 
+// Полностью очищает серверную корзину пользователя.
 export function clearServerCart() {
   return shoppingRequest<ServerCartResponse>("/cart", {
     method: "DELETE",
   });
 }
 
+// Получает избранные товары пользователя с сервера.
 export function getServerFavorites() {
   return shoppingRequest<ServerIdsResponse>("/favorites");
 }
 
+// Добавляет товар в серверное избранное.
 export function addServerFavorite(productId: number) {
   return shoppingRequest<ServerIdsResponse>(`/favorites/${productId}`, {
     method: "POST",
   });
 }
 
+// Удаляет товар из серверного избранного.
 export function removeServerFavorite(productId: number) {
   return shoppingRequest<ServerIdsResponse>(`/favorites/${productId}`, {
     method: "DELETE",
   });
 }
 
+// Получает список товаров для сравнения с сервера.
 export function getServerCompare() {
   return shoppingRequest<ServerIdsResponse>("/compare");
 }
 
+// Добавляет товар в серверный список сравнения.
 export function addServerCompare(productId: number) {
   return shoppingRequest<ServerIdsResponse>(`/compare/${productId}`, {
     method: "POST",
   });
 }
 
+// Удаляет товар из серверного списка сравнения.
 export function removeServerCompare(productId: number) {
   return shoppingRequest<ServerIdsResponse>(`/compare/${productId}`, {
     method: "DELETE",

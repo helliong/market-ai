@@ -5,6 +5,7 @@ import { useSyncExternalStore } from 'react';
 type Lang = 'ru' | 'en' | 'kk';
 
 // Подписка на изменения языка
+// Подписывает компоненты на смену языка через storage и кастомное событие.
 function subscribeToLanguage(onChange: () => void) {
   window.addEventListener('storage', onChange);
   window.addEventListener('language-change', onChange);
@@ -14,11 +15,13 @@ function subscribeToLanguage(onChange: () => void) {
   };
 }
 
+// Читает текущий язык из localStorage для useSyncExternalStore.
 function getLanguageSnapshot(): Lang {
   const saved = localStorage.getItem('language') as Lang;
   return saved === 'ru' || saved === 'en' || saved === 'kk' ? saved : 'ru';
 }
 
+// Сообщает приложению, что язык изменился и компоненты должны обновиться.
 function emitLanguageChange() {
   window.dispatchEvent(new Event('language-change'));
 }
@@ -755,6 +758,7 @@ clientFeatures: "Жылдам ресімдеу,Таңдаулылар қол а�
   },
 };
 
+// Хук возвращает текущий язык, функцию смены языка и переводчик по ключу.
 export function useLanguage() {
   const lang = useSyncExternalStore(subscribeToLanguage, getLanguageSnapshot, () => 'ru');
 
@@ -765,6 +769,7 @@ export function useLanguage() {
     }
   };
 
+// Возвращает перевод по ключу или сам ключ, если перевода нет.
 const t = (key: string): string => {
   const selected = translations[lang as keyof typeof translations];
   if (!selected) return key;

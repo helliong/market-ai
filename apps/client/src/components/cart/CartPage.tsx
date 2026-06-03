@@ -13,10 +13,12 @@ import {
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Преобразует строковую цену товара в число для расчета итогов корзины.
 function parsePrice(price: string) {
   return Number(price.replace(/[^\d]/g, ""));
 }
 
+// Экран корзины управляет количеством товаров, удалением и переходом к оформлению заказа.
 export function CartPage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
@@ -267,6 +269,7 @@ export function CartPage() {
   );
 }
 
+// Отрисовывает декоративный чекбокс выбора товара в корзине.
 function SelectionBox({ checked }: { checked: boolean }) {
   return (
     <span

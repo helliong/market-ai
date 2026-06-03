@@ -47,6 +47,7 @@ const catalogSearchQueryByTitle: Record<string, string> = {
   "Зарядные устройства": "заряд",
 };
 
+// Превращает название категории или подкатегории в URL-slug каталога.
 export function getCatalogSlug(title: string) {
   return (
     catalogSlugByTitle[title] ??
@@ -54,10 +55,12 @@ export function getCatalogSlug(title: string) {
   );
 }
 
+// Находит название категории по slug или возвращает декодированный slug.
 export function getCatalogTitleFromSlug(slug: string) {
   return catalogTitleBySlug[slug] ?? decodeURIComponent(slug).replace(/-/g, " ");
 }
 
+// Возвращает поисковый текст для открытия каталога по выбранной подкатегории.
 export function getCatalogSearchQuery(title: string) {
   return catalogSearchQueryByTitle[title] ?? title;
 }

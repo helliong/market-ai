@@ -3,6 +3,7 @@
 import { Bot, Sparkles, Search, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Главный промо-блок витрины с быстрым переходом к каталогу и AI-подбору.
 export function Hero() {
   const { t } = useLanguage();
   function openAIWidget() { window.dispatchEvent(new Event("open-ai-widget")); }

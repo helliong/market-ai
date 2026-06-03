@@ -33,6 +33,7 @@ export const favoritesSlice = createSlice({
 
 export const { hydrateFavorites, toggleFavoriteLocal } = favoritesSlice.actions;
 
+// Переключает товар в избранном и синхронизирует действие с сервером при авторизации.
 export function toggleFavorite(productId: number) {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     const wasFavorite = getState().favorites.ids.includes(productId);

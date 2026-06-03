@@ -32,6 +32,7 @@ type StorePageProps = {
 const tabs = ["Товары", "О магазине", "Отзывы", "Доставка и оплата"];
 type StoreSort = "popular" | "rating" | "priceAsc" | "priceDesc";
 
+// Экран магазина показывает витрину, статистику, товары и доверительные преимущества продавца.
 export function StorePage({ storeName }: StorePageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
@@ -376,10 +377,12 @@ export function StorePage({ storeName }: StorePageProps) {
   );
 }
 
+// Преобразует цену товара из строки в число для сортировки витрины магазина.
 function parseProductPrice(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
 }
 
+// Подбирает стабильный фон hero-блока магазина на основе названия магазина.
 function getStoreHeroBackground(storeName: string) {
   const palettes = [
     {
@@ -438,6 +441,7 @@ function getStoreHeroBackground(storeName: string) {
   ].join(", ");
 }
 
+// Получает стабильный индекс из строки, чтобы визуальные варианты не менялись между рендерами.
 function getStableStoreIndex(value: string, modulo: number) {
   let hash = 0;
   for (const char of value) {
@@ -446,6 +450,7 @@ function getStableStoreIndex(value: string, modulo: number) {
   return hash % modulo;
 }
 
+// Компактная карточка метрики магазина в hero-блоке.
 function StoreStat({
   icon,
   label,
@@ -468,6 +473,7 @@ function StoreStat({
   );
 }
 
+// Строка с парой "название-значение" для информации о магазине.
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-[#F6F7FB] p-4">
@@ -479,6 +485,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Строка доверия с галочкой для преимуществ магазина.
 function TrustRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 text-sm font-bold text-[#111827]">
@@ -488,6 +495,7 @@ function TrustRow({ label }: { label: string }) {
   );
 }
 
+// Карточка преимущества магазина с иконкой и описанием.
 function StoreBenefit({
   icon,
   title,

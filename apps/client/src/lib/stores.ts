@@ -1,6 +1,7 @@
 import { products } from "@/data/products";
 import { getStoreSlug } from "@/lib/store-slug";
 
+// Возвращает уникальный список магазинов, найденных в данных товаров.
 export function getAvailableStoreNames() {
   return Array.from(
     new Set(
@@ -11,6 +12,7 @@ export function getAvailableStoreNames() {
   );
 }
 
+// Находит исходное название магазина по slug из URL.
 export function findStoreNameBySlug(slug: string) {
   return getAvailableStoreNames().find(
     (storeName) => getStoreSlug(storeName) === slug,

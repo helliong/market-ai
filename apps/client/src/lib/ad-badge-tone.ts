@@ -9,10 +9,12 @@ const BADGE_CORNERS: BadgeCorner[] = [
 
 const TOP_CORNER_BIAS = 14;
 
+// Считает яркость пикселя, чтобы понять, насколько темный участок изображения.
 function getPixelLuminance(r: number, g: number, b: number) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+// Берет несколько пикселей из угла изображения и возвращает среднюю яркость.
 function sampleCornerLuminance(
   img: HTMLImageElement,
   corner: BadgeCorner,
@@ -66,6 +68,7 @@ function sampleCornerLuminance(
 }
 
 /** Ищет самый тёмный угол под размер плашки «Реклама». */
+// Выбирает самый темный угол изображения, чтобы бейдж рекламы был лучше виден.
 export function findDarkestBadgeCorner(img: HTMLImageElement): BadgeCorner {
   const ranked = BADGE_CORNERS.map((corner) => ({
     corner,

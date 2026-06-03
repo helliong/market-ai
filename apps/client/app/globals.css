@@ -183,6 +183,30 @@ body {
   transform: translateY(-1px);
 }
 
+.auth-reset-notice {
+  border-color: #e8e0ff;
+  background-color: #f4f0ff;
+  color: #4f32d9;
+}
+
+.dark .auth-reset-notice {
+  border-color: rgba(109, 74, 255, 0.45) !important;
+  background-color: #201a3f !important;
+  color: #c4b5fd !important;
+}
+
+.auth-login-rate-notice {
+  border: 1px solid #fed7aa;
+  background-color: #fff7ed;
+  color: #c2410c;
+}
+
+.dark .auth-login-rate-notice {
+  border-color: rgba(251, 191, 36, 0.42) !important;
+  background-color: #3a2412 !important;
+  color: #fdba74 !important;
+}
+
 .seller-profile-cta {
   isolation: isolate;
 }

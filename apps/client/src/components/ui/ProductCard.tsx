@@ -20,6 +20,7 @@ type ProductCardProps = {
   showTomorrowCartButton?: boolean;
 };
 
+// Карточка товара показывает цену, рейтинг, магазин и действия корзины/избранного/сравнения.
 export function ProductCard({
   id,
   title,

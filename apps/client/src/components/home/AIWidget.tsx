@@ -4,6 +4,7 @@ import { Bot, MessageCircle, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 
+// Плавающий AI-виджет для быстрых подсказок по выбору товаров.
 export function AIWidget() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);

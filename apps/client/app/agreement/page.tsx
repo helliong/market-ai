@@ -23,6 +23,7 @@ const sections = [
   },
 ];
 
+// Страница пользовательского соглашения выводит юридический текст для покупателей.
 export default function Agreement() {
   return (
     <main>

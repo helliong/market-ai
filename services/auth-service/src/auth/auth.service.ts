@@ -15,6 +15,7 @@ import {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
+  ResetPasswordCodeDto,
   ResetPasswordDto,
   SellerRegisterDto,
   SellerLegalProfileDto,
@@ -502,6 +503,12 @@ export class AuthService {
     return this.resetPasswordForScope(dto, CredentialScope.BUYER);
   }
 
+  async verifyResetPasswordCode(dto: ResetPasswordCodeDto) {
+    await this.findValidResetCredential(dto, CredentialScope.BUYER);
+
+    return { message: 'Reset code is valid' };
+  }
+
   resetSellerPassword(dto: ResetPasswordDto) {
     return this.resetPasswordForScope(dto, CredentialScope.SELLER);
   }
@@ -615,6 +622,27 @@ export class AuthService {
     dto: ResetPasswordDto,
     scope: CredentialScope,
   ) {
+    const credential = await this.findValidResetCredential(dto, scope);
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    await this.prisma.accountCredential.update({
+      where: { id: credential.id },
+      data: {
+        passwordHash,
+        refreshTokenHash: null,
+        resetCode: null,
+        resetCodeExpires: null,
+      },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
+
+  private async findValidResetCredential(
+    dto: ResetPasswordCodeDto,
+    scope: CredentialScope,
+  ) {
     const email = this.normalizeEmail(dto.email);
 
     const account = await this.prisma.account.findUnique({
@@ -643,19 +671,7 @@ export class AuthService {
       throw new BadRequestException('Invalid reset code');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-
-    await this.prisma.accountCredential.update({
-      where: { id: credential.id },
-      data: {
-        passwordHash,
-        refreshTokenHash: null,
-        resetCode: null,
-        resetCodeExpires: null,
-      },
-    });
-
-    return { message: 'Password reset successfully' };
+    return credential;
   }
 
   private async validateAccountCredentials(

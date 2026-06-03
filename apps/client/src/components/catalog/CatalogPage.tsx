@@ -23,6 +23,7 @@ type CatalogPageProps = {
 
 type SortMode = "popular" | "rating" | "priceAsc" | "priceDesc";
 
+// Экран каталога управляет категориями, поиском, фильтрами, сортировкой и списком товаров.
 export function CatalogPage({
   initialCategory = "all",
   initialQuery = "",
@@ -447,6 +448,7 @@ export function CatalogPage({
   );
 }
 
+// Строка-фильтр с переключателем для боковой панели каталога.
 function ToggleRow({
   label,
   checked,
@@ -480,6 +482,7 @@ function ToggleRow({
   );
 }
 
+// Преобразует цену товара из строки в число для сортировки по стоимости.
 function parseProductPrice(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
 }

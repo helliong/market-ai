@@ -173,10 +173,12 @@ const quickPicksBySubcategory: Record<string, string[]> = {
   ],
 };
 
+// Возвращает секции каталога для выбранной категории или общий список.
 export function getCatalogSections(categoryId?: number) {
   return categoryId === 1 ? electronicsSections : genericCatalogSections;
 }
 
+// Возвращает быстрые поисковые подсказки для подкатегории каталога.
 export function getCatalogQuickPicks(subcategory?: string) {
   if (!subcategory) {
     return catalogQuickPicks;

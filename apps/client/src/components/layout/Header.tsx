@@ -30,6 +30,7 @@ import { getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
+// Header управляет навигацией, поиском, каталогом, профилем и быстрыми действиями магазина.
 export function Header() {
   const { t, lang, changeLanguage } = useLanguage();
   const dispatch = useAppDispatch();
@@ -631,6 +632,7 @@ export function Header() {
   );
 }
 
+// Ссылка внутри меню профиля, которая закрывает меню после перехода.
 function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode; label: string; href: string; onClick: () => void }) {
   return (
     <Link href={href} onClick={onClick} className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
@@ -640,6 +642,7 @@ function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode
   );
 }
 
+// Селект языка внутри меню профиля.
 function ProfileLanguageSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <label className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">

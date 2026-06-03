@@ -16,6 +16,7 @@ const footerLinks = [
 
 const settingsEvent = "marketai-settings";
 
+// Подписывает footer на изменения localStorage, чтобы тема и язык обновлялись без перезагрузки.
 function subscribeToSettings(onChange: () => void) {
   window.addEventListener("storage", onChange);
   window.addEventListener(settingsEvent, onChange);
@@ -25,10 +26,12 @@ function subscribeToSettings(onChange: () => void) {
   };
 }
 
+// Читает текущую тему из localStorage для useSyncExternalStore.
 function getThemeSnapshot() {
   return localStorage.getItem("marketai-theme") === "dark" ? "dark" : "light";
 }
 
+// Footer показывает навигацию, контакты и переключатели темы/языка.
 export function Footer() {
   const { t, lang, changeLanguage } = useLanguage();
   const theme = useSyncExternalStore(subscribeToSettings, getThemeSnapshot, () => "light");
