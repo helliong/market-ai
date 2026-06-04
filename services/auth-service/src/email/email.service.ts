@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
@@ -12,24 +16,28 @@ export class EmailService {
   async sendVerificationCode(
     email: string,
     code: string,
-    purpose: 'emailVerification' | 'buyerPasswordReset' | 'sellerPasswordReset' =
-      'emailVerification',
+    purpose:
+      | 'emailVerification'
+      | 'buyerPasswordReset'
+      | 'sellerPasswordReset' = 'emailVerification',
   ) {
-    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    // const nodeEnv = this.configService.get<string>('NODE_ENV');
     const content = this.getCodeEmailContent(purpose);
+    this.logger.log(`${content.logLabel} for ${email}: ${code}`);
 
-    if (nodeEnv !== 'production') {
-      this.logger.log(`${content.logLabel} for ${email}: ${code}`);
-      return;
-    }
+    // if (nodeEnv !== 'production') {
+    //   this.logger.log(`${content.logLabel} for ${email}: ${code}`);
+    //   return;
+    // }
 
     const emailUser = this.configService.get<string>('EMAIL_USER');
     const emailPass = this.configService.get<string>('EMAIL_PASS');
 
     if (!emailUser || !emailPass) {
-      throw new InternalServerErrorException(
-        'Email credentials are not configured',
+      this.logger.warn(
+        'Email credentials are not configured. Skipping email send.',
       );
+      return;
     }
 
     const transporter = nodemailer.createTransport({
