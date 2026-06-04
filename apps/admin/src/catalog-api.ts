@@ -101,7 +101,12 @@ export async function importSellerProductsTemplate(file: File) {
     throw new Error(formatCatalogError(data));
   }
 
-  return data as { created: number; updated: number; total: number };
+  return data as {
+    created: number;
+    updated: number;
+    deleted: number;
+    total: number;
+  };
 }
 
 function formatCatalogError(data: unknown) {

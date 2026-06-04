@@ -10,7 +10,11 @@ export type ProductTemplateRow = {
   price: number;
   stock: number;
   status: ProductStatus;
+  action?: ProductTemplateAction | '';
 };
+
+export const productTemplateActions = ['delete'] as const;
+export type ProductTemplateAction = (typeof productTemplateActions)[number];
 
 export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
   const files = new Map<string, Buffer>();
@@ -112,8 +116,9 @@ export function parseProductWorkbook(buffer: Buffer) {
     const stock = parseNumber(row.E);
     const status = stringValue(row.F).trim() || 'active';
     const description = stringValue(row.G).trim();
+    const action = stringValue(row.H).trim().toLowerCase();
 
-    if (!sku && !name && !category && price === 0 && stock === 0) {
+    if (!sku && !name && !category && price === 0 && stock === 0 && !action) {
       return [];
     }
 
@@ -127,6 +132,7 @@ export function parseProductWorkbook(buffer: Buffer) {
         stock,
         status,
         description,
+        action,
       },
     ];
   });
@@ -142,6 +148,8 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     'Статус',
     'Описание',
   ];
+  headers.push('Action');
+
   const headerCells = headers
     .map((header, index) => inlineCell(`${String.fromCharCode(65 + index)}1`, header, 1))
     .join('');
@@ -169,21 +177,23 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
         numberCell(`E${row}`, product.stock, 2),
         inlineCell(`F${row}`, product.status, 2),
         inlineCell(`G${row}`, product.description, 2),
+        inlineCell(`H${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:G500"/>
+  <dimension ref="A1:H500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="5" width="14" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="44" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="5" width="14" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="44" customWidth="1"/><col min="8" max="8" width="16" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
-  <dataValidations count="4">
+  <dataValidations count="5">
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$16</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="E2:E500"><formula1>0</formula1></dataValidation>
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="F2:F500"><formula1>"active,draft,archived"</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="H2:H500"><formula1>"delete"</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }
@@ -425,4 +435,8 @@ function crc32(data: Buffer) {
 
 export function isTemplateStatus(value: string): value is ProductStatus {
   return productStatuses.includes(value as ProductStatus);
+}
+
+export function isTemplateAction(value: string): value is ProductTemplateAction {
+  return productTemplateActions.includes(value as ProductTemplateAction);
 }

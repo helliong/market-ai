@@ -13,6 +13,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { productCategories } from './product-categories';
 import {
   buildProductTemplateWorkbook,
+  isTemplateAction,
   isTemplateStatus,
   parseProductWorkbook,
   type ProductTemplateRow,
@@ -175,6 +176,8 @@ export class SellerProductsService {
       row.category = row.category.trim();
       row.name = row.name.trim();
       row.description = row.description.trim();
+      row.action = row.action?.trim().toLowerCase() ?? '';
+      const shouldDelete = row.action === 'delete';
 
       if (!row.sku) {
         errors.push(`Строка ${row.rowNumber}: заполните SKU`);
@@ -184,23 +187,30 @@ export class SellerProductsService {
         errors.push(`Строка ${row.rowNumber}: SKU ${row.sku} повторяется в файле`);
       }
 
-      if (!row.name) {
+      if (row.action && !isTemplateAction(row.action)) {
+        errors.push(`Row ${row.rowNumber}: action must be delete or empty`);
+      }
+
+      if (!shouldDelete && !row.name) {
         errors.push(`Строка ${row.rowNumber}: заполните название`);
       }
 
-      if (!productCategories.includes(row.category as (typeof productCategories)[number])) {
+      if (
+        !shouldDelete &&
+        !productCategories.includes(row.category as (typeof productCategories)[number])
+      ) {
         errors.push(`Строка ${row.rowNumber}: выберите категорию из шаблона`);
       }
 
-      if (row.price <= 0) {
+      if (!shouldDelete && row.price <= 0) {
         errors.push(`Строка ${row.rowNumber}: цена должна быть больше 0`);
       }
 
-      if (!Number.isInteger(row.stock) || row.stock < 0) {
+      if (!shouldDelete && (!Number.isInteger(row.stock) || row.stock < 0)) {
         errors.push(`Строка ${row.rowNumber}: остаток должен быть целым числом от 0`);
       }
 
-      if (!isTemplateStatus(row.status)) {
+      if (!shouldDelete && !isTemplateStatus(row.status)) {
         errors.push(`Строка ${row.rowNumber}: статус должен быть active, draft или archived`);
       }
 
@@ -229,10 +239,23 @@ export class SellerProductsService {
     );
     let created = 0;
     let updated = 0;
+    let deleted = 0;
 
     await this.prisma.$transaction(
       [...rowsBySku.values()].map((row) => {
         const existingProduct = existingBySku.get(row.sku);
+
+        if (row.action === 'delete') {
+          if (!existingProduct) {
+            return this.prisma.product.count({ where: { sku: row.sku } });
+          }
+
+          deleted += 1;
+          return this.prisma.product.delete({
+            where: { id: existingProduct.id },
+          });
+        }
+
         const data = {
           sellerId,
           storeName: seller.storeName,
@@ -261,7 +284,8 @@ export class SellerProductsService {
     return {
       created,
       updated,
-      total: created + updated,
+      deleted,
+      total: created + updated + deleted,
     };
   }
 

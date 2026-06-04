@@ -299,7 +299,7 @@ function App() {
       setProducts(sellerProducts);
       setDialog({
         title: "Импорт завершен",
-        message: `Создано: ${result.created}. Обновлено: ${result.updated}.`,
+        message: `Создано: ${result.created}. Обновлено: ${result.updated}. Удалено: ${result.deleted}.`,
       });
     } catch (error) {
       setDialog({
