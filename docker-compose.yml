@@ -61,6 +61,26 @@ services:
     networks:
       - market-ai-network
 
+  catalog-service:
+    build: ./services/catalog-service
+    container_name: market-ai-catalog
+    restart: always
+    ports:
+      - "4003:4003"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - CATALOG_SERVICE_PORT=4003
+      - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL}
+      - CLIENT_URL=${CLIENT_URL}
+      - NODE_ENV=production
+    depends_on:
+      - postgres
+      - auth-service
+    networks:
+      - market-ai-network
+
 volumes:
   postgres_data:
 
