@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { products as staticProducts } from "@/data/products";
 import { getCatalogProducts } from "@/lib/catalog-products";
 import type { ClientProduct } from "@/lib/catalog-products";
 
 export function useCatalogProducts() {
-  const [products, setProducts] = useState<ClientProduct[]>(staticProducts);
+  const [products, setProducts] = useState<ClientProduct[]>([]);
 
   useEffect(() => {
     let isMounted = true;

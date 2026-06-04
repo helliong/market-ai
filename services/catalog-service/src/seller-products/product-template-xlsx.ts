@@ -207,9 +207,9 @@ function buildCategoriesSheet() {
 }
 
 function parseRows(sheetXml: string, sharedStrings: string[]) {
-  return Array.from(sheetXml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)).map((rowMatch) => {
+  return Array.from(sheetXml.matchAll(/<(?:\w+:)?row[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g)).map((rowMatch) => {
     const cells: Record<string, string> = {};
-    for (const cellMatch of rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+    for (const cellMatch of rowMatch[1].matchAll(/<(?:\w+:)?c\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?c>/g)) {
       const attrs = cellMatch[1];
       const body = cellMatch[2];
       const ref = /r="([A-Z]+)\d+"/.exec(attrs)?.[1];
@@ -218,12 +218,16 @@ function parseRows(sheetXml: string, sharedStrings: string[]) {
       }
 
       const type = /t="([^"]+)"/.exec(attrs)?.[1];
-      const value = /<v>([\s\S]*?)<\/v>/.exec(body)?.[1] ?? '';
+      const value = /<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/.exec(body)?.[1] ?? '';
 
       if (type === 's') {
         cells[ref] = sharedStrings[Number(value)] ?? '';
       } else if (type === 'inlineStr') {
-        cells[ref] = stripTags(body.replace(/<t[^>]*>/g, '').replace(/<\/t>/g, ''));
+        cells[ref] = stripTags(
+          body
+            .replace(/<(?:\w+:)?t[^>]*>/g, '')
+            .replace(/<\/(?:\w+:)?t>/g, ''),
+        );
       } else {
         cells[ref] = decodeXml(value);
       }
@@ -239,8 +243,12 @@ function parseSharedStrings(xmlFile?: Buffer) {
   }
 
   const xml = xmlFile.toString('utf8');
-  return Array.from(xml.matchAll(/<si[^>]*>([\s\S]*?)<\/si>/g)).map((match) =>
-    stripTags(match[1].replace(/<t[^>]*>/g, '').replace(/<\/t>/g, '')),
+  return Array.from(xml.matchAll(/<(?:\w+:)?si[^>]*>([\s\S]*?)<\/(?:\w+:)?si>/g)).map((match) =>
+    stripTags(
+      match[1]
+        .replace(/<(?:\w+:)?t[^>]*>/g, '')
+        .replace(/<\/(?:\w+:)?t>/g, ''),
+    ),
   );
 }
 

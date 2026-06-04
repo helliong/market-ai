@@ -1,5 +1,3 @@
-import { products as staticProducts } from "@/data/products";
-
 export type ClientProduct = {
   id: number;
   title: string;
@@ -30,7 +28,7 @@ const CATALOG_API_URL =
 
 export async function getCatalogProducts(): Promise<ClientProduct[]> {
   const apiProducts = await fetchApiProducts();
-  return mergeProducts(apiProducts.map(mapApiProduct));
+  return apiProducts.map(mapApiProduct);
 }
 
 export async function getCatalogProduct(
@@ -42,16 +40,7 @@ export async function getCatalogProduct(
     return mapApiProduct(apiProduct);
   }
 
-  return staticProducts.find((product) => product.id === productId) ?? null;
-}
-
-export function mergeProducts(apiProducts: ClientProduct[]) {
-  const apiProductIds = new Set(apiProducts.map((product) => product.id));
-
-  return [
-    ...apiProducts,
-    ...staticProducts.filter((product) => !apiProductIds.has(product.id)),
-  ];
+  return null;
 }
 
 async function fetchApiProducts() {

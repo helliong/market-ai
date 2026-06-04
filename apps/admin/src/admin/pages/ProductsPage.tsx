@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CheckCircle2, Download, FileUp, Plus, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
+import { productCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
-import type { Product } from "../types";
+import type { Product, ProductStatus } from "../types";
 
 type ProductsPageProps = {
   products: Product[];
@@ -14,6 +15,28 @@ type ProductsPageProps = {
   onImportTemplate: (file: File) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => void;
+};
+
+type ProductFilters = {
+  sku: string;
+  name: string;
+  category: string;
+  status: "" | ProductStatus;
+  minPrice: string;
+  maxPrice: string;
+  minStock: string;
+  maxStock: string;
+};
+
+const emptyFilters: ProductFilters = {
+  sku: "",
+  name: "",
+  category: "",
+  status: "",
+  minPrice: "",
+  maxPrice: "",
+  minStock: "",
+  maxStock: "",
 };
 
 export function ProductsPage({
@@ -28,11 +51,17 @@ export function ProductsPage({
 }: ProductsPageProps) {
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filters, setFilters] = useState<ProductFilters>(emptyFilters);
   const [toast, setToast] = useState<{
     id: number;
     message: string;
     variant: "success" | "error";
   } | null>(null);
+  const filteredProducts = useMemo(
+    () => filterProducts(products, filters),
+    [filters, products],
+  );
+  const hasActiveFilters = Object.values(filters).some(Boolean);
 
   function showToast(message: string, variant: "success" | "error") {
     const id = Date.now();
@@ -69,6 +98,16 @@ export function ProductsPage({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  function updateFilter<K extends keyof ProductFilters>(
+    key: K,
+    value: ProductFilters[K],
+  ) {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      [key]: value,
+    }));
   }
 
   return (
@@ -124,6 +163,102 @@ export function ProductsPage({
         </div>
       </div>
 
+      <div className="product-filters" aria-label="Фильтры товаров">
+        <label>
+          SKU
+          <input
+            value={filters.sku}
+            onChange={(event) => updateFilter("sku", event.target.value)}
+            placeholder="SKU-001"
+          />
+        </label>
+        <label>
+          Название
+          <input
+            value={filters.name}
+            onChange={(event) => updateFilter("name", event.target.value)}
+            placeholder="iPhone"
+          />
+        </label>
+        <label>
+          Категория
+          <select
+            value={filters.category}
+            onChange={(event) => updateFilter("category", event.target.value)}
+          >
+            <option value="">Все категории</option>
+            {productCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Статус
+          <select
+            value={filters.status}
+            onChange={(event) =>
+              updateFilter("status", event.target.value as ProductFilters["status"])
+            }
+          >
+            <option value="">Все статусы</option>
+            <option value="active">{t("active")}</option>
+            <option value="draft">{t("draft")}</option>
+            <option value="archived">{t("archived")}</option>
+          </select>
+        </label>
+        <label>
+          Цена от
+          <input
+            inputMode="numeric"
+            value={filters.minPrice}
+            onChange={(event) => updateFilter("minPrice", event.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          Цена до
+          <input
+            inputMode="numeric"
+            value={filters.maxPrice}
+            onChange={(event) => updateFilter("maxPrice", event.target.value)}
+            placeholder="150000"
+          />
+        </label>
+        <label>
+          Остаток от
+          <input
+            inputMode="numeric"
+            value={filters.minStock}
+            onChange={(event) => updateFilter("minStock", event.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          Остаток до
+          <input
+            inputMode="numeric"
+            value={filters.maxStock}
+            onChange={(event) => updateFilter("maxStock", event.target.value)}
+            placeholder="100"
+          />
+        </label>
+        <div className="product-filter-summary">
+          <span>
+            Найдено {filteredProducts.length} из {products.length}
+          </span>
+          <button
+            type="button"
+            className="table-button"
+            disabled={!hasActiveFilters}
+            onClick={() => setFilters(emptyFilters)}
+          >
+            Сбросить
+          </button>
+        </div>
+      </div>
+
       <div className="table-wrapper">
         <table>
           <thead>
@@ -138,7 +273,7 @@ export function ProductsPage({
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <tr key={product.id}>
                 <td>{product.sku}</td>
                 <td>{product.name}</td>
@@ -167,10 +302,10 @@ export function ProductsPage({
               </tr>
             ))}
 
-            {products.length === 0 && (
+            {filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={7} className="empty-cell">
-                  {t("noProducts")}
+                  {products.length === 0 ? t("noProducts") : "Товары не найдены"}
                 </td>
               </tr>
             )}
@@ -179,6 +314,60 @@ export function ProductsPage({
       </div>
     </section>
   );
+}
+
+function filterProducts(products: Product[], filters: ProductFilters) {
+  const sku = normalizeSearch(filters.sku);
+  const name = normalizeSearch(filters.name);
+  const minPrice = parseFilterNumber(filters.minPrice);
+  const maxPrice = parseFilterNumber(filters.maxPrice);
+  const minStock = parseFilterNumber(filters.minStock);
+  const maxStock = parseFilterNumber(filters.maxStock);
+
+  return products.filter((product) => {
+    if (sku && !normalizeSearch(product.sku).includes(sku)) {
+      return false;
+    }
+
+    if (name && !normalizeSearch(product.name).includes(name)) {
+      return false;
+    }
+
+    if (filters.category && product.category !== filters.category) {
+      return false;
+    }
+
+    if (filters.status && product.status !== filters.status) {
+      return false;
+    }
+
+    if (minPrice !== null && product.price < minPrice) {
+      return false;
+    }
+
+    if (maxPrice !== null && product.price > maxPrice) {
+      return false;
+    }
+
+    if (minStock !== null && product.stock < minStock) {
+      return false;
+    }
+
+    if (maxStock !== null && product.stock > maxStock) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function parseFilterNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? Number(digits) : null;
 }
 
 function ToastNotification({
