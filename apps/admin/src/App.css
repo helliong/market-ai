@@ -575,10 +575,23 @@ input:disabled {
 .primary-button,
 .secondary-button,
 .danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   border: 0;
   border-radius: 12px;
   padding: 11px 18px;
   font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary-button svg,
+.secondary-button svg,
+.danger-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .profile-button,
@@ -650,6 +663,13 @@ input:disabled {
   margin-bottom: 18px;
 }
 
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -657,7 +677,7 @@ input:disabled {
 
 table {
   width: 100%;
-  min-width: 760px;
+  min-width: 860px;
   border-collapse: collapse;
 }
 
@@ -667,6 +687,18 @@ td {
   padding: 14px;
   text-align: left;
   vertical-align: middle;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 th {

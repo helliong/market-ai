@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 
 // Экран избранного показывает товары, которые пользователь сохранил для будущей покупки.
 export function FavoritesPage() {
   const { t } = useLanguage();
   const favoriteIds = useAppSelector((state) => state.favorites.ids);
+  const products = useCatalogProducts();
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
 
   return (

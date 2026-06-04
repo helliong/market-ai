@@ -1,0 +1,56 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class ProductsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findProducts() {
+    const products = await this.prisma.product.findMany({
+      where: {
+        status: 'active',
+        stock: { gt: 0 },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return products.map((product) => this.toResponse(product));
+  }
+
+  async findProduct(productId: number) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: productId,
+        status: 'active',
+        stock: { gt: 0 },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return this.toResponse(product);
+  }
+
+  private toResponse(product: {
+    id: number;
+    sellerId: string;
+    storeName: string;
+    sku: string;
+    name: string;
+    description: string;
+    category: string;
+    price: Prisma.Decimal;
+    stock: number;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      ...product,
+      price: product.price.toNumber(),
+    };
+  }
+}

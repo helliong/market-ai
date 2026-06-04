@@ -3,10 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "npm run start:dev",
-    "start:dev": "concurrently -n auth,cart,client,admin,moderation,links -c blue,green,magenta,yellow,red,cyan \"npm run dev:auth\" \"npm run dev:cart\" \"npm run dev:client\" \"npm run dev:admin\" \"npm run dev:moderation\" \"npm run dev:links\"",
-    "start:dev:backend": "concurrently -n auth,cart -c blue,green \"npm run dev:auth\" \"npm run dev:cart\"",
+    "start:dev": "concurrently -n auth,cart,catalog,client,admin,moderation,links -c blue,green,cyan,magenta,yellow,red,white \"npm run dev:auth\" \"npm run dev:cart\" \"npm run dev:catalog\" \"npm run dev:client\" \"npm run dev:admin\" \"npm run dev:moderation\" \"npm run dev:links\"",
+    "start:dev:backend": "concurrently -n auth,cart,catalog -c blue,green,cyan \"npm run dev:auth\" \"npm run dev:cart\" \"npm run dev:catalog\"",
     "dev:auth": "npm run start:dev --prefix services/auth-service",
     "dev:cart": "npm run start:dev --prefix services/cart-service",
+    "dev:catalog": "npm run start:dev --prefix services/catalog-service",
     "dev:client": "npm run dev --prefix apps/client",
     "dev:admin": "npm run dev --prefix apps/admin",
     "dev:moderation": "npm run dev --prefix apps/moderation",

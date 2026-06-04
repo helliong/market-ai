@@ -21,7 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { getStoreSlug } from "@/lib/store-slug";
 import { ProductCard } from "@/components/ui/ProductCard";
 
@@ -39,6 +39,7 @@ export function StorePage({ storeName }: StorePageProps) {
     "all",
   );
   const [sort, setSort] = useState<StoreSort>("popular");
+  const products = useCatalogProducts();
   const storeProducts = products.filter(
     (product) => product.storeName?.toLowerCase() === storeName.toLowerCase(),
   );

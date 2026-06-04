@@ -1,8 +1,9 @@
-import { products } from "@/data/products";
+import { getCatalogProducts } from "@/lib/catalog-products";
 import { getStoreSlug } from "@/lib/store-slug";
 
-// Возвращает уникальный список магазинов, найденных в данных товаров.
-export function getAvailableStoreNames() {
+export async function getAvailableStoreNames() {
+  const products = await getCatalogProducts();
+
   return Array.from(
     new Set(
       products
@@ -12,9 +13,8 @@ export function getAvailableStoreNames() {
   );
 }
 
-// Находит исходное название магазина по slug из URL.
-export function findStoreNameBySlug(slug: string) {
-  return getAvailableStoreNames().find(
-    (storeName) => getStoreSlug(storeName) === slug,
-  );
+export async function findStoreNameBySlug(slug: string) {
+  const storeNames = await getAvailableStoreNames();
+
+  return storeNames.find((storeName) => getStoreSlug(storeName) === slug);
 }

@@ -8,5 +8,6 @@ setTimeout(() => {
   console.log("  Moderation:  http://127.0.0.1:5174");
   console.log("  Auth API:    http://127.0.0.1:4001");
   console.log("  Cart API:    http://127.0.0.1:4002");
+  console.log("  Catalog API: http://127.0.0.1:4003");
   console.log("");
 }, delayMs);

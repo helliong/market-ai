@@ -30,6 +30,7 @@ type Product = {
   rating: number;
   reviews: number;
   badge?: string;
+  description?: string;
   storeName?: string;
   categoryIds?: number[];
 };
@@ -131,7 +132,10 @@ export function ProductPage({ product }: ProductPageProps) {
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px] lg:gap-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">{t("aboutProduct")}</h2>
-          <p className="mt-4 max-w-[760px] leading-7 text-[#6B7280]">{product.title} подойдет для повседневных задач, работы и покупок без лишней суеты. Карточка собрана в стиле MarketAI и использует актуальные действия магазина: корзина, избранное и сравнение.</p>
+          <p className="mt-4 max-w-[760px] leading-7 text-[#6B7280]">
+            {product.description ||
+              `${product.title} подойдет для повседневных задач, работы и покупок без лишней суеты.`}
+          </p>
         </div>
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">{t("specifications")}</h2>

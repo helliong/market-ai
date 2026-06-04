@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { products } from "@/data/products";
 import { AdPlaceholderCard } from "@/components/ui/AdPlaceholderCard";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import type { ClientProduct } from "@/lib/catalog-products";
 
-type Product = (typeof products)[number];
+type Product = ClientProduct;
 
 type ProductGridSlot =
   | {
@@ -20,6 +21,7 @@ type ProductGridSlot =
 // Блок главной страницы с популярными товарами и рекламными слотами.
 export function ProductSection() {
   const { t } = useLanguage();
+  const products = useCatalogProducts();
 
   return (
     <section className="mx-auto mt-12 max-w-[1440px] px-4 pb-16 md:px-8">
@@ -30,18 +32,20 @@ export function ProductSection() {
         </div>
         <Link href="/catalog" className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">{t("viewAll")}</Link>
       </div>
-      <ResponsiveProductGrid columns={2} className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden" />
-      <ResponsiveProductGrid columns={3} className="hidden gap-4 lg:grid lg:grid-cols-3 xl:hidden" />
-      <ResponsiveProductGrid columns={4} className="hidden xl:grid xl:grid-cols-4 xl:gap-5" />
+      <ResponsiveProductGrid products={products} columns={2} className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden" />
+      <ResponsiveProductGrid products={products} columns={3} className="hidden gap-4 lg:grid lg:grid-cols-3 xl:hidden" />
+      <ResponsiveProductGrid products={products} columns={4} className="hidden xl:grid xl:grid-cols-4 xl:gap-5" />
     </section>
   );
 }
 
 // Рендерит адаптивную сетку товаров с учетом количества колонок на экране.
 function ResponsiveProductGrid({
+  products,
   columns,
   className,
 }: {
+  products: Product[];
   columns: number;
   className: string;
 }) {

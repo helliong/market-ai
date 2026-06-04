@@ -1,4 +1,4 @@
-import { products } from "@/data/products";
+import { getCatalogProducts } from "@/lib/catalog-products";
 import {
   addServerCartItem,
   addServerCompare,
@@ -27,10 +27,11 @@ export async function persistLocalShoppingState(state: ShoppingState) {
 
 // Загружает серверные shopping-списки и кладет их в Redux после авторизации.
 export async function hydrateShoppingState(dispatch: AppDispatch) {
-  const [cart, favorites, compare] = await Promise.all([
+  const [cart, favorites, compare, products] = await Promise.all([
     getServerCart(),
     getServerFavorites(),
     getServerCompare(),
+    getCatalogProducts(),
   ]);
 
   dispatch(

@@ -2,7 +2,9 @@ export type ProductStatus = "active" | "draft" | "archived";
 
 export type Product = {
   id: number;
+  sku: string;
   name: string;
+  description: string;
   category: string;
   price: number;
   stock: number;
@@ -30,7 +32,9 @@ export type User = {
 };
 
 export type ProductForm = {
+  sku: string;
   name: string;
+  description: string;
   category: string;
   price: string;
   stock: string;

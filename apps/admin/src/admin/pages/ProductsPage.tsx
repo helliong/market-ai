@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CheckCircle2, X, XCircle } from "lucide-react";
+import { useRef, useState } from "react";
+import { CheckCircle2, Download, FileUp, Plus, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -10,20 +10,24 @@ type ProductsPageProps = {
   canAddProducts: boolean;
   inactiveReason?: string;
   onAddProduct: () => void;
+  onDownloadTemplate: () => void;
+  onImportTemplate: (file: File) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => void;
 };
 
-// Страница товаров продавца: список, добавление, редактирование, удаление и toast-уведомления.
 export function ProductsPage({
   products,
   canAddProducts,
   inactiveReason,
   onAddProduct,
+  onDownloadTemplate,
+  onImportTemplate,
   onEditProduct,
   onDeleteProduct,
 }: ProductsPageProps) {
   const { t } = useLanguage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{
     id: number;
     message: string;
@@ -46,6 +50,27 @@ export function ProductsPage({
     onAddProduct();
   }
 
+  function handleImportClick() {
+    if (!canAddProducts) {
+      showToast(inactiveReason || t("sellerStatusPendingLegal"), "error");
+      return;
+    }
+
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    onImportTemplate(file);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <section className="panel">
       {toast && (
@@ -61,20 +86,49 @@ export function ProductsPage({
           <h2>{t("manageProducts")}</h2>
           <p>{t("productsDescription")}</p>
         </div>
-        <button
-          className="primary-button"
-          aria-disabled={!canAddProducts}
-          onClick={handleAddProduct}
-          title={!canAddProducts ? inactiveReason : undefined}
-        >
-          {t("addProduct")}
-        </button>
+        <div className="section-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onDownloadTemplate}
+          >
+            <Download aria-hidden="true" />
+            Скачать шаблон
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            aria-disabled={!canAddProducts}
+            onClick={handleImportClick}
+            title={!canAddProducts ? inactiveReason : undefined}
+          >
+            <FileUp aria-hidden="true" />
+            Прикрепить файл
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="visually-hidden"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(event) => handleFileChange(event.target.files?.[0])}
+          />
+          <button
+            className="primary-button"
+            aria-disabled={!canAddProducts}
+            onClick={handleAddProduct}
+            title={!canAddProducts ? inactiveReason : undefined}
+          >
+            <Plus aria-hidden="true" />
+            {t("addProduct")}
+          </button>
+        </div>
       </div>
 
       <div className="table-wrapper">
         <table>
           <thead>
             <tr>
+              <th>SKU</th>
               <th>{t("productListName")}</th>
               <th>{t("productListCategory")}</th>
               <th>{t("productListPrice")}</th>
@@ -86,6 +140,7 @@ export function ProductsPage({
           <tbody>
             {products.map((product) => (
               <tr key={product.id}>
+                <td>{product.sku}</td>
                 <td>{product.name}</td>
                 <td>{product.category}</td>
                 <td>{formatCurrency(product.price)}</td>
@@ -114,7 +169,7 @@ export function ProductsPage({
 
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="empty-cell">
+                <td colSpan={7} className="empty-cell">
                   {t("noProducts")}
                 </td>
               </tr>
@@ -126,7 +181,6 @@ export function ProductsPage({
   );
 }
 
-// Toast-уведомление для действий с товарами внутри ЛК.
 function ToastNotification({
   message,
   variant,

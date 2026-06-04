@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { Minus, Plus, Scale, ShoppingCart, Trash2 } from "lucide-react";
-import { products } from "@/data/products";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { COMPARE_LIMIT, toggleCompare } from "@/store/compareSlice";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 
 // Экран сравнения выводит выбранные товары и их основные характеристики рядом.
 export function ComparePage() {
@@ -14,6 +14,7 @@ export function ComparePage() {
   const dispatch = useAppDispatch();
   const compareIds = useAppSelector((state) => state.compare.ids);
   const cartItems = useAppSelector((state) => state.cart.items);
+  const products = useCatalogProducts();
   const compareProducts = products.filter((product) => compareIds.includes(product.id));
 
   return (

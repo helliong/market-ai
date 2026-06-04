@@ -9,9 +9,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { categories } from "@/data/categories";
-import { products } from "@/data/products";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { getCatalogQuickPicks, getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
 
@@ -38,6 +38,7 @@ export function CatalogPage({
   const [sort, setSort] = useState<SortMode>("popular");
   const [onlyDiscounts, setOnlyDiscounts] = useState(false);
   const [fastDelivery, setFastDelivery] = useState(false);
+  const products = useCatalogProducts();
 
   useEffect(() => {
     setSelectedCategory(initialCategory);

@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import type { ProductForm, ProductStatus } from "../types";
+import { productCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
 
 type ProductModalProps = {
@@ -10,7 +11,6 @@ type ProductModalProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-// Модальное окно добавления и редактирования товара продавца.
 export function ProductModal({
   form,
   isEditing,
@@ -19,6 +19,14 @@ export function ProductModal({
   onSubmit,
 }: ProductModalProps) {
   const { t } = useLanguage();
+
+  function updatePrice(value: string) {
+    onChange({ ...form, price: formatIntegerInput(value) });
+  }
+
+  function updateStock(value: string) {
+    onChange({ ...form, stock: formatIntegerInput(value) });
+  }
 
   return (
     <div className="modal-backdrop">
@@ -35,6 +43,17 @@ export function ProductModal({
 
         <form className="product-form" onSubmit={onSubmit}>
           <label>
+            SKU
+            <input
+              value={form.sku}
+              onChange={(event) =>
+                onChange({ ...form, sku: event.target.value })
+              }
+              placeholder="SKU-001"
+            />
+          </label>
+
+          <label>
             {t("productName")}
             <input
               value={form.name}
@@ -46,38 +65,48 @@ export function ProductModal({
           </label>
 
           <label>
+            Описание
+            <textarea
+              value={form.description}
+              onChange={(event) =>
+                onChange({ ...form, description: event.target.value })
+              }
+              placeholder="Короткое описание товара"
+            />
+          </label>
+
+          <label>
             {t("category")}
-            <input
+            <select
               value={form.category}
               onChange={(event) =>
                 onChange({ ...form, category: event.target.value })
               }
-              placeholder="Например, смартфоны"
-            />
+            >
+              {productCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
             {t("price")}
             <input
-              type="number"
-              min="1"
+              inputMode="numeric"
               value={form.price}
-              onChange={(event) =>
-                onChange({ ...form, price: event.target.value })
-              }
-              placeholder="129990"
+              onChange={(event) => updatePrice(event.target.value)}
+              placeholder="129 990"
             />
           </label>
 
           <label>
             {t("stock")}
             <input
-              type="number"
-              min="0"
+              inputMode="numeric"
               value={form.stock}
-              onChange={(event) =>
-                onChange({ ...form, stock: event.target.value })
-              }
+              onChange={(event) => updateStock(event.target.value)}
               placeholder="12"
             />
           </label>
@@ -111,4 +140,9 @@ export function ProductModal({
       </div>
     </div>
   );
+}
+
+function formatIntegerInput(value: string) {
+  const digits = value.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  return digits ? new Intl.NumberFormat("ru-RU").format(Number(digits)) : "";
 }

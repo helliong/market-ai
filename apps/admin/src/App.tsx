@@ -16,6 +16,14 @@ import {
   saveSellerLegalProfile,
   submitSellerLegalProfile,
 } from "./auth-api";
+import {
+  createSellerProduct,
+  deleteSellerProduct as deleteSellerProductRequest,
+  downloadSellerProductsTemplate,
+  getSellerProducts,
+  importSellerProductsTemplate,
+  updateSellerProduct,
+} from "./catalog-api";
 import type { SellerProfile, SellerLegalProfilePayload } from "./auth-api";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
@@ -142,6 +150,39 @@ function App() {
     };
   }, [page]);
 
+  useEffect(() => {
+    if (page !== "products") {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadProducts() {
+      try {
+        const sellerProducts = await getSellerProducts();
+        if (isMounted) {
+          setProducts(sellerProducts);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDialog({
+            title: t("checkFields"),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to load products",
+          });
+        }
+      }
+    }
+
+    void loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page, t]);
+
   const dashboardStats = useMemo(() => {
     const activeOrders = orders.filter((order) => order.status !== "cancelled");
     const revenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
@@ -162,10 +203,12 @@ function App() {
   function openEditProductModal(product: Product) {
     setEditingProduct(product);
     setProductForm({
+      sku: product.sku,
       name: product.name,
+      description: product.description,
       category: product.category,
-      price: String(product.price),
-      stock: String(product.stock),
+      price: formatMaskedNumber(product.price),
+      stock: formatMaskedNumber(product.stock),
       status: product.status,
     });
     setIsProductModalOpen(true);
@@ -177,46 +220,94 @@ function App() {
     setProductForm(emptyProductForm);
   }
 
-  function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleProductSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const sku = productForm.sku.trim();
     const name = productForm.name.trim();
+    const description = productForm.description.trim();
     const category = productForm.category.trim();
-    const price = Number(productForm.price);
-    const stock = Number(productForm.stock);
-    if (!name || !category || price <= 0 || stock < 0) {
+    const price = parseMaskedNumber(productForm.price);
+    const stock = parseMaskedNumber(productForm.stock);
+    if (!sku || !name || !category || price <= 0 || stock < 0) {
       setDialog({
         title: t("checkFields"),
         message: t("checkFieldsMessage"),
       });
       return;
     }
-    if (editingProduct) {
-      setProducts((currentProducts) =>
-        currentProducts.map((product) =>
-          product.id === editingProduct.id
-            ? {
-                ...product,
-                name,
-                category,
-                price,
-                stock,
-                status: productForm.status,
-              }
-            : product,
-        ),
-      );
-    } else {
-      const newProduct: Product = {
-        id: Date.now(),
+
+    try {
+      const normalizedForm = {
+        sku,
         name,
+        description,
         category,
-        price,
-        stock,
+        price: String(price),
+        stock: String(stock),
         status: productForm.status,
       };
-      setProducts((currentProducts) => [newProduct, ...currentProducts]);
+
+      if (editingProduct) {
+        const updatedProduct = await updateSellerProduct(
+          editingProduct.id,
+          normalizedForm,
+        );
+        setProducts((currentProducts) =>
+          currentProducts.map((product) =>
+            product.id === editingProduct.id ? updatedProduct : product,
+          ),
+        );
+      } else {
+        const newProduct = await createSellerProduct(normalizedForm);
+        setProducts((currentProducts) => [newProduct, ...currentProducts]);
+      }
+
+      closeProductModal();
+    } catch (error) {
+      setDialog({
+        title: t("checkFields"),
+        message:
+          error instanceof Error ? error.message : "Failed to save product",
+      });
     }
-    closeProductModal();
+  }
+
+  async function handleDownloadProductTemplate() {
+    try {
+      const blob = await downloadSellerProductsTemplate();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "product-bulk-template.xlsx";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setDialog({
+        title: t("checkFields"),
+        message:
+          error instanceof Error ? error.message : "Failed to download template",
+      });
+    }
+  }
+
+  async function handleImportProductTemplate(file: File) {
+    try {
+      const result = await importSellerProductsTemplate(file);
+      const sellerProducts = await getSellerProducts();
+      setProducts(sellerProducts);
+      setDialog({
+        title: "Импорт завершен",
+        message: `Создано: ${result.created}. Обновлено: ${result.updated}.`,
+      });
+    } catch (error) {
+      setDialog({
+        title: "Проверьте Excel-файл",
+        message:
+          error instanceof Error ? error.message : "Failed to import products",
+      });
+    }
   }
 
   function deleteProduct(productId: number) {
@@ -226,10 +317,21 @@ function App() {
       variant: "danger",
       confirmLabel: t("delete"),
       cancelLabel: t("cancel"),
-      onConfirm: () => {
-        setProducts((currentProducts) =>
-          currentProducts.filter((product) => product.id !== productId),
-        );
+      onConfirm: async () => {
+        try {
+          await deleteSellerProductRequest(productId);
+          setProducts((currentProducts) =>
+            currentProducts.filter((product) => product.id !== productId),
+          );
+        } catch (error) {
+          setDialog({
+            title: t("checkFields"),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to delete product",
+          });
+        }
       },
     });
   }
@@ -535,6 +637,8 @@ function App() {
             canAddProducts={sellerProfile?.status === "ACTIVATED"}
             inactiveReason={getSellerStatusMessage()}
             onAddProduct={openAddProductModal}
+            onDownloadTemplate={handleDownloadProductTemplate}
+            onImportTemplate={handleImportProductTemplate}
             onEditProduct={openEditProductModal}
             onDeleteProduct={deleteProduct}
           />
@@ -591,6 +695,14 @@ function getInitialPage(): Page {
       (item === "welcome" && (path === "" || path === "/")),
   );
   return matchedPage ?? "welcome";
+}
+
+function parseMaskedNumber(value: string) {
+  return Number(value.replace(/\D/g, ""));
+}
+
+function formatMaskedNumber(value: number) {
+  return new Intl.NumberFormat("ru-RU").format(value);
 }
 
 export default App;

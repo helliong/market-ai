@@ -111,7 +111,7 @@ async function authRequest<T>(
 }
 
 // Обновляет seller access/refresh cookies через refresh endpoint.
-function refreshSellerSession() {
+export function refreshSellerSession() {
   return authRequest<{ message: string }>(
     "/auth/seller/refresh",
     {
