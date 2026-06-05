@@ -35,23 +35,35 @@ export class SellerProductsService {
     return products.map((product) => this.toResponse(product));
   }
 
-  async buildSellerProductsTemplate(sellerId: string) {
+  async buildSellerProductsTemplate(
+    sellerId: string,
+    cookieHeader: string | undefined,
+  ) {
+    const seller = await this.authProfileService.getCurrentSeller(cookieHeader);
+
+    if (seller.accountId !== sellerId) {
+      throw new ForbiddenException('Seller token does not match profile');
+    }
+
     const products = await this.prisma.product.findMany({
       where: { sellerId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return buildProductTemplateWorkbook(
-      products.map((product) => ({
-        sku: product.sku,
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        price: product.price.toNumber(),
-        stock: product.stock,
-        status: product.status as ProductTemplateRow['status'],
-      })),
-    );
+    return {
+      file: buildProductTemplateWorkbook(
+        products.map((product) => ({
+          sku: product.sku,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          price: product.price.toNumber(),
+          stock: product.stock,
+          status: product.status as ProductTemplateRow['status'],
+        })),
+      ),
+      fileName: buildStocksFileName(seller.storeName),
+    };
   }
 
   async createSellerProduct(
@@ -184,7 +196,9 @@ export class SellerProductsService {
       }
 
       if (rowsBySku.has(row.sku)) {
-        errors.push(`Строка ${row.rowNumber}: SKU ${row.sku} повторяется в файле`);
+        errors.push(
+          `Строка ${row.rowNumber}: SKU ${row.sku} повторяется в файле`,
+        );
       }
 
       if (row.action && !isTemplateAction(row.action)) {
@@ -197,7 +211,9 @@ export class SellerProductsService {
 
       if (
         !shouldDelete &&
-        !productCategories.includes(row.category as (typeof productCategories)[number])
+        !productCategories.includes(
+          row.category as (typeof productCategories)[number],
+        )
       ) {
         errors.push(`Строка ${row.rowNumber}: выберите категорию из шаблона`);
       }
@@ -207,11 +223,15 @@ export class SellerProductsService {
       }
 
       if (!shouldDelete && (!Number.isInteger(row.stock) || row.stock < 0)) {
-        errors.push(`Строка ${row.rowNumber}: остаток должен быть целым числом от 0`);
+        errors.push(
+          `Строка ${row.rowNumber}: остаток должен быть целым числом от 0`,
+        );
       }
 
       if (!shouldDelete && !isTemplateStatus(row.status)) {
-        errors.push(`Строка ${row.rowNumber}: статус должен быть active, draft или archived`);
+        errors.push(
+          `Строка ${row.rowNumber}: статус должен быть active, draft или archived`,
+        );
       }
 
       rowsBySku.set(row.sku, row);
@@ -310,7 +330,11 @@ export class SellerProductsService {
   }
 
   private assertValidCategory(category: string) {
-    if (!productCategories.includes(category.trim() as (typeof productCategories)[number])) {
+    if (
+      !productCategories.includes(
+        category.trim() as (typeof productCategories)[number],
+      )
+    ) {
       throw new BadRequestException('Product category is invalid');
     }
   }
@@ -353,4 +377,15 @@ export class SellerProductsService {
 
 function normalizeSku(value: string) {
   return value.trim().toUpperCase();
+}
+
+function buildStocksFileName(storeName: string) {
+  const name = storeName
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return `${name || 'store'}-stocks.xlsx`;
 }

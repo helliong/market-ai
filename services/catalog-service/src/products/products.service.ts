@@ -12,10 +12,9 @@ export class ProductsService {
         status: 'active',
         stock: { gt: 0 },
       },
-      orderBy: { createdAt: 'desc' },
     });
 
-    return products.map((product) => this.toResponse(product));
+    return shuffleProducts(products).map((product) => this.toResponse(product));
   }
 
   async findProduct(productId: number) {
@@ -53,4 +52,18 @@ export class ProductsService {
       price: product.price.toNumber(),
     };
   }
+}
+
+function shuffleProducts<T>(products: T[]) {
+  const shuffled = [...products];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled;
 }

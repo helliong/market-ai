@@ -151,22 +151,11 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
   headers.push('Action');
 
   const headerCells = headers
-    .map((header, index) => inlineCell(`${String.fromCharCode(65 + index)}1`, header, 1))
+    .map((header, index) =>
+      inlineCell(`${String.fromCharCode(65 + index)}1`, header, 1),
+    )
     .join('');
-  const productRows = products.length
-    ? products
-    : [
-        {
-          sku: 'SKU-001',
-          name: 'iPhone 15 128GB',
-          category: productCategories[0],
-          price: 129990,
-          stock: 12,
-          status: 'active' as ProductStatus,
-          description: 'Короткое описание товара',
-        },
-      ];
-  const rows = productRows
+  const rows = products
     .map((product, index) => {
       const row = index + 2;
       return `<row r="${row}">${[
@@ -217,9 +206,13 @@ function buildCategoriesSheet() {
 }
 
 function parseRows(sheetXml: string, sharedStrings: string[]) {
-  return Array.from(sheetXml.matchAll(/<(?:\w+:)?row[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g)).map((rowMatch) => {
+  return Array.from(
+    sheetXml.matchAll(/<(?:\w+:)?row[^>]*>([\s\S]*?)<\/(?:\w+:)?row>/g),
+  ).map((rowMatch) => {
     const cells: Record<string, string> = {};
-    for (const cellMatch of rowMatch[1].matchAll(/<(?:\w+:)?c\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?c>/g)) {
+    for (const cellMatch of rowMatch[1].matchAll(
+      /<(?:\w+:)?c\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?c>/g,
+    )) {
       const attrs = cellMatch[1];
       const body = cellMatch[2];
       const ref = /r="([A-Z]+)\d+"/.exec(attrs)?.[1];
@@ -228,15 +221,14 @@ function parseRows(sheetXml: string, sharedStrings: string[]) {
       }
 
       const type = /t="([^"]+)"/.exec(attrs)?.[1];
-      const value = /<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/.exec(body)?.[1] ?? '';
+      const value =
+        /<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/.exec(body)?.[1] ?? '';
 
       if (type === 's') {
         cells[ref] = sharedStrings[Number(value)] ?? '';
       } else if (type === 'inlineStr') {
         cells[ref] = stripTags(
-          body
-            .replace(/<(?:\w+:)?t[^>]*>/g, '')
-            .replace(/<\/(?:\w+:)?t>/g, ''),
+          body.replace(/<(?:\w+:)?t[^>]*>/g, '').replace(/<\/(?:\w+:)?t>/g, ''),
         );
       } else {
         cells[ref] = decodeXml(value);
@@ -253,11 +245,11 @@ function parseSharedStrings(xmlFile?: Buffer) {
   }
 
   const xml = xmlFile.toString('utf8');
-  return Array.from(xml.matchAll(/<(?:\w+:)?si[^>]*>([\s\S]*?)<\/(?:\w+:)?si>/g)).map((match) =>
+  return Array.from(
+    xml.matchAll(/<(?:\w+:)?si[^>]*>([\s\S]*?)<\/(?:\w+:)?si>/g),
+  ).map((match) =>
     stripTags(
-      match[1]
-        .replace(/<(?:\w+:)?t[^>]*>/g, '')
-        .replace(/<\/(?:\w+:)?t>/g, ''),
+      match[1].replace(/<(?:\w+:)?t[^>]*>/g, '').replace(/<\/(?:\w+:)?t>/g, ''),
     ),
   );
 }
@@ -331,7 +323,9 @@ function readZip(buffer: Buffer) {
     const commentLength = buffer.readUInt16LE(offset + 32);
     const localHeaderOffset = buffer.readUInt32LE(offset + 42);
     const nameStart = offset + 46;
-    const name = buffer.slice(nameStart, nameStart + fileNameLength).toString('utf8');
+    const name = buffer
+      .slice(nameStart, nameStart + fileNameLength)
+      .toString('utf8');
 
     if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
       throw new Error('Формат Excel-файла не поддерживается');
@@ -339,7 +333,8 @@ function readZip(buffer: Buffer) {
 
     const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
     const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
-    const dataStart = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+    const dataStart =
+      localHeaderOffset + 30 + localFileNameLength + localExtraLength;
 
     const compressed = buffer.slice(dataStart, dataStart + compressedSize);
     const data =
@@ -406,7 +401,10 @@ function writeZip(files: Map<string, Buffer>) {
     offset += localHeader.length + name.length + data.length;
   }
 
-  const centralSize = centralDirectory.reduce((sum, chunk) => sum + chunk.length, 0);
+  const centralSize = centralDirectory.reduce(
+    (sum, chunk) => sum + chunk.length,
+    0,
+  );
   const end = Buffer.alloc(22);
   end.writeUInt32LE(0x06054b50, 0);
   end.writeUInt16LE(files.size, 8);
@@ -437,6 +435,8 @@ export function isTemplateStatus(value: string): value is ProductStatus {
   return productStatuses.includes(value as ProductStatus);
 }
 
-export function isTemplateAction(value: string): value is ProductTemplateAction {
+export function isTemplateAction(
+  value: string,
+): value is ProductTemplateAction {
   return productTemplateActions.includes(value as ProductTemplateAction);
 }

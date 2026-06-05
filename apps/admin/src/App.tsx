@@ -4,6 +4,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Moon,
   Package,
   Settings,
@@ -77,6 +78,7 @@ type MenuPage = Exclude<
   Page,
   "welcome" | "register" | "login" | "agreement" | "settings"
 >;
+type SidebarItem = MenuPage | "promotion";
 
 const PUBLIC_PAGES: Page[] = ["welcome", "register", "login", "agreement"];
 
@@ -91,14 +93,16 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
   const [storeName, setStoreName] = useState("MarketAI Store");
-  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
+  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(
+    null,
+  );
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [dialog, setDialog] = useState<AdminDialogState | null>(null);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
 
-  const pageTitles: Record<MenuPage, { label: string; icon: ReactNode }> = {
+  const pageTitles: Record<SidebarItem, { label: string; icon: ReactNode }> = {
     dashboard: {
       label: t("dashboard"),
       icon: <LayoutDashboard aria-hidden="true" />,
@@ -110,6 +114,10 @@ function App() {
     orders: {
       label: t("orders"),
       icon: <ClipboardList aria-hidden="true" />,
+    },
+    promotion: {
+      label: "Продвижение",
+      icon: <Megaphone aria-hidden="true" />,
     },
     users: {
       label: t("users"),
@@ -278,7 +286,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "product-bulk-template.xlsx";
+      link.download = `${formatStocksFileName(storeName)}.xlsx`;
       document.body.append(link);
       link.click();
       link.remove();
@@ -287,7 +295,9 @@ function App() {
       setDialog({
         title: t("checkFields"),
         message:
-          error instanceof Error ? error.message : "Failed to download template",
+          error instanceof Error
+            ? error.message
+            : "Failed to download template",
       });
     }
   }
@@ -370,6 +380,19 @@ function App() {
       setIsMenuOpen(true);
     }
     navigateToPage(nextPage);
+  }
+
+  function handlePromotionPlaceholder() {
+    if (!isMenuOpen) {
+      setIsMenuOpen(true);
+    }
+
+    setDialog({
+      title: "Продвижение в разработке",
+      message:
+        "Скоро здесь появятся инструменты для поднятия товаров в выдаче, настройки промо-кампаний и управления приоритетными позициями.",
+      confirmLabel: "Понятно",
+    });
   }
 
   function openStoreMenu() {
@@ -506,21 +529,43 @@ function App() {
         </button>
 
         <nav id="admin-menu">
-          {(Object.keys(pageTitles) as MenuPage[]).map((item) => (
-            <button
-              key={item}
-              className={page === item ? "active" : ""}
-              title={pageTitles[item].label}
-              aria-label={pageTitles[item].label}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleMenuItemClick(item);
-              }}
-            >
-              <span className="menu-icon">{pageTitles[item].icon}</span>
-              <span className="menu-label">{pageTitles[item].label}</span>
-            </button>
-          ))}
+          {(Object.keys(pageTitles) as SidebarItem[]).map((item) => {
+            const isPromotion = item === "promotion";
+
+            return (
+              <button
+                key={item}
+                className={`${!isPromotion && page === item ? "active" : ""} ${isPromotion ? "is-coming-soon" : ""}`}
+                title={
+                  isPromotion
+                    ? "Фича в разработке: продвижение товаров"
+                    : pageTitles[item].label
+                }
+                aria-label={
+                  isPromotion
+                    ? "Продвижение товаров, фича в разработке"
+                    : pageTitles[item].label
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (isPromotion) {
+                    handlePromotionPlaceholder();
+                    return;
+                  }
+
+                  handleMenuItemClick(item);
+                }}
+              >
+                <span className="menu-icon">{pageTitles[item].icon}</span>
+                <span className="menu-label">
+                  {pageTitles[item].label}
+                  {isPromotion && (
+                    <span className="menu-soon-badge">Скоро</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
         </nav>
 
         <button
@@ -703,6 +748,17 @@ function parseMaskedNumber(value: string) {
 
 function formatMaskedNumber(value: number) {
   return new Intl.NumberFormat("ru-RU").format(value);
+}
+
+function formatStocksFileName(storeName: string) {
+  const name = storeName
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]+/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return `${name || "store"}-stocks`;
 }
 
 export default App;

@@ -44,9 +44,11 @@ export class SellerProductsController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
   ) {
-    const file = await this.sellerProductsService.buildSellerProductsTemplate(
-      this.getSellerId(req),
-    );
+    const template =
+      await this.sellerProductsService.buildSellerProductsTemplate(
+        this.getSellerId(req),
+        req.headers.cookie,
+      );
 
     res.setHeader(
       'Content-Type',
@@ -54,9 +56,9 @@ export class SellerProductsController {
     );
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename="product-bulk-template.xlsx"',
+      buildAttachmentHeader(template.fileName),
     );
-    res.send(file);
+    res.send(template.file);
   }
 
   @Post('import')
@@ -121,4 +123,9 @@ export class SellerProductsController {
 
     return sellerId;
   }
+}
+
+function buildAttachmentHeader(fileName: string) {
+  const asciiFileName = fileName.replace(/[^\x20-\x7e]+/g, '_');
+  return `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
