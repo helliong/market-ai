@@ -127,10 +127,6 @@ export function StorePage({ storeName }: StorePageProps) {
                   <h1 className="text-3xl font-black tracking-[-0.04em] text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)] md:text-5xl">
                     {storeName}
                   </h1>
-                  <p className="mt-2 max-w-[680px] text-sm font-semibold text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] md:text-base">
-                    Подборка товаров от продавца MarketAI: актуальные позиции,
-                    проверенный профиль и понятные условия покупки.
-                  </p>
                 </div>
               </div>
 

@@ -4,13 +4,18 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, LockKeyhole, Mail, Store, User } from "lucide-react";
-import { ADMIN_LOGIN_URL, ADMIN_REGISTER_URL, ADMIN_SELLER_URL } from "@/lib/admin";
+import {
+  ADMIN_LOGIN_URL,
+  ADMIN_REGISTER_URL,
+  ADMIN_SELLER_URL,
+} from "@/lib/admin";
 import { login, register } from "@/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   hydrateShoppingState,
   persistLocalShoppingState,
 } from "@/store/shoppingHydration";
+import { hydrateClientOrders } from "@/store/ordersSlice";
 
 import {
   getCurrentUser,
@@ -117,8 +122,9 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
-  const [loginRateLimit, setLoginRateLimit] =
-    useState<LoginRateLimitState>(initialLoginRateLimitState);
+  const [loginRateLimit, setLoginRateLimit] = useState<LoginRateLimitState>(
+    initialLoginRateLimitState,
+  );
   const [now, setNow] = useState(0);
   const [errors, setErrors] = useState<{
     name?: string;
@@ -159,7 +165,8 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
   function validateEmail(value: string) {
     if (!value) return t("errorEmailRequired");
     if (CYRILLIC_PATTERN.test(value)) return t("errorEmailNoCyrillic");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return t("errorInvalidEmail");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+      return t("errorInvalidEmail");
     return undefined;
   }
 
@@ -275,6 +282,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       );
 
       await hydrateShoppingState(dispatch).catch(() => undefined);
+      dispatch(hydrateClientOrders());
 
       router.push(redirectPath ?? "/profile");
     } catch (error) {
@@ -342,6 +350,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
       );
 
       await hydrateShoppingState(dispatch).catch(() => undefined);
+      dispatch(hydrateClientOrders());
 
       router.push(redirectPath ?? "/profile");
     } catch (error) {
@@ -416,8 +425,11 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
         setResetNotice(t("resetCodeAccepted"));
       } catch (error) {
         setResetErrors({
-          code:
-            getLocalizedAuthError(error, t, t("errorInvalidVerificationCode")),
+          code: getLocalizedAuthError(
+            error,
+            t,
+            t("errorInvalidVerificationCode"),
+          ),
         });
       } finally {
         setIsSubmitting(false);
@@ -470,111 +482,226 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
     }
   }
 
-
   return (
     <section className="mx-auto grid min-h-[calc(100vh-76px)] max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 md:px-8 md:py-10 lg:grid-cols-[1fr_460px] lg:gap-10">
       <div className="flex items-center">
         <div className="max-w-[620px]">
-          <p className={`text-sm font-black uppercase tracking-[0.16em] ${authTheme.accentText}`}>
+          <p
+            className={`text-sm font-black uppercase tracking-[0.16em] ${authTheme.accentText}`}
+          >
             {isSeller ? t("marketAIForSellers") : t("marketAIAccount")}
           </p>
           <h1 className="mt-4 text-3xl font-black leading-tight tracking-[-0.05em] md:text-5xl">
             {isSeller
-              ? isRegister ? t("createSellerAccount") : t("loginSellerAccount")
-              : isRegister ? t("createProfile") : t("loginProfile")}
+              ? isRegister
+                ? t("createSellerAccount")
+                : t("loginSellerAccount")
+              : isRegister
+                ? t("createProfile")
+                : t("loginProfile")}
           </h1>
           <p className="mt-5 max-w-[520px] text-lg leading-8 text-[#6B7280]">
             {isSeller
-              ? isRegister ? t("sellerRegisterDesc") : t("sellerLoginDesc")
-              : isRegister ? t("clientRegisterDesc") : t("clientLoginDesc")}
+              ? isRegister
+                ? t("sellerRegisterDesc")
+                : t("sellerLoginDesc")
+              : isRegister
+                ? t("clientRegisterDesc")
+                : t("clientLoginDesc")}
           </p>
           <div className="mt-8 hidden max-w-[560px] grid-cols-1 gap-3 sm:grid-cols-3 lg:grid">
-            {(isSeller ? t("sellerFeatures") : t("clientFeatures")).split(',').map((item, idx) => (
-              <div key={idx} className="rounded-2xl bg-white p-4 text-sm font-bold text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-                {item.trim()}
-              </div>
-           ))}
+            {(isSeller ? t("sellerFeatures") : t("clientFeatures"))
+              .split(",")
+              .map((item, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl bg-white p-4 text-sm font-bold text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+                >
+                  {item.trim()}
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
       <form
         noValidate
-        onSubmit={isPasswordResetStep ? handleResetPasswordSubmit : isEmailVerificationStep ? handleEmailVerificationSubmit : handleSubmit}
+        onSubmit={
+          isPasswordResetStep
+            ? handleResetPasswordSubmit
+            : isEmailVerificationStep
+              ? handleEmailVerificationSubmit
+              : handleSubmit
+        }
         className="self-center rounded-[32px] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
       >
         <div className="mb-6">
           <h2 className="text-2xl font-black tracking-[-0.03em]">
-            {isEmailVerificationStep ? t("emailVerification") : isPasswordResetStep ? t("resetPassword") : isRegister ? t("registration") : t("loginForm")}
+            {isEmailVerificationStep
+              ? t("emailVerification")
+              : isPasswordResetStep
+                ? t("resetPassword")
+                : isRegister
+                  ? t("registration")
+                  : t("loginForm")}
           </h2>
           <p className="mt-2 text-sm text-[#6B7280]">
             {isEmailVerificationStep
               ? `${t("codeSentTo")} ${pendingUser?.email}`
               : isPasswordResetStep
-              ? resetPasswordStep === "email"
-                ? t("enterEmailToReset")
-                : resetPasswordStep === "code"
-                ? t("enterSixDigits")
-                : t("enterNewPassword")
-              : isRegister
-              ? t("fillData")
-              : t("enterEmailPassword")}
+                ? resetPasswordStep === "email"
+                  ? t("enterEmailToReset")
+                  : resetPasswordStep === "code"
+                    ? t("enterSixDigits")
+                    : t("enterNewPassword")
+                : isRegister
+                  ? t("fillData")
+                  : t("enterEmailPassword")}
           </p>
         </div>
 
         {isPasswordResetStep ? (
           <div className="space-y-4">
-            {resetNotice && <p className="auth-reset-notice rounded-2xl border px-4 py-3 text-sm font-bold">{resetNotice}</p>}
+            {resetNotice && (
+              <p className="auth-reset-notice rounded-2xl border px-4 py-3 text-sm font-bold">
+                {resetNotice}
+              </p>
+            )}
             {resetPasswordStep === "email" && (
               <AuthField
-                icon={<Mail size={18} />} label="Email" value={resetEmail}
-                onChange={(value) => { setResetEmail(value); setResetErrors({ ...resetErrors, email: undefined }); }}
-                placeholder="you@example.com" type="email" error={resetErrors.email} focusBorder={authTheme.focusBorder}
+                icon={<Mail size={18} />}
+                label="Email"
+                value={resetEmail}
+                onChange={(value) => {
+                  setResetEmail(value);
+                  setResetErrors({ ...resetErrors, email: undefined });
+                }}
+                placeholder="you@example.com"
+                type="email"
+                error={resetErrors.email}
+                focusBorder={authTheme.focusBorder}
               />
             )}
             {resetPasswordStep === "code" && (
               <AuthField
-                icon={<Mail size={18} />} label="Код из письма" value={resetCode}
-                onChange={(value) => { setResetCode(value.replace(/\D/g, "").slice(0, 6)); setResetErrors({ ...resetErrors, code: undefined }); }}
-                placeholder="000000" type="text" error={resetErrors.code} focusBorder={authTheme.focusBorder}
+                icon={<Mail size={18} />}
+                label="Код из письма"
+                value={resetCode}
+                onChange={(value) => {
+                  setResetCode(value.replace(/\D/g, "").slice(0, 6));
+                  setResetErrors({ ...resetErrors, code: undefined });
+                }}
+                placeholder="000000"
+                type="text"
+                error={resetErrors.code}
+                focusBorder={authTheme.focusBorder}
               />
             )}
             {resetPasswordStep === "password" && (
               <>
                 <AuthField
-                  icon={<LockKeyhole size={18} />} label={t("newPassword")} value={resetPassword}
-                  onChange={(value) => { setResetPassword(value); setResetErrors({ ...resetErrors, password: undefined, confirmPassword: undefined }); }}
-                  placeholder="Введите новый пароль" type="password" error={resetErrors.password} focusBorder={authTheme.focusBorder}
+                  icon={<LockKeyhole size={18} />}
+                  label={t("newPassword")}
+                  value={resetPassword}
+                  onChange={(value) => {
+                    setResetPassword(value);
+                    setResetErrors({
+                      ...resetErrors,
+                      password: undefined,
+                      confirmPassword: undefined,
+                    });
+                  }}
+                  placeholder="Введите новый пароль"
+                  type="password"
+                  error={resetErrors.password}
+                  focusBorder={authTheme.focusBorder}
                 />
                 <AuthField
-                  icon={<LockKeyhole size={18} />} label={t("confirmPassword")} value={resetConfirmPassword}
-                  onChange={(value) => { setResetConfirmPassword(value); setResetErrors({ ...resetErrors, confirmPassword: undefined }); }}
-                  placeholder="Повторите новый пароль" type="password" error={resetErrors.confirmPassword} focusBorder={authTheme.focusBorder}
+                  icon={<LockKeyhole size={18} />}
+                  label={t("confirmPassword")}
+                  value={resetConfirmPassword}
+                  onChange={(value) => {
+                    setResetConfirmPassword(value);
+                    setResetErrors({
+                      ...resetErrors,
+                      confirmPassword: undefined,
+                    });
+                  }}
+                  placeholder="Повторите новый пароль"
+                  type="password"
+                  error={resetErrors.confirmPassword}
+                  focusBorder={authTheme.focusBorder}
                 />
               </>
             )}
-            {submitError && <p className="rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#DC2626]">{submitError}</p>}
-            <button type="submit" disabled={isSubmitting} className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}>
-              {isSubmitting ? "Загрузка..." : resetPasswordStep === "email" ? "Отправить письмо" : resetPasswordStep === "code" ? "Подтвердить код" : t("savePassword")}
+            {submitError && (
+              <p className="rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#DC2626]">
+                {submitError}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
+            >
+              {isSubmitting
+                ? "Загрузка..."
+                : resetPasswordStep === "email"
+                  ? "Отправить письмо"
+                  : resetPasswordStep === "code"
+                    ? "Подтвердить код"
+                    : t("savePassword")}
             </button>
-            <button type="button" onClick={resetPasswordFlow} className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}>
+            <button
+              type="button"
+              onClick={resetPasswordFlow}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
               {t("backToLogin")}
             </button>
           </div>
         ) : isEmailVerificationStep ? (
           <div className="space-y-4">
             <AuthField
-              icon={<Mail size={18} />} label={t("verificationCode")} value={verificationCode}
-              onChange={(value) => { setVerificationCode(value.replace(/\D/g, "").slice(0, 6)); setVerificationError(undefined); }}
-              placeholder="000000" type="text" error={verificationError} focusBorder={authTheme.focusBorder}
+              icon={<Mail size={18} />}
+              label={t("verificationCode")}
+              value={verificationCode}
+              onChange={(value) => {
+                setVerificationCode(value.replace(/\D/g, "").slice(0, 6));
+                setVerificationError(undefined);
+              }}
+              placeholder="000000"
+              type="text"
+              error={verificationError}
+              focusBorder={authTheme.focusBorder}
             />
-            <button type="submit" disabled={isSubmitting} className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
+            >
               {isSubmitting ? "Загрузка..." : t("confirmEmail")}
             </button>
-            <button type="button" onClick={() => { setPendingUser(null); setVerificationCode(""); setVerificationError(undefined); }} className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingUser(null);
+                setVerificationCode("");
+                setVerificationError(undefined);
+              }}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
               {t("resendCode")}
             </button>
-            <button type="button" onClick={() => { setPendingUser(null); setVerificationCode(""); setVerificationError(undefined); }} className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingUser(null);
+                setVerificationCode("");
+                setVerificationError(undefined);
+              }}
+              className={`flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold ${authTheme.outlineButton}`}
+            >
               {t("changeData")}
             </button>
           </div>
@@ -583,72 +710,170 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
             <div className="space-y-4">
               {isRegister && (
                 <AuthField
-                  icon={<User size={18} />} label={isSeller ? t("storeName") : t("name")} value={name}
-                  onChange={(value) => { setName(value); setErrors({ ...errors, name: undefined }); }}
-                  placeholder={isSeller ? "Market store" : "George"} type="text" error={errors.name} focusBorder={authTheme.focusBorder}
+                  icon={<User size={18} />}
+                  label={isSeller ? t("storeName") : t("name")}
+                  value={name}
+                  onChange={(value) => {
+                    setName(value);
+                    setErrors({ ...errors, name: undefined });
+                  }}
+                  placeholder={isSeller ? "Market store" : "George"}
+                  type="text"
+                  error={errors.name}
+                  focusBorder={authTheme.focusBorder}
                 />
               )}
               <AuthField
-                icon={<Mail size={18} />} label="Email" value={email}
-                onChange={(value) => { setEmail(value); setErrors({ ...errors, email: undefined }); }}
-                placeholder="you@example.com" type="email" error={errors.email} focusBorder={authTheme.focusBorder}
+                icon={<Mail size={18} />}
+                label="Email"
+                value={email}
+                onChange={(value) => {
+                  setEmail(value);
+                  setErrors({ ...errors, email: undefined });
+                }}
+                placeholder="you@example.com"
+                type="email"
+                error={errors.email}
+                focusBorder={authTheme.focusBorder}
               />
               <AuthField
-                icon={<LockKeyhole size={18} />} label="Пароль" value={password}
-                onChange={(value) => { setPassword(value); setErrors({ ...errors, password: undefined, confirmPassword: undefined }); }}
-                placeholder="Введите пароль" type="password" error={errors.password} focusBorder={authTheme.focusBorder}
+                icon={<LockKeyhole size={18} />}
+                label="Пароль"
+                value={password}
+                onChange={(value) => {
+                  setPassword(value);
+                  setErrors({
+                    ...errors,
+                    password: undefined,
+                    confirmPassword: undefined,
+                  });
+                }}
+                placeholder="Введите пароль"
+                type="password"
+                error={errors.password}
+                focusBorder={authTheme.focusBorder}
               />
               {isRegister && (
                 <AuthField
-                  icon={<LockKeyhole size={18} />} label={t("confirmPassword")} value={confirmPassword}
-                  onChange={(value) => { setConfirmPassword(value); setErrors({ ...errors, confirmPassword: undefined }); }}
-                  placeholder="Повторите пароль" type="password" error={errors.confirmPassword} focusBorder={authTheme.focusBorder}
+                  icon={<LockKeyhole size={18} />}
+                  label={t("confirmPassword")}
+                  value={confirmPassword}
+                  onChange={(value) => {
+                    setConfirmPassword(value);
+                    setErrors({ ...errors, confirmPassword: undefined });
+                  }}
+                  placeholder="Повторите пароль"
+                  type="password"
+                  error={errors.confirmPassword}
+                  focusBorder={authTheme.focusBorder}
                 />
               )}
               {isRegister && (
                 <label className="block">
-                  <span className={`flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition ${authTheme.hoverBorder}`}>
-                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${isAgreementAccepted ? authTheme.checked : "border-[#D1D5DB] bg-white text-transparent"}`}>
+                  <span
+                    className={`flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition ${authTheme.hoverBorder}`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${isAgreementAccepted ? authTheme.checked : "border-[#D1D5DB] bg-white text-transparent"}`}
+                    >
                       <Check size={14} />
                     </span>
-                    <input type="checkbox" checked={isAgreementAccepted} onChange={(e) => { setIsAgreementAccepted(e.target.checked); setErrors({ ...errors, agreement: undefined }); }} className="sr-only" />
+                    <input
+                      type="checkbox"
+                      checked={isAgreementAccepted}
+                      onChange={(e) => {
+                        setIsAgreementAccepted(e.target.checked);
+                        setErrors({ ...errors, agreement: undefined });
+                      }}
+                      className="sr-only"
+                    />
                     <span className="text-sm font-semibold leading-6 text-[#6B7280]">
-                      {t("iAccept")} <Link href="/agreement" className={`font-black ${authTheme.accentTextHover}`}>{t("userAgreement")}</Link>
+                      {t("iAccept")}{" "}
+                      <Link
+                        href="/agreement"
+                        className={`font-black ${authTheme.accentTextHover}`}
+                      >
+                        {t("userAgreement")}
+                      </Link>
                     </span>
                   </span>
-                  {errors.agreement && <span className="mt-2 block text-sm font-bold text-[#EF4444]">{errors.agreement}</span>}
+                  {errors.agreement && (
+                    <span className="mt-2 block text-sm font-bold text-[#EF4444]">
+                      {errors.agreement}
+                    </span>
+                  )}
                 </label>
               )}
             </div>
-            {submitError && !isLoginRateLimited && <p className="mt-4 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#EF4444]">{submitError}</p>}
-            {isLoginRateLimited && (
-              <p className="auth-login-rate-notice mt-4 rounded-2xl px-4 py-3 text-sm font-bold">
-                {getLoginRateLimitMessage(
-                  loginCooldownMs,
-                  lang,
-                )}
+            {submitError && !isLoginRateLimited && (
+              <p className="mt-4 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#EF4444]">
+                {submitError}
               </p>
             )}
-            <button type="submit" disabled={isSubmitting || isLoginRateLimited} className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}>
-              {isSubmitting ? "Загрузка..." : isRegister ? t("registerNow") : t("login")}
+            {isLoginRateLimited && (
+              <p className="auth-login-rate-notice mt-4 rounded-2xl px-4 py-3 text-sm font-bold">
+                {getLoginRateLimitMessage(loginCooldownMs, lang)}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting || isLoginRateLimited}
+              className={`mt-6 flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-70 ${authTheme.primaryButton}`}
+            >
+              {isSubmitting
+                ? "Загрузка..."
+                : isRegister
+                  ? t("registerNow")
+                  : t("login")}
             </button>
             <p className="mt-5 text-center text-sm text-[#6B7280]">
               {isRegister ? t("alreadyHaveAccount") : t("noAccountYet")}{" "}
-              <Link href={alternateAuthHref} className={`font-black ${authTheme.accentTextHover}`}>
+              <Link
+                href={alternateAuthHref}
+                className={`font-black ${authTheme.accentTextHover}`}
+              >
                 {isRegister ? t("login") : t("registerNow")}
               </Link>
             </p>
             {!isRegister && (
-              <button type="button" onClick={() => { setResetPasswordStep("email"); setResetEmail(email); setResetCode(""); setResetPassword(""); setResetConfirmPassword(""); setResetNotice(undefined); setResetErrors({}); setSubmitError(undefined); }} className={`mx-auto mt-3 block w-fit text-sm font-black ${authTheme.accentTextHover}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetPasswordStep("email");
+                  setResetEmail(email);
+                  setResetCode("");
+                  setResetPassword("");
+                  setResetConfirmPassword("");
+                  setResetNotice(undefined);
+                  setResetErrors({});
+                  setSubmitError(undefined);
+                }}
+                className={`mx-auto mt-3 block w-fit text-sm font-black ${authTheme.accentTextHover}`}
+              >
                 {t("forgotPassword")}
               </button>
             )}
             {isRegister && !isSeller && (
-              <a href={ADMIN_SELLER_URL} className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]">
-                <span className="seller-profile-cta-star seller-profile-cta-star-1" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-2" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-3" aria-hidden="true" />
-                <span className="seller-profile-cta-star seller-profile-cta-star-4" aria-hidden="true" />
+              <a
+                href={ADMIN_SELLER_URL}
+                className="seller-profile-cta relative mt-4 flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
+              >
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-1"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-2"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-3"
+                  aria-hidden="true"
+                />
+                <span
+                  className="seller-profile-cta-star seller-profile-cta-star-4"
+                  aria-hidden="true"
+                />
                 <Store size={18} />
                 {t("sellOnMarketAI")}
               </a>
@@ -708,7 +933,9 @@ function readLoginRateLimitState(): LoginRateLimitState {
   }
 
   try {
-    const storedValue = window.localStorage.getItem(LOGIN_RATE_LIMIT_STORAGE_KEY);
+    const storedValue = window.localStorage.getItem(
+      LOGIN_RATE_LIMIT_STORAGE_KEY,
+    );
 
     if (!storedValue) {
       return initialLoginRateLimitState;
@@ -751,7 +978,9 @@ function recordFailedLoginAttempt() {
   const nextAttempts = isWithinWindow ? currentState.attempts + 1 : 1;
   const nextState = {
     attempts: nextAttempts,
-    windowStartedAt: isWithinWindow ? currentState.windowStartedAt : currentTime,
+    windowStartedAt: isWithinWindow
+      ? currentState.windowStartedAt
+      : currentTime,
     lockedUntil:
       nextAttempts >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
         ? currentTime + LOGIN_RATE_LIMIT_LOCK_MS
@@ -817,11 +1046,23 @@ function AuthField({
   return (
     <label className="block">
       <span className="text-sm font-bold text-[#111827]">{label}</span>
-      <span className={`mt-2 flex h-12 items-center gap-3 rounded-2xl border bg-[#F9FAFB] px-4 text-[#6B7280] transition focus-within:bg-white ${error ? "border-[#EF4444] focus-within:border-[#EF4444]" : `border-[#E5E7EB] ${focusBorder}`}`}>
+      <span
+        className={`mt-2 flex h-12 items-center gap-3 rounded-2xl border bg-[#F9FAFB] px-4 text-[#6B7280] transition focus-within:bg-white ${error ? "border-[#EF4444] focus-within:border-[#EF4444]" : `border-[#E5E7EB] ${focusBorder}`}`}
+      >
         {icon}
-        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#111827] outline-none placeholder:text-[#9CA3AF]" />
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#111827] outline-none placeholder:text-[#9CA3AF]"
+        />
       </span>
-      {error && <span className="mt-2 block text-sm font-bold text-[#EF4444]">{error}</span>}
+      {error && (
+        <span className="mt-2 block text-sm font-bold text-[#EF4444]">
+          {error}
+        </span>
+      )}
     </label>
   );
 }

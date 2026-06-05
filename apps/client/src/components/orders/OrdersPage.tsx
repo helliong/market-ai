@@ -10,26 +10,14 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-
-type OrderStatus = "processing" | "shipping" | "ready" | "received" | "cancelled";
-
-type Order = {
-  id: string;
-  date: string;
-  title: string;
-  itemsCount: number;
-  total: string;
-  status: OrderStatus;
-  statusLabel: string;
-  details: string;
-};
-
-const activeOrders: Order[] = [];
-const completedOrders: Order[] = [];
+import { useAppSelector } from "@/store/hooks";
+import type { ClientOrder } from "@/store/ordersSlice";
 
 // Экран заказов разделяет активные и завершенные заказы пользователя.
 export function OrdersPage() {
   const [view, setView] = useState<"active" | "completed">("active");
+  const activeOrders = useAppSelector((state) => state.orders.active);
+  const completedOrders = useAppSelector((state) => state.orders.completed);
   const orders = view === "active" ? activeOrders : completedOrders;
 
   return (
@@ -112,7 +100,9 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
         {isActive ? <Truck size={34} /> : <Package size={34} />}
       </div>
       <h2 className="mt-5 text-2xl font-black text-[#111827]">
-        {isActive ? "Нет активных заказов" : "У вас еще нет завершенных заказов"}
+        {isActive
+          ? "Нет активных заказов"
+          : "У вас еще нет завершенных заказов"}
       </h2>
       <p className="mt-3 max-w-[460px] text-sm leading-6 text-[#6B7280]">
         {isActive
@@ -131,9 +121,10 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
 }
 
 // Карточка заказа с составом, статусом, датой и суммой.
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order }: { order: ClientOrder }) {
   const isCancelled = order.status === "cancelled";
-  const isCompleted = order.status === "received" || order.status === "cancelled";
+  const isCompleted =
+    order.status === "received" || order.status === "cancelled";
 
   return (
     <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
@@ -181,7 +172,9 @@ function OrderCard({ order }: { order: Order }) {
           >
             {order.statusLabel}
           </span>
-          <span className="text-sm font-semibold text-[#6B7280]">{order.details}</span>
+          <span className="text-sm font-semibold text-[#6B7280]">
+            {order.details}
+          </span>
         </div>
       </div>
     </article>

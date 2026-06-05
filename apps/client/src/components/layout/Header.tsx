@@ -24,6 +24,7 @@ import { logout } from "@/store/authSlice";
 import { hydrateCart } from "@/store/cartSlice";
 import { hydrateCompare } from "@/store/compareSlice";
 import { hydrateFavorites } from "@/store/favoritesSlice";
+import { clearOrders } from "@/store/ordersSlice";
 import { categories } from "@/data/categories";
 import { logoutClient } from "@/lib/auth-api";
 import { getCatalogSections } from "@/lib/catalog-data";
@@ -49,9 +50,12 @@ export function Header() {
   const [city, setCity] = useState("Екатеринбург");
   const [searchQuery, setSearchQuery] = useState("");
   const cartCount = useAppSelector((state) =>
-    state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
+    state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
+  const activeOrdersCount = useAppSelector(
+    (state) => state.orders.active.length,
+  );
   const user = useAppSelector((state) => state.auth.user);
 
   const mobileNavItemClass = (isActive: boolean) =>
@@ -64,7 +68,10 @@ export function Header() {
   useEffect(() => {
     if (!isAddressOpen) return;
     function handleDocumentClick(event: MouseEvent) {
-      if (addressRef.current && !addressRef.current.contains(event.target as Node)) {
+      if (
+        addressRef.current &&
+        !addressRef.current.contains(event.target as Node)
+      ) {
         setIsAddressOpen(false);
       }
     }
@@ -85,7 +92,8 @@ export function Header() {
       setIsProfileOpen(false);
     }
     document.addEventListener("pointerdown", handleDocumentPointerDown);
-    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    return () =>
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
 
   useEffect(() => {
@@ -101,7 +109,9 @@ export function Header() {
 
   useEffect(() => {
     function updateHeaderDocked() {
-      const adHeight = window.matchMedia("(min-width: 768px)").matches ? 44 : 34;
+      const adHeight = window.matchMedia("(min-width: 768px)").matches
+        ? 44
+        : 34;
       setIsHeaderDocked(window.scrollY >= adHeight);
     }
 
@@ -168,7 +178,10 @@ export function Header() {
             </span>
           </Link>
 
-          <div ref={addressRef} className="relative order-3 shrink-0 xl:order-none xl:ml-0">
+          <div
+            ref={addressRef}
+            className="relative order-3 shrink-0 xl:order-none xl:ml-0"
+          >
             <button
               onClick={() => {
                 setIsAddressOpen((prev) => !prev);
@@ -197,18 +210,20 @@ export function Header() {
                 <h3 className="text-lg font-black">{t("chooseCity")}</h3>
                 <p className="mt-1 text-sm text-[#6B7280]">{t("cityNote")}</p>
                 <div className="mt-4 space-y-2">
-                  {["Екатеринбург", "Москва", "Санкт-Петербург", "Казань"].map((item) => (
-                    <button
-                      key={item}
-                      onClick={() => {
-                        setCity(item);
-                        setIsAddressOpen(false);
-                      }}
-                      className="w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
-                    >
-                      {item}
-                    </button>
-                  ))}
+                  {["Екатеринбург", "Москва", "Санкт-Петербург", "Казань"].map(
+                    (item) => (
+                      <button
+                        key={item}
+                        onClick={() => {
+                          setCity(item);
+                          setIsAddressOpen(false);
+                        }}
+                        className="w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF]"
+                      >
+                        {item}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -238,7 +253,10 @@ export function Header() {
             onSubmit={handleSearchSubmit}
             className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto"
           >
-            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+            <Search
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
+            />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -252,6 +270,11 @@ export function Header() {
               href="/orders"
               className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
             >
+              {activeOrdersCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+                  {activeOrdersCount}
+                </span>
+              )}
               <Package size={20} />
               <span>{t("orderHistory")}</span>
             </Link>
@@ -345,7 +368,10 @@ export function Header() {
                           />
                         </>
                       )}
-                      <ProfileLanguageSelect value={lang} onChange={changeLanguage} />
+                      <ProfileLanguageSelect
+                        value={lang}
+                        onChange={changeLanguage}
+                      />
                     </div>
 
                     {user && (
@@ -360,6 +386,7 @@ export function Header() {
                             dispatch(hydrateCart([]));
                             dispatch(hydrateFavorites([]));
                             dispatch(hydrateCompare([]));
+                            dispatch(clearOrders());
                             setIsProfileOpen(false);
                           }
                         }}
@@ -402,7 +429,9 @@ export function Header() {
                     <button
                       key={category.id}
                       type="button"
-                      onMouseEnter={() => setHoveredCatalogCategory(category.id)}
+                      onMouseEnter={() =>
+                        setHoveredCatalogCategory(category.id)
+                      }
                       onFocus={() => setHoveredCatalogCategory(category.id)}
                       className={`flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-bold transition ${
                         isActive
@@ -438,8 +467,9 @@ export function Header() {
                 </p>
                 <h2 className="mt-2 text-4xl font-black tracking-[-0.04em] text-[var(--text-main)]">
                   {t(
-                    categories.find((category) => category.id === hoveredCatalogCategory)
-                      ?.title ?? "Каталог",
+                    categories.find(
+                      (category) => category.id === hoveredCatalogCategory,
+                    )?.title ?? "Каталог",
                   )}
                 </h2>
               </div>
@@ -477,7 +507,11 @@ export function Header() {
       )}
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 gap-1 border-t border-[#E5E7EB] bg-white/95 px-3 py-2 backdrop-blur xl:hidden">
-        <Link href="/" aria-label={t("home")} className={mobileNavItemClass(pathname === "/")}>
+        <Link
+          href="/"
+          aria-label={t("home")}
+          className={mobileNavItemClass(pathname === "/")}
+        >
           <Home size={21} />
         </Link>
 
@@ -499,6 +533,11 @@ export function Header() {
           aria-label={t("orderHistory")}
           className={mobileNavItemClass(pathname.startsWith("/orders"))}
         >
+          {activeOrdersCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
+              {activeOrdersCount}
+            </span>
+          )}
           <Package size={21} />
           <span>{t("orderHistory")}</span>
         </Link>
@@ -520,7 +559,9 @@ export function Header() {
         <Link
           href="/cart"
           aria-label={t("cart")}
-          className={mobileNavItemClass(pathname.startsWith("/cart") || pathname.startsWith("/checkout"))}
+          className={mobileNavItemClass(
+            pathname.startsWith("/cart") || pathname.startsWith("/checkout"),
+          )}
         >
           {cartCount > 0 && (
             <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -544,7 +585,7 @@ export function Header() {
               isProfileOpen ||
                 pathname.startsWith("/profile") ||
                 pathname.startsWith("/login") ||
-                pathname.startsWith("/register")
+                pathname.startsWith("/register"),
             )} w-full`}
           >
             <User size={21} />
@@ -600,7 +641,10 @@ export function Header() {
                       />
                     </>
                   )}
-                  <ProfileLanguageSelect value={lang} onChange={changeLanguage} />
+                  <ProfileLanguageSelect
+                    value={lang}
+                    onChange={changeLanguage}
+                  />
                 </div>
 
                 {user && (
@@ -615,6 +659,7 @@ export function Header() {
                         dispatch(hydrateCart([]));
                         dispatch(hydrateFavorites([]));
                         dispatch(hydrateCompare([]));
+                        dispatch(clearOrders());
                         setIsProfileOpen(false);
                       }
                     }}
@@ -633,9 +678,23 @@ export function Header() {
 }
 
 // Ссылка внутри меню профиля, которая закрывает меню после перехода.
-function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode; label: string; href: string; onClick: () => void }) {
+function ProfileMenuLink({
+  icon,
+  label,
+  href,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  onClick: () => void;
+}) {
   return (
-    <Link href={href} onClick={onClick} className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
+    >
       <span className="text-[#6D4AFF]">{icon}</span>
       <span>{label}</span>
     </Link>
@@ -643,7 +702,13 @@ function ProfileMenuLink({ icon, label, href, onClick }: { icon: React.ReactNode
 }
 
 // Селект языка внутри меню профиля.
-function ProfileLanguageSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function ProfileLanguageSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]">
       <span className="text-[#6D4AFF]">
