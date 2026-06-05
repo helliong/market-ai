@@ -81,6 +81,24 @@ services:
     networks:
       - market-ai-network
 
+  order-service:
+    build: ./services/order-service
+    container_name: market-ai-order
+    restart: always
+    ports:
+      - "4004:4004"
+    environment:
+      - CLIENT_URL=${CLIENT_URL}
+      - ORDER_SERVICE_PORT=4004
+      - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
+      - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
+      - NODE_ENV=production
+    depends_on:
+      - auth-service
+      - cart-service
+    networks:
+      - market-ai-network
+
 volumes:
   postgres_data:
 

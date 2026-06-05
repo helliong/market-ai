@@ -67,6 +67,7 @@ type YookassaWebhookPayload = {
 
 @Injectable()
 export class OrdersService {
+  // Пока заказы храним в памяти: после перезапуска order-service этот список очистится.
   private readonly orders = new Map<string, StoredOrder>();
 
   async createCheckout(payload: CheckoutPayload) {
@@ -82,6 +83,7 @@ export class OrdersService {
       throw new BadRequestException('Order amount must be greater than zero');
     }
 
+    // Сначала создаем локальный заказ, потом привязываем к нему paymentId от YooKassa.
     const orderId = randomUUID();
     const order: StoredOrder = {
       id: orderId,
@@ -93,6 +95,7 @@ export class OrdersService {
 
     this.orders.set(orderId, order);
 
+    // YooKassa вернет confirmationUrl: на него клиент перенаправит пользователя для оплаты.
     const payment = await this.createYookassaPayment({
       orderId,
       amount: order.amount,
@@ -124,6 +127,7 @@ export class OrdersService {
   }
 
   handleYookassaWebhook(payload: unknown) {
+    // order_id лежит в metadata: мы сами отправляем его в YooKassa при создании платежа.
     const notification = payload as YookassaWebhookPayload;
     const payment = notification.object;
     const orderId = payment?.metadata?.order_id;
@@ -165,6 +169,7 @@ export class OrdersService {
     let response: Response;
 
     try {
+      // Создаем тестовый платеж в YooKassa и просим redirect-страницу для оплаты.
       response = await retry(() =>
         fetch('https://api.yookassa.ru/v3/payments', {
           method: 'POST',
@@ -185,6 +190,7 @@ export class OrdersService {
             },
             description: input.description,
             metadata: {
+              // По этому id webhook потом найдет наш локальный заказ.
               order_id: input.orderId,
             },
           }),
@@ -213,6 +219,7 @@ export class OrdersService {
   }
 }
 
+// Цены в корзине приходят строкой вроде "1 990 ₽", поэтому оставляем только цифры.
 function calculateAmount(items: CheckoutItem[]) {
   return items.reduce((sum, item) => {
     const price = Number(item.price.replace(/[^\d]/g, ''));
@@ -221,6 +228,7 @@ function calculateAmount(items: CheckoutItem[]) {
   }, 0);
 }
 
+// Небольшой повтор запроса нужен на случай краткого сетевого сбоя YooKassa.
 async function retry<T>(action: () => Promise<T>, attempts = 2) {
   let lastError: unknown;
 
