@@ -399,16 +399,34 @@ export class OrdersService {
   async handleYookassaWebhook(payload: unknown) {
     const notification = payload as YookassaWebhookPayload;
     const payment = notification.object;
-    const orderId = payment?.metadata?.order_id;
+    const providerPaymentId = payment?.id;
 
-    if (!orderId) {
-      throw new BadRequestException('YooKassa notification has no order_id');
+    if (!providerPaymentId) {
+      throw new BadRequestException('YooKassa notification has no payment id');
     }
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      const orderPayment = await tx.orderPayment.findUnique({
+        where: {
+          provider_providerPaymentId: {
+            provider: OrderPaymentProvider.YOOKASSA,
+            providerPaymentId,
+          },
+        },
+      });
+
+      if (!orderPayment) {
+        throw new NotFoundException('YooKassa payment not found in system');
+      }
+
+      const orderId = payment?.metadata?.order_id;
+      if (orderId && orderPayment.orderId !== orderId) {
+        throw new BadRequestException('Payment order_id metadata mismatch');
+      }
+
       const order = await tx.order.findUnique({
         where: {
-          id: orderId,
+          id: orderPayment.orderId,
         },
       });
 
@@ -422,18 +440,14 @@ export class OrdersService {
         await this.applyPaymentCanceledTransition(tx, order);
       }
 
-      if (payment?.id) {
-        await tx.orderPayment.updateMany({
-          where: {
-            orderId: order.id,
-            provider: OrderPaymentProvider.YOOKASSA,
-            providerPaymentId: payment.id,
-          },
-          data: {
-            rawPayload: notification as Prisma.InputJsonObject,
-          },
-        });
-      }
+      await tx.orderPayment.update({
+        where: {
+          id: orderPayment.id,
+        },
+        data: {
+          rawPayload: notification as Prisma.InputJsonObject,
+        },
+      });
 
       return tx.order.findUniqueOrThrow({
         where: {
@@ -442,7 +456,7 @@ export class OrdersService {
       });
     });
 
-    return { ok: true, orderId, status: updatedOrder.status };
+    return { ok: true, orderId: updatedOrder.id, status: updatedOrder.status };
   }
 
   private async createYookassaPayment(input: {

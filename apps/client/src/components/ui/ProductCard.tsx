@@ -140,7 +140,12 @@ export function ProductCard({
         {showTomorrowCartButton && !cartItem && (
           <button
             type="button"
-            onClick={() => dispatch(addToCart({ id, title, price }))}
+            onClick={() => {
+              dispatch(addToCart({ id, title, price }));
+              if (isFavorite) {
+                dispatch(toggleFavorite(id));
+              }
+            }}
             title="Добавить в корзину. Доставка завтра"
             className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#6D4AFF] px-3 text-xs font-bold text-white transition hover:bg-[#4F32D9] sm:mt-4 sm:h-11 sm:gap-2 sm:rounded-2xl sm:text-sm"
           >

@@ -267,7 +267,7 @@ function OrderCard({
   isCancelling: boolean;
   onCancel: () => void;
 }) {
-  const [isItemsOpen, setIsItemsOpen] = useState(order.items.length > 1);
+  const [isItemsOpen, setIsItemsOpen] = useState(false);
   const isCancelled = order.status === "cancelled";
   const isCompleted = isCompletedOrder(order);
   const canCancel = !isCompleted;
@@ -296,12 +296,14 @@ function OrderCard({
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-[#6B7280]">
+            <Link href={`/orders/${order.id}`} className="text-sm font-bold text-[#6B7280] hover:text-[#6D4AFF] transition">
               Заказ #{order.publicId} · {order.date}
-            </p>
-            <h3 className="mt-1 text-lg font-black text-[#111827]">
-              {order.title}
-            </h3>
+            </Link>
+            <Link href={`/orders/${order.id}`}>
+              <h3 className="mt-1 text-lg font-black text-[#111827] hover:text-[#6D4AFF] transition">
+                {order.title}
+              </h3>
+            </Link>
             <p className="mt-1 text-sm text-[#6B7280]">
               {formatItemsCount(order.itemsCount)} · {order.total}
             </p>

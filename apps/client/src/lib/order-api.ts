@@ -59,6 +59,12 @@ export type ApiOrder = {
   status: string;
   paymentStatus: string;
   fulfillmentStatus: string;
+  deliveryMethod?: string;
+  deliveryCity?: string;
+  deliveryStreet?: string;
+  deliveryHouse?: string;
+  deliveryFlat?: string;
+  deliveryComment?: string;
   grandTotal: string;
   currency: string;
   createdAt: string;
@@ -114,6 +120,21 @@ export async function cancelOrder(orderId: string) {
 
   if (!response.ok) {
     throw new Error(data?.message ?? "Failed to cancel order");
+  }
+
+  return data as ApiOrder;
+}
+
+export async function fetchOrder(orderId: string) {
+  const response = await fetch(`${ORDER_API_URL}/orders/${encodeURIComponent(orderId)}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Failed to load order");
   }
 
   return data as ApiOrder;
