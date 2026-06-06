@@ -92,59 +92,12 @@ export function OrdersPage() {
     (order) => !isCompletedOrder(order),
   );
   const completedServerOrders = mappedServerOrders.filter(isCompletedOrder);
-  const orders =
-    view === "active"
-      ? activeServerOrders
-      : completedServerOrders;
+  const orders = view === "active" ? activeServerOrders : completedServerOrders;
 
   function selectTab(nextTab: "active" | "archive") {
     const params = new URLSearchParams(searchParams.toString());
     params.set("selectedTab", nextTab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }
-
-  async function handleCancel(order: OrderView) {
-    if (cancellingOrderId || isCompletedOrder(order)) {
-      return;
-    }
-
-    setCancellingOrderId(order.id);
-    setLoadError(undefined);
-
-    try {
-      const orderIdForCancel = order.serverOrderId ?? order.id;
-      let updatedOrder: ApiOrder | undefined;
-
-      try {
-        updatedOrder = await cancelOrder(orderIdForCancel);
-      } catch (error) {
-        if (order.isServerOrder) {
-          throw error;
-        }
-      }
-
-      if (updatedOrder) {
-        setServerOrders((orders) => {
-          const hasOrder = orders.some(
-            (currentOrder) => currentOrder.id === updatedOrder.id,
-          );
-          const nextOrders = orders.map((currentOrder) =>
-            currentOrder.id === updatedOrder.id ? updatedOrder : currentOrder,
-          );
-
-          return hasOrder ? nextOrders : [updatedOrder, ...nextOrders];
-        });
-      }
-
-      selectTab("archive");
-      window.dispatchEvent(new Event("orders-updated"));
-    } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Не удалось отменить заказ",
-      );
-    } finally {
-      setCancellingOrderId(undefined);
-    }
   }
 
   return (
@@ -192,12 +145,7 @@ export function OrdersPage() {
         ) : (
           <div className="grid gap-4">
             {orders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                isCancelling={cancellingOrderId === order.id}
-                onCancel={() => handleCancel(order)}
-              />
+              <OrderCard key={order.id} order={order} />
             ))}
           </div>
         )}
@@ -236,7 +184,7 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
 
   return (
     <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[32px] border border-dashed border-[#D1D5DB] bg-white p-8 text-center shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-      <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-[#F1EDFF] text-[#6D4AFF]">
+      <div className="order-icon flex h-20 w-20 items-center justify-center rounded-[24px] bg-[#F1EDFF] text-[#6D4AFF]">
         {isActive ? <Truck size={34} /> : <Package size={34} />}
       </div>
       <h2 className="mt-5 text-2xl font-black text-[#111827]">
@@ -258,28 +206,16 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
   );
 }
 
-function OrderCard({
-  order,
-  isCancelling,
-  onCancel,
-}: {
-  order: OrderView;
-  isCancelling: boolean;
-  onCancel: () => void;
-}) {
-  const [isItemsOpen, setIsItemsOpen] = useState(false);
+function OrderCard({ order }: { order: OrderView }) {
   const isCancelled = order.status === "cancelled";
   const isCompleted = isCompletedOrder(order);
-  const canCancel = !isCompleted;
-  const visibleItems =
-    order.items.length > 0 ? order.items : buildFallbackItems(order);
 
   return (
     <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 gap-4">
           <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
+            className={`order-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
               isCancelled
                 ? "bg-[#FEF2F2] text-[#EF4444]"
                 : isCompleted
@@ -296,7 +232,10 @@ function OrderCard({
             )}
           </div>
           <div className="min-w-0">
-            <Link href={`/orders/${order.id}`} className="text-sm font-bold text-[#6B7280] hover:text-[#6D4AFF] transition">
+            <Link
+              href={`/orders/${order.id}`}
+              className="text-sm font-bold text-[#6B7280] hover:text-[#6D4AFF] transition"
+            >
               Заказ #{order.publicId} · {order.date}
             </Link>
             <Link href={`/orders/${order.id}`}>
@@ -325,52 +264,8 @@ function OrderCard({
           <span className="max-w-[360px] text-sm font-semibold text-[#6B7280] lg:text-right">
             {order.details}
           </span>
-          {canCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isCancelling}
-              className="inline-flex h-10 items-center justify-center rounded-2xl border border-[#FCA5A5] bg-white px-4 text-sm font-black text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isCancelling ? "Отменяем..." : "Отменить заказ"}
-            </button>
-          )}
         </div>
       </div>
-
-      {visibleItems.length > 0 && (
-        <div className="mt-5 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB]">
-          <button
-            type="button"
-            onClick={() => setIsItemsOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-black text-[#111827]"
-          >
-            <span>Товары в заказе</span>
-            <ChevronDown
-              size={18}
-              className={`shrink-0 transition ${isItemsOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-          {isItemsOpen && (
-            <div className="divide-y divide-[#E5E7EB] border-t border-[#E5E7EB]">
-              {visibleItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[1fr_auto] sm:items-center"
-                >
-                  <div>
-                    <p className="font-bold text-[#111827]">{item.title}</p>
-                    <p className="mt-1 text-[#6B7280]">
-                      {item.quantity} шт. · {item.price}
-                    </p>
-                  </div>
-                  <p className="font-black text-[#111827]">{item.total}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </article>
   );
 }
@@ -452,7 +347,8 @@ function getStatusCopy(status: OrderView["status"]) {
   if (status === "cancelled") {
     return {
       statusLabel: "Отменен",
-      details: "Заказ перенесен в завершенные. Деньги по оплаченной покупке требуют отдельного возврата.",
+      details:
+        "Заказ перенесен в завершенные. Деньги по оплаченной покупке требуют отдельного возврата.",
     };
   }
 
@@ -479,7 +375,8 @@ function getStatusCopy(status: OrderView["status"]) {
 
   return {
     statusLabel: "Заказ принят",
-    details: "Мы уже передали заказ продавцу и обновим статус, когда он будет готов к отправке.",
+    details:
+      "Мы уже передали заказ продавцу и обновим статус, когда он будет готов к отправке.",
   };
 }
 

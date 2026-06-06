@@ -44,8 +44,13 @@ body {
 }
 
 .dark [class~="bg-[#FEF2F2]"],
-.dark [class~="bg-[#FEE2E2]"] {
+.dark [class~="bg-[#FEE2E2]"],
+.dark [class~="bg-[#FFF1F2]"] {
   background-color: #3f1d25 !important;
+}
+
+.dark [class~="bg-[#F3F4F6]"] {
+  background-color: #1e293b !important;
 }
 
 .dark [class~="hover:bg-[#F6F7FB]"]:hover,
@@ -61,8 +66,13 @@ body {
 }
 
 .dark [class~="hover:bg-[#FEF2F2]"]:hover,
-.dark [class~="hover:bg-[#FEE2E2]"]:hover {
+.dark [class~="hover:bg-[#FEE2E2]"]:hover,
+.dark [class~="hover:bg-[#FFE4E6]"]:hover {
   background-color: #4a2029 !important;
+}
+
+.dark [class~="hover:bg-[#E5E7EB]"]:hover {
+  background-color: #334155 !important;
 }
 
 .dark [class~="from-[#F6F7FB]"][class~="to-[#F1EDFF]"] {
@@ -313,6 +323,14 @@ select:disabled,
   .mobile-safe-content {
     padding-bottom: 74px;
   }
+}
+
+.dark .order-icon {
+  color: #ffffff !important;
+}
+
+.dark .order-icon.text-\[\#EF4444\] {
+  color: #f87171 !important;
 }
 
 @keyframes catalogFadeIn {
