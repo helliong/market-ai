@@ -77,6 +77,8 @@ model UserSeller {
   legalName           String?
   inn                 String?
   phone               String?
+  description         String?
+  city                String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 

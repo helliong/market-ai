@@ -157,3 +157,15 @@ export function resetClientPassword(payload: ResetPasswordPayload) {
     body: JSON.stringify(payload),
   });
 }
+
+export type PublicStoreProfile = {
+  storeName: string;
+  description: string | null;
+  city: string | null;
+  createdAt: string;
+};
+
+// Возвращает публичную информацию о магазине.
+export function getPublicStoreProfile(storeName: string) {
+  return authRequest<PublicStoreProfile>(`/auth/store/${encodeURIComponent(storeName)}`);
+}

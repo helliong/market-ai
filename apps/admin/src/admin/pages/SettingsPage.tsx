@@ -44,6 +44,7 @@ type SettingsPageProps = {
   storeName: string;
   sellerProfile: SellerProfile | null;
   onStoreNameChange: (storeName: string) => void;
+  onSaveProfile: (payload: { storeName: string; description: string; city: string; phone: string; email: string }) => Promise<void>;
   onSaveLegalProfile: (payload: SellerLegalProfilePayload) => Promise<void>;
   onSubmitLegalProfile: () => Promise<void>;
   onDeactivateStore: () => void;
@@ -65,6 +66,7 @@ export function SettingsPage({
   storeName,
   sellerProfile,
   onStoreNameChange,
+  onSaveProfile,
   onSaveLegalProfile,
   onSubmitLegalProfile,
   onDeactivateStore,
@@ -73,9 +75,9 @@ export function SettingsPage({
   const { t } = useLanguage();
   const [shop, setShop] = useState({
     name: storeName,
-    description: "",
-    city: "",
-    phone: "",
+    description: sellerProfile?.description ?? "",
+    city: sellerProfile?.city ?? "",
+    phone: sellerProfile?.phone ?? "",
     email: sellerProfile?.ownerEmail ?? "",
   });
   const [legal, setLegal] = useState({
@@ -115,10 +117,12 @@ export function SettingsPage({
     setShop((current) => ({
       ...current,
       name: storeName,
+      description: sellerProfile?.description ?? current.description,
+      city: sellerProfile?.city ?? current.city,
       email: sellerProfile?.ownerEmail ?? current.email,
       phone: formatPhone(sellerProfile?.phone ?? current.phone),
     }));
-  }, [sellerProfile?.ownerEmail, sellerProfile?.phone, storeName]);
+  }, [sellerProfile?.ownerEmail, sellerProfile?.phone, sellerProfile?.description, sellerProfile?.city, storeName]);
 
   useEffect(() => {
     setLegal((current) => ({
@@ -155,12 +159,25 @@ export function SettingsPage({
     return trimmedName || t("settingsStoreNamePlaceholder");
   }, [shop.name, t]);
 
-  function saveSettings() {
+  async function saveSettings() {
     const nextStoreName = shop.name.trim();
-    if (nextStoreName) {
-      onStoreNameChange(nextStoreName);
+    if (!nextStoreName) {
+      showToast("Store name is required", "error");
+      return;
     }
-    showToast(t("settingsSaved"), "success");
+    
+    try {
+      await onSaveProfile({
+        storeName: nextStoreName,
+        description: shop.description,
+        city: shop.city,
+        phone: shop.phone,
+        email: shop.email,
+      });
+      showToast(t("settingsSaved"), "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    }
   }
 
   async function saveLegalProfile() {

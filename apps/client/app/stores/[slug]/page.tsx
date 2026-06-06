@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { StorePage } from "@/components/store/StorePage";
 import { findStoreNameBySlug } from "@/lib/stores";
+import { getPublicStoreProfile } from "@/lib/auth-api";
 
 type StoreRouteProps = {
   params: Promise<{
@@ -18,10 +19,12 @@ export default async function StoreRoute({ params }: StoreRouteProps) {
     notFound();
   }
 
+  const storeProfile = await getPublicStoreProfile(storeName).catch(() => null);
+
   return (
     <main>
       <Header />
-      <StorePage storeName={storeName} />
+      <StorePage storeName={storeName} storeProfile={storeProfile} />
     </main>
   );
 }

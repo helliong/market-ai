@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { fetchOrder, cancelOrder, type ApiOrder } from "@/lib/order-api";
 import { getCatalogProducts, type ClientProduct } from "@/lib/catalog-products";
+import { getStoreSlug } from "@/lib/store-slug";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   addToCart,
@@ -217,9 +218,12 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   <div key={item.id} className="flex gap-4">
                     <div className="h-20 w-20 shrink-0 rounded-2xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-inner sm:h-24 sm:w-24"></div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="font-bold text-[#6B7280] dark:text-[#94A3B8] text-xs uppercase tracking-wider">
+                      <Link 
+                        href={`/stores/${getStoreSlug(storeName)}`}
+                        className="font-bold text-[#6B7280] dark:text-[#94A3B8] text-xs uppercase tracking-wider hover:text-[#6D4AFF] dark:hover:text-[#6D4AFF] transition"
+                      >
                         {storeName}
-                      </div>
+                      </Link>
                       <div className="mt-1 text-lg font-black text-[#111827] dark:text-[#F9FAFB]">
                         {formatMoney(item.productPriceSnapshot, order.currency)}
                       </div>

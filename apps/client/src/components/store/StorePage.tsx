@@ -25,15 +25,19 @@ import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { getStoreSlug } from "@/lib/store-slug";
 import { ProductCard } from "@/components/ui/ProductCard";
 
+import { getPublicStoreProfile } from "@/lib/auth-api";
+import type { PublicStoreProfile } from "@/lib/auth-api";
+
 type StorePageProps = {
   storeName: string;
+  storeProfile?: PublicStoreProfile | null;
 };
 
 const tabs = ["Товары", "О магазине", "Отзывы", "Доставка и оплата"];
 type StoreSort = "popular" | "rating" | "priceAsc" | "priceDesc";
 
 // Экран магазина показывает витрину, статистику, товары и доверительные преимущества продавца.
-export function StorePage({ storeName }: StorePageProps) {
+export function StorePage({ storeName, storeProfile }: StorePageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     "all",
@@ -114,7 +118,7 @@ export function StorePage({ storeName }: StorePageProps) {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/16 px-3 py-1.5 text-xs font-black backdrop-blur">
                 <MapPin size={15} />
-                Алматы
+                {storeProfile?.city || "Онлайн"}
               </span>
             </div>
 
@@ -161,7 +165,7 @@ export function StorePage({ storeName }: StorePageProps) {
           <StoreStat icon={<Star />} label="Рейтинг" value={rating} />
           <StoreStat icon={<MessageCircle />} label="Отзывы" value={reviewsCount} />
           <StoreStat icon={<Package />} label="Товаров" value={storeProducts.length} />
-          <StoreStat icon={<CalendarDays />} label="На MarketAI" value="с 2026" />
+          <StoreStat icon={<CalendarDays />} label="На MarketAI" value={storeProfile?.createdAt ? `с ${new Date(storeProfile.createdAt).getFullYear()}` : "с 2026"} />
         </div>
 
         <div className="flex gap-2 overflow-x-auto px-4 py-3">
@@ -288,14 +292,12 @@ export function StorePage({ storeName }: StorePageProps) {
             <h2 className="text-2xl font-black tracking-[-0.03em]">
               О магазине
             </h2>
-            <p className="mt-4 leading-7 text-[#6B7280]">
-              {storeName} - магазин на MarketAI с проверенным профилем продавца.
-              Здесь будет описание магазина, специализация, город, правила
-              работы, гарантия и информация, которую продавец заполнит в своем
-              кабинете.
+            <p className="mt-4 leading-7 text-[#6B7280] whitespace-pre-wrap">
+              {storeProfile?.description ||
+                `${storeName} - магазин на MarketAI с проверенным профилем продавца. Здесь будет описание магазина, специализация, город, правила работы, гарантия и информация, которую продавец заполнит в своем кабинете.`}
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <InfoRow label="Город" value="Алматы" />
+              <InfoRow label="Город" value={storeProfile?.city || "Не указан"} />
               <InfoRow label="Категории" value={storeCategories.length.toString()} />
               <InfoRow label="Время ответа" value="до 2 часов" />
               <InfoRow label="Юр. данные" value="проверены MarketAI" />

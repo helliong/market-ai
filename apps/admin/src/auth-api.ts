@@ -61,6 +61,8 @@ export type SellerProfile = {
   accountId: string;
   email: string;
   storeName: string;
+  description?: string;
+  city?: string;
   ownerEmail: string;
   ownerName: string;
   status: SellerStatus;
@@ -157,6 +159,22 @@ export function loginSellerAccount(payload: LoginPayload) {
 // Загружает текущий профиль продавца по активной seller-сессии.
 export function getCurrentSeller() {
   return authRequest<SellerProfile>("/auth/seller/me");
+}
+
+export type UpdateSellerProfilePayload = {
+  storeName?: string;
+  description?: string;
+  city?: string;
+  phone?: string;
+  email?: string;
+};
+
+// Обновляет базовые данные профиля продавца
+export function updateSellerProfile(payload: UpdateSellerProfilePayload) {
+  return authRequest<SellerProfile>("/auth/seller/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 // Сохраняет юридические данные продавца без отправки на модерацию.

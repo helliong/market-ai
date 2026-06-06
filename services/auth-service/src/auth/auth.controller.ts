@@ -41,6 +41,7 @@ import {
   ResetPasswordCodeDto,
   SellerProfileResponseDto,
   UpdateBuyerProfileDto,
+  UpdateSellerProfileDto,
   VerifyEmailDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -360,7 +361,7 @@ export class AuthController {
     description: 'Seller profile not found or suspended.',
   })
   // GET /auth/seller/me: возвращает seller-профиль текущего аккаунта.
-  async sellerMe(@Req() req: Request) {
+  async getSellerMe(@Req() req: Request) {
     const accountId = (req as any).user?.sub;
 
     if (!accountId) {
@@ -368,6 +369,29 @@ export class AuthController {
     }
 
     return this.authService.getSellerMe(accountId);
+  }
+
+  @Put('seller/me')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Update current seller profile',
+    description: 'Updates basic store info: storeName, description, city, phone, email.',
+  })
+  @ApiOkResponse({
+    type: SellerProfileResponseDto,
+    description: 'Updated seller profile data.',
+  })
+  @ApiResponse({ status: 403, description: 'Seller profile not found.' })
+  // PUT /auth/seller/me: обновляет seller-профиль текущего аккаунта.
+  async updateSellerMe(@Req() req: Request, @Body() dto: UpdateSellerProfileDto) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.updateSellerMe(accountId, dto);
   }
 
   @Put('seller/legal-profile')
@@ -764,5 +788,20 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+  }
+
+  @Get('store/:storeName')
+  @ApiOperation({
+    summary: 'Get public store profile',
+    description: 'Returns public info of an activated store by its name.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Store public profile data.',
+  })
+  @ApiResponse({ status: 404, description: 'Store not found or not active.' })
+  // GET /auth/store/:storeName: возвращает публичную информацию о магазине.
+  async getPublicStoreProfile(@Param('storeName') storeName: string) {
+    return this.authService.getPublicStoreProfile(storeName);
   }
 }

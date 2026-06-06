@@ -16,6 +16,7 @@ import {
   logoutSellerAccount,
   saveSellerLegalProfile,
   submitSellerLegalProfile,
+  updateSellerProfile,
 } from "./auth-api";
 import {
   createSellerProduct,
@@ -25,7 +26,11 @@ import {
   importSellerProductsTemplate,
   updateSellerProduct,
 } from "./catalog-api";
-import type { SellerProfile, SellerLegalProfilePayload } from "./auth-api";
+import type {
+  SellerProfile,
+  SellerLegalProfilePayload,
+  UpdateSellerProfilePayload,
+} from "./auth-api";
 import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
@@ -467,6 +472,12 @@ function App() {
     setSellerProfile(seller);
   }
 
+  async function handleSaveSellerProfile(payload: UpdateSellerProfilePayload) {
+    const updatedProfile = await updateSellerProfile(payload);
+    setSellerProfile(updatedProfile);
+    setStoreName(updatedProfile.storeName);
+  }
+
   async function handleSubmitLegalProfile() {
     await submitSellerLegalProfile();
     const seller = await getCurrentSeller();
@@ -703,6 +714,7 @@ function App() {
             storeName={storeName}
             sellerProfile={sellerProfile}
             onStoreNameChange={setStoreName}
+            onSaveProfile={handleSaveSellerProfile}
             onSaveLegalProfile={handleSaveLegalProfile}
             onSubmitLegalProfile={handleSubmitLegalProfile}
             onDeactivateStore={handleDeactivateStore}
