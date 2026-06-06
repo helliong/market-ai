@@ -8,13 +8,19 @@ import {
   Store,
   X,
   XCircle,
+  Users,
+  ShoppingBag,
+  LogOut,
 } from "lucide-react";
 import {
   approveModerationSeller,
   getModerationSellers,
   rejectModerationSeller,
+  searchModerationSellers,
+  searchModerationUsers,
 } from "./auth-api";
-import type { ModerationSeller } from "./auth-api";
+import type { ModerationSeller, ModerationUser } from "./auth-api";
+import { LoginScreen } from "./LoginScreen";
 import "./App.css";
 
 const MODERATION_KEY_STORAGE = "marketai-moderation-key";
@@ -25,17 +31,30 @@ type ToastState = {
   variant: "success" | "error";
 };
 
+type TabType = "review" | "users" | "stores";
+
 // Главный экран модерации: загрузка заявок продавцов, одобрение и отклонение legal review.
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => !!localStorage.getItem(MODERATION_KEY_STORAGE),
+  );
+  const [activeTab, setActiveTab] = useState<TabType>("review");
   const [adminKey, setAdminKey] = useState(
     () => localStorage.getItem(MODERATION_KEY_STORAGE) ?? "",
   );
+  
+  // States for 'review' tab
   const [sellers, setSellers] = useState<ModerationSeller[]>([]);
+  const [rejectingSeller, setRejectingSeller] = useState<ModerationSeller | null>(null);
+  const [rejectComment, setRejectComment] = useState("");
+
+  // States for search tabs
+  const [searchQuery, setSearchQuery] = useState("");
+  const [foundUsers, setFoundUsers] = useState<ModerationUser[]>([]);
+  const [foundSellers, setFoundSellers] = useState<ModerationSeller[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [rejectingSeller, setRejectingSeller] =
-    useState<ModerationSeller | null>(null);
-  const [rejectComment, setRejectComment] = useState("");
 
   const reviewCount = useMemo(
     () => sellers.filter((seller) => seller.status === "UNDER_REVIEW").length,
@@ -118,6 +137,62 @@ function App() {
     }, 4200);
   }
 
+  async function searchUsers() {
+    const key = adminKey.trim();
+    if (!key) {
+      showToast("Введите ключ модератора.", "error");
+      return;
+    }
+    if (!searchQuery.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const users = await searchModerationUsers(key, searchQuery);
+      setFoundUsers(users);
+      if (users.length === 0) showToast("Пользователи не найдены.", "success");
+    } catch (requestError) {
+      showToast(getErrorMessage(requestError), "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function searchSellers() {
+    const key = adminKey.trim();
+    if (!key) {
+      showToast("Введите ключ модератора.", "error");
+      return;
+    }
+    if (!searchQuery.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const results = await searchModerationSellers(key, searchQuery);
+      setFoundSellers(results);
+      if (results.length === 0) showToast("Магазины не найдены.", "success");
+    } catch (requestError) {
+      showToast(getErrorMessage(requestError), "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleLogin(key: string) {
+    localStorage.setItem(MODERATION_KEY_STORAGE, key);
+    setAdminKey(key);
+    setIsAuthenticated(true);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(MODERATION_KEY_STORAGE);
+    setAdminKey("");
+    setIsAuthenticated(false);
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
   return (
     <main className="moderation-shell">
       {toast && (
@@ -138,56 +213,130 @@ function App() {
         </div>
 
         <nav>
-          <button type="button" className="active">
+          <button 
+            type="button" 
+            className={activeTab === "review" ? "active" : ""}
+            onClick={() => setActiveTab("review")}
+          >
             <ShieldCheck aria-hidden="true" />
             Проверка магазинов
           </button>
+          <button 
+            type="button" 
+            className={activeTab === "users" ? "active" : ""}
+            onClick={() => { setActiveTab("users"); setFoundUsers([]); setSearchQuery(""); }}
+          >
+            <Users aria-hidden="true" />
+            Поиск пользователей
+          </button>
+          <button 
+            type="button" 
+            className={activeTab === "stores" ? "active" : ""}
+            onClick={() => { setActiveTab("stores"); setFoundSellers([]); setSearchQuery(""); }}
+          >
+            <ShoppingBag aria-hidden="true" />
+            Поиск магазинов
+          </button>
         </nav>
 
-        <div className="sidebar-stat">
-          <Clock3 aria-hidden="true" />
-          <div>
-            <strong>{reviewCount}</strong>
-            <span>на проверке</span>
+        <div className="sidebar-bottom">
+          <div className="sidebar-stat">
+            <Clock3 aria-hidden="true" />
+            <div>
+              <strong>{reviewCount}</strong>
+              <span>на проверке</span>
+            </div>
           </div>
+          <button type="button" className="danger-button sidebar-logout" onClick={handleLogout}>
+            <LogOut aria-hidden="true" />
+            Выйти
+          </button>
         </div>
       </aside>
 
       <section className="moderation-content">
-        <header className="topbar">
-          <div>
-            <p>Ручная модерация</p>
-            <h1>Заявки продавцов</h1>
-          </div>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={isLoading}
-            onClick={loadSellers}
-          >
-            <RefreshCw aria-hidden="true" />
-            {isLoading ? "Загрузка" : "Обновить"}
-          </button>
-        </header>
+        {activeTab === "review" && (
+          <>
+            <header className="topbar">
+              <div>
+                <p>Ручная модерация</p>
+                <h1>Заявки продавцов</h1>
+              </div>
+              <button
+                type="button"
+                className="primary-button"
+                disabled={isLoading}
+                onClick={loadSellers}
+              >
+                <RefreshCw aria-hidden="true" />
+                {isLoading ? "Загрузка" : "Обновить"}
+              </button>
+            </header>
 
-        <section className="key-panel">
-          <ShieldCheck aria-hidden="true" />
-          <label>
-            Ключ модератора
-            <input
-              type="password"
-              value={adminKey}
-              onChange={(event) => setAdminKey(event.target.value)}
-              placeholder="MODERATION_ADMIN_KEY"
-            />
-          </label>
-          <button type="button" className="secondary-button" onClick={loadSellers}>
-            <Search aria-hidden="true" />
-            Показать заявки
-          </button>
-        </section>
 
-        <section className="seller-list">
+          </>
+        )}
+
+        {activeTab === "users" && (
+          <>
+            <header className="topbar">
+              <div>
+                <p>Управление покупателями</p>
+                <h1>Поиск пользователей</h1>
+              </div>
+            </header>
+
+            <section className="key-panel">
+              <Search aria-hidden="true" />
+              <label>
+                Поиск (email или телефон)
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+                  placeholder="Введите данные для поиска..."
+                />
+              </label>
+              <button type="button" className="secondary-button" onClick={searchUsers} disabled={isLoading}>
+                <Search aria-hidden="true" />
+                Найти
+              </button>
+            </section>
+          </>
+        )}
+
+        {activeTab === "stores" && (
+          <>
+            <header className="topbar">
+              <div>
+                <p>Управление продавцами</p>
+                <h1>Поиск магазинов</h1>
+              </div>
+            </header>
+
+            <section className="key-panel">
+              <Search aria-hidden="true" />
+              <label>
+                Поиск (Название, Email, ИНН, Юр.лицо)
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchSellers()}
+                  placeholder="Введите данные для поиска..."
+                />
+              </label>
+              <button type="button" className="secondary-button" onClick={searchSellers} disabled={isLoading}>
+                <Search aria-hidden="true" />
+                Найти
+              </button>
+            </section>
+          </>
+        )}
+
+        {activeTab === "review" && (
+          <section className="seller-list">
           {sellers.map((seller) => (
             <article className="seller-card" key={seller.id}>
               <div className="seller-card-header">
@@ -263,6 +412,66 @@ function App() {
             </div>
           )}
         </section>
+        )}
+
+        {activeTab === "users" && (
+          <section className="seller-list">
+            {foundUsers.map((user) => (
+              <article className="seller-card" key={user.id}>
+                <div className="seller-card-header">
+                  <div className="seller-title">
+                    <span>
+                      <Users aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2>{user.displayName}</h2>
+                      <p>{user.email}</p>
+                    </div>
+                  </div>
+                  <span className="status-badge" style={{ background: user.isEmailVerified ? '#dcfce7' : '#fef3c7', color: user.isEmailVerified ? '#166534' : '#92400e' }}>
+                    {user.isEmailVerified ? "Подтвержден" : "Не подтвержден"}
+                  </span>
+                </div>
+                <dl className="seller-details">
+                  <Detail label="ID" value={user.id} />
+                  <Detail label="Телефон" value={user.phone} />
+                  <Detail label="Дата регистрации" value={formatDate(user.createdAt)} />
+                </dl>
+              </article>
+            ))}
+          </section>
+        )}
+
+        {activeTab === "stores" && (
+          <section className="seller-list">
+            {foundSellers.map((seller) => (
+              <article className="seller-card" key={seller.id}>
+                <div className="seller-card-header">
+                  <div className="seller-title">
+                    <span>
+                      <Store aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2>{seller.storeName}</h2>
+                      <p>{seller.ownerName || "Имя владельца не заполнено"}</p>
+                    </div>
+                  </div>
+                  <span className="status-badge">{seller.status}</span>
+                </div>
+                <dl className="seller-details">
+                  <Detail label="Почта" value={seller.ownerEmail || seller.account.email} />
+                  <Detail label="Тип бизнеса" value={seller.legalProfile?.businessType} />
+                  <Detail label="ИНН / Tax ID" value={seller.legalProfile?.taxId} />
+                  <Detail label="Юр. название" value={seller.legalProfile?.legalName} />
+                  <Detail label="Юр. адрес" value={seller.legalProfile?.legalAddress} />
+                  <Detail label="Банк" value={seller.legalProfile?.bankName} />
+                  <Detail label="IBAN" value={seller.legalProfile?.iban} />
+                  <Detail label="Создано" value={formatDate(seller.createdAt)} />
+                </dl>
+              </article>
+            ))}
+          </section>
+        )}
       </section>
 
       {rejectingSeller && (

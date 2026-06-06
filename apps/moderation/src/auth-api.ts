@@ -102,3 +102,52 @@ export function rejectModerationSeller(
     },
   );
 }
+
+export type ModerationUser = {
+  id: string;
+  accountId: string;
+  email: string;
+  displayName: string;
+  phone: string | null;
+  isEmailVerified: boolean;
+  createdAt: string;
+};
+
+// Поиск пользователей (покупателей) по email или телефону.
+export function searchModerationUsers(adminKey: string, query: string) {
+  return moderationRequest<ModerationUser[]>(
+    adminKey,
+    `/auth/admin/users/search?q=${encodeURIComponent(query)}`,
+  );
+}
+
+// Поиск продавцов (магазинов) по названию, email, юридическому названию или ИНН.
+export function searchModerationSellers(adminKey: string, query: string) {
+  return moderationRequest<ModerationSeller[]>(
+    adminKey,
+    `/auth/admin/sellers/search?q=${encodeURIComponent(query)}`,
+  );
+}
+
+// Авторизация администратора
+export async function loginModerationAdmin(
+  email: string,
+  password: string,
+  adminKey: string,
+) {
+  const response = await fetch(`${AUTH_API_URL}/auth/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, adminKey }),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Ошибка авторизации модератора");
+  }
+
+  return data as { adminKey: string };
+}
+
+

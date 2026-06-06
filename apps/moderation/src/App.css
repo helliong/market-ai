@@ -489,3 +489,123 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Login Screen --- */
+.login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-main);
+  padding: 24px;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-panel);
+  padding: 32px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.32);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+}
+
+.login-header h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: var(--text-main);
+}
+
+.login-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-field svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.login-field input {
+  height: 48px;
+  padding: 0 16px 0 42px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  color: var(--text-main);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+  background: var(--bg-panel);
+}
+
+.login-button {
+  margin-top: 8px;
+  height: 48px;
+  font-size: 15px;
+}
+
+.login-error {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-logout {
+  width: 100%;
+  justify-content: center;
+}

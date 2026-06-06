@@ -897,6 +897,77 @@ export class AuthService {
       data: { refreshTokenHash: hash },
     });
   }
+  // Авторизация модератора (по env переменным)
+  async adminLogin(dto: any) {
+    const expectedEmail = this.configService.get<string>('MODERATION_ADMIN_EMAIL');
+    const expectedPassword = this.configService.get<string>('MODERATION_ADMIN_PASSWORD');
+    const expectedKey = this.configService.get<string>('MODERATION_ADMIN_KEY');
+
+    if (
+      !expectedEmail ||
+      !expectedPassword ||
+      !expectedKey ||
+      dto.email !== expectedEmail ||
+      dto.password !== expectedPassword ||
+      dto.adminKey !== expectedKey
+    ) {
+      throw new UnauthorizedException('Invalid moderation credentials');
+    }
+
+    return { adminKey: expectedKey };
+  }
+
+  // Поиск пользователей (покупателей) для админки
+  async searchUsers(query: string) {
+    const q = query.trim();
+    if (!q) return [];
+    
+    const users = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q, mode: 'insensitive' } },
+          { displayName: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      include: { account: true },
+      take: 50,
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      accountId: u.accountId,
+      email: u.email,
+      displayName: u.displayName,
+      phone: u.phone,
+      isEmailVerified: u.account.isEmailVerified,
+      createdAt: u.createdAt,
+    }));
+  }
+
+  // Поиск продавцов для админки
+  async searchSellers(query: string) {
+    const q = query.trim();
+    if (!q) return [];
+
+    const sellers = await this.prisma.userSeller.findMany({
+      where: {
+        OR: [
+          { storeName: { contains: q, mode: 'insensitive' } },
+          { ownerEmail: { contains: q, mode: 'insensitive' } },
+          { legalName: { contains: q, mode: 'insensitive' } },
+          { inn: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        account: { select: { email: true, isEmailVerified: true } },
+        legalProfile: true,
+      },
+      take: 50,
+    });
+
+    return sellers;
+  }
 
   // Нормализует email для единых lookup-операций.
   private normalizeEmail(email: string) {

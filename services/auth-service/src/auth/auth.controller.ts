@@ -34,6 +34,7 @@ import {
   SellerLegalProfileResponseDto,
   SellerLegalSubmitResponseDto,
   RejectSellerDto,
+  AdminLoginDto,
   AccountSummaryResponseDto,
   BuyerProfileResponseDto,
   ModerationSellerResponseDto,
@@ -434,6 +435,23 @@ export class AuthController {
     return this.authService.submitSellerLegalProfile(accountId);
   }
 
+  @Post('admin/login')
+  @ApiOperation({
+    summary: 'Login moderation admin',
+    description: 'Validates admin email, password and key from environment variables.',
+  })
+  @ApiCreatedResponse({
+    description: 'Admin login successful.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid moderation credentials.',
+  })
+  // POST /auth/admin/login: авторизация модератора.
+  async adminLogin(@Body() dto: AdminLoginDto) {
+    return this.authService.adminLogin(dto);
+  }
+
   @Get('admin/sellers/review')
   @UseGuards(ModerationAdminGuard)
   @ApiHeader({
@@ -458,6 +476,38 @@ export class AuthController {
   // GET /auth/admin/sellers/review: список продавцов для ручной модерации.
   async getSellersForReview() {
     return this.authService.getSellersForReview();
+  }
+
+  @Get('admin/users/search')
+  @UseGuards(ModerationAdminGuard)
+  @ApiHeader({
+    name: 'x-admin-key',
+    description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Search users by email or phone',
+  })
+  // GET /auth/admin/users/search: поиск покупателей
+  async searchUsers(@Req() req: Request) {
+    const q = (req.query.q as string) || '';
+    return this.authService.searchUsers(q);
+  }
+
+  @Get('admin/sellers/search')
+  @UseGuards(ModerationAdminGuard)
+  @ApiHeader({
+    name: 'x-admin-key',
+    description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Search sellers by store name, email, INN, or legal name',
+  })
+  // GET /auth/admin/sellers/search: поиск магазинов
+  async searchSellers(@Req() req: Request) {
+    const q = (req.query.q as string) || '';
+    return this.authService.searchSellers(q);
   }
 
   @Post('admin/sellers/:sellerId/approve')
