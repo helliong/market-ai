@@ -25,6 +25,7 @@ import { hydrateCompare } from "@/store/compareSlice";
 import { hydrateFavorites } from "@/store/favoritesSlice";
 import { clearOrders } from "@/store/ordersSlice";
 import { useLanguage } from "@/hooks/useLanguage";
+import { AccountTab } from "./AccountTab";
 
 export function ProfilePage() {
   const { t } = useLanguage();
@@ -33,138 +34,55 @@ export function ProfilePage() {
   const isSessionRestored = useAppSelector(
     (state) => state.auth.isSessionRestored,
   );
-  const emailInputRef = useRef<HTMLInputElement>(null);
-  const phoneInputRef = useRef<HTMLInputElement>(null);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [isContactsEditorOpen, setIsContactsEditorOpen] = useState(false);
-  const [isSavingContacts, setIsSavingContacts] = useState(false);
-  const [contactsError, setContactsError] = useState<string>();
-  const [contactsNotice, setContactsNotice] = useState<string>();
-  const [focusTarget, setFocusTarget] = useState<"email" | "phone" | null>(
-    null,
-  );
+  const [activeTab, setActiveTab] = useState<"orders" | "account">("orders");
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
   const compareCount = useAppSelector((state) => state.compare.ids.length);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
-  const orders: {
-    id: number;
-    itemsCount: number;
-    total: string;
-    status: string;
-  }[] = [];
-
-  useEffect(() => {
-    setEmail(user?.email ?? "");
-    setPhone(formatRussianPhone(user?.phone ?? ""));
-  }, [user?.email, user?.phone]);
+  const [completedOrders, setCompletedOrders] = useState<ApiOrder[]>([]);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    function updateActiveOrdersCount() {
+    function updateOrdersData() {
       if (!isSessionRestored || !user) {
         setActiveOrdersCount(0);
+        setCompletedOrders([]);
         return;
       }
 
       fetchOrders()
-        .then((orders) => {
+        .then((data) => {
           if (isMounted) {
-            setActiveOrdersCount(orders.filter(isActiveOrder).length);
+            setActiveOrdersCount(data.filter(isActiveOrder).length);
+            setCompletedOrders(data.filter((o) => !isActiveOrder(o)));
           }
         })
         .catch(() => {
           if (isMounted) {
             setActiveOrdersCount(0);
+            setCompletedOrders([]);
           }
         });
     }
 
     if (!isSessionRestored || !user) {
       setActiveOrdersCount(0);
+      setCompletedOrders([]);
       return;
     }
 
-    updateActiveOrdersCount();
-    window.addEventListener("orders-updated", updateActiveOrdersCount);
+    updateOrdersData();
+    window.addEventListener("orders-updated", updateOrdersData);
 
     return () => {
       isMounted = false;
-      window.removeEventListener("orders-updated", updateActiveOrdersCount);
+      window.removeEventListener("orders-updated", updateOrdersData);
     };
   }, [isSessionRestored, user]);
-
-  useEffect(() => {
-    if (!isContactsEditorOpen || !focusTarget) {
-      return;
-    }
-
-    const input =
-      focusTarget === "phone" ? phoneInputRef.current : emailInputRef.current;
-    input?.focus();
-    input?.setSelectionRange(input.value.length, input.value.length);
-    setFocusTarget(null);
-  }, [focusTarget, isContactsEditorOpen]);
-
-  async function handleContactsSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!user) {
-      return;
-    }
-
-    const trimmedEmail = email.trim();
-    const normalizedPhone = normalizeRussianPhone(phone);
-
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setContactsError("Введите корректный email");
-      setContactsNotice(undefined);
-      return;
-    }
-
-    if (!normalizedPhone) {
-      setContactsError("Введите корректный номер телефона");
-      setContactsNotice(undefined);
-      return;
-    }
-
-    setIsSavingContacts(true);
-    setContactsError(undefined);
-    setContactsNotice(undefined);
-
-    try {
-      const profile = await updateClientProfile({
-        email: trimmedEmail,
-        phone: normalizedPhone,
-      });
-
-      dispatch(
-        setUser({
-          ...user,
-          email: profile.email,
-          name: profile.displayName,
-          phone: profile.phone,
-        }),
-      );
-
-      setEmail(profile.email);
-      setPhone(formatRussianPhone(profile.phone ?? ""));
-      setContactsNotice("Контакты сохранены");
-      setIsContactsEditorOpen(false);
-    } catch (error) {
-      setContactsError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось сохранить контакты",
-      );
-    } finally {
-      setIsSavingContacts(false);
-    }
-  }
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -180,12 +98,22 @@ export function ProfilePage() {
             <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white">
               <User size={42} />
             </div>
-            <h2 className="mt-5 text-2xl font-black">
-              {user?.name || t("guest")}
-            </h2>
-            <p className="mt-2 text-sm text-[#6B7280]">
-              {user ? user.email : t("loginOrRegister")}
-            </p>
+            <h3 className="mt-4 text-lg font-black text-[#111827]">
+              {user ? user.name : "Гость"}
+            </h3>
+            {user && (
+              <button
+                onClick={() => setActiveTab("account")}
+                className="mt-3 rounded-2xl bg-[#F6F7FB] px-5 py-2 text-sm font-bold text-[#111827] transition hover:bg-[#E5E7EB]"
+              >
+                Изменить профиль
+              </button>
+            )}
+            {!user && (
+              <p className="mt-2 text-sm text-[#6B7280]">
+                {t("loginOrRegister")}
+              </p>
+            )}
           </div>
           <div className="mt-8 space-y-3">
             <ProfileButton
@@ -210,6 +138,11 @@ export function ProfilePage() {
                   ? `${t("orderHistory")} (${activeOrdersCount})`
                   : t("orderHistory")
               }
+              isActive={activeTab === "orders"}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveTab("orders");
+              }}
               href="/orders"
             />
             {user && (
@@ -265,260 +198,136 @@ export function ProfilePage() {
         </aside>
 
         <div className="space-y-6">
-          {user && !user.phone && (
-            <div className="rounded-[32px] border border-[#D9CCFF] bg-gradient-to-r from-[#F6F2FF] to-[#EEF4FF] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-[rgba(109,74,255,0.38)] dark:from-[#201A3F] dark:to-[#162033]">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="max-w-[560px]">
-                  <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6D4AFF]">
-                    Контакты
-                  </p>
-                  <h3 className="mt-2 text-2xl font-black text-[#111827]">
-                    Добавьте телефон, чтобы быстрее оформлять заказы
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[#4B5563]">
-                    Сразу переведем вас к полю телефона и сохраним контакты в
-                    профиле, чтобы не вводить их заново при каждом заказе.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsContactsEditorOpen(true);
-                    setFocusTarget("phone");
-                    setContactsError(undefined);
-                    setContactsNotice(undefined);
-                  }}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#6D4AFF] px-5 text-sm font-bold text-white transition hover:bg-[#4F32D9] dark:shadow-[0_12px_28px_rgba(109,74,255,0.24)]"
-                >
-                  Добавить телефон
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                <AtSign size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black">Контакты</h3>
-                <p className="text-sm text-[#6B7280]">
-                  Почта и телефон для входа, подтверждения и оформления заказов
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 rounded-2xl bg-[#F6F7FB] p-5">
-              {!isContactsEditorOpen ? (
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6B7280]">
-                        Email
+          {activeTab === "account" ? (
+            <AccountTab />
+          ) : (
+            <>
+              {user && !user.phone && (
+                <div className="rounded-[32px] border border-[#D9CCFF] bg-gradient-to-r from-[#F6F2FF] to-[#EEF4FF] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="max-w-[560px]">
+                      <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6D4AFF]">
+                        Контакты
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <p className="font-bold text-[#111827]">
-                          {user?.email || "Не указан"}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsContactsEditorOpen(true);
-                            setFocusTarget("email");
-                            setContactsError(undefined);
-                            setContactsNotice(undefined);
-                          }}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#D6DAE1] bg-white text-[#6B7280] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
-                          aria-label="Изменить email"
-                        >
-                          <Pencil size={15} aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6B7280]">
-                        Телефон
+                      <h3 className="mt-2 text-2xl font-black text-[#111827]">
+                        Добавьте телефон, чтобы быстрее оформлять заказы
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-[#4B5563]">
+                        Заполните телефон во вкладке учетных данных, чтобы не вводить его заново при каждом заказе.
                       </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <p className="font-bold text-[#111827]">
-                          {user?.phone
-                            ? formatRussianPhone(user.phone)
-                            : "Добавьте телефон"}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsContactsEditorOpen(true);
-                            setFocusTarget("phone");
-                            setContactsError(undefined);
-                            setContactsNotice(undefined);
-                          }}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#D6DAE1] bg-white text-[#6B7280] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
-                          aria-label="Изменить телефон"
-                        >
-                          <Pencil size={15} aria-hidden="true" />
-                        </button>
-                      </div>
                     </div>
-                    <p className="text-sm text-[#6B7280]">
-                      Эти контакты используются для входа и подставляются в
-                      checkout.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleContactsSubmit} className="space-y-4">
-                  <label className="block">
-                    <span className="text-sm font-bold text-[#111827]">
-                      Email
-                    </span>
-                    <input
-                      ref={emailInputRef}
-                      type="email"
-                      name="email"
-                      value={email}
-                      onChange={(event) => {
-                        setEmail(event.target.value);
-                        setContactsError(undefined);
-                        setContactsNotice(undefined);
-                      }}
-                      placeholder="mail@example.com"
-                      autoComplete="email"
-                      className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:text-[#F9FAFB] dark:placeholder:text-[#94A3B8] dark:focus:border-[#8B5CF6]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-bold text-[#111827]">
-                      Телефон
-                    </span>
-                    <input
-                      ref={phoneInputRef}
-                      type="tel"
-                      name="phone"
-                      value={phone}
-                      onChange={(event) => {
-                        setPhone(formatRussianPhone(event.target.value));
-                        setContactsError(undefined);
-                        setContactsNotice(undefined);
-                      }}
-                      placeholder="+7 (900) 000-00-00"
-                      inputMode="numeric"
-                      autoComplete="tel"
-                      maxLength={18}
-                      className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:text-[#F9FAFB] dark:placeholder:text-[#94A3B8] dark:focus:border-[#8B5CF6]"
-                    />
-                  </label>
-                  {contactsError && (
-                    <p className="rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#DC2626]">
-                      {contactsError}
-                    </p>
-                  )}
-                  {contactsNotice && (
-                    <p className="rounded-2xl bg-[#ECFDF5] px-4 py-3 text-sm font-bold text-[#059669] dark:bg-[#0F2A24] dark:text-[#6EE7B7]">
-                      {contactsNotice}
-                    </p>
-                  )}
-                  <div className="flex flex-col gap-3 sm:flex-row">
                     <button
-                      type="submit"
-                      disabled={isSavingContacts}
-                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#6D4AFF] px-5 text-sm font-bold text-white transition hover:bg-[#4F32D9] disabled:cursor-not-allowed disabled:opacity-70"
+                      type="button"
+                      onClick={() => setActiveTab("account")}
+                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#6D4AFF] px-5 text-sm font-bold text-white transition hover:bg-[#4F32D9] dark:shadow-[0_12px_28px_rgba(109,74,255,0.24)]"
                     >
-                      {isSavingContacts ? "Сохраняем..." : "Сохранить контакты"}
+                      Добавить телефон
                     </button>
-                    {user && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsContactsEditorOpen(false);
-                          setEmail(user.email);
-                          setPhone(formatRussianPhone(user.phone ?? ""));
-                          setContactsError(undefined);
-                          setContactsNotice(undefined);
-                        }}
-                        className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#D6DAE1] bg-white px-5 text-sm font-bold text-[#111827] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
-                      >
-                        Отмена
-                      </button>
-                    )}
                   </div>
-                </form>
+                </div>
               )}
-            </div>
-          </div>
 
-          <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                <MapPin size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black">{t("addressTitle")}</h3>
-                <p className="text-sm text-[#6B7280]">{t("addressSubtitle")}</p>
-              </div>
-            </div>
-            <div className="mt-5 rounded-2xl bg-[#F6F7FB] p-5">
-              <p className="font-bold">{t("defaultAddress")}</p>
-              <p className="mt-2 text-sm text-[#6B7280]">
-                ул. Примерная, д. 10
-              </p>
-            </div>
-          </div>
-          <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                <Package size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black">{t("orderHistoryTitle")}</h3>
-                <p className="text-sm text-[#6B7280]">
-                  {t("orderHistorySubtitle")}
-                </p>
-              </div>
-            </div>
-            <div className="mt-6">
-              {orders.length === 0 ? (
-                <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F6F7FB] p-6 text-center">
-                  <Package size={34} className="text-[#6D4AFF]" />
-                  <h4 className="mt-4 text-lg font-black">
-                    {t("noOrdersYet")}
-                  </h4>
-                  <p className="mt-2 max-w-[360px] text-sm text-[#6B7280]">
-                    {t("noOrdersMessage")}
+              <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                    <MapPin size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">{t("addressTitle")}</h3>
+                    <p className="text-sm text-[#6B7280]">{t("addressSubtitle")}</p>
+                  </div>
+                </div>
+                <div className="mt-5 rounded-2xl bg-[#F6F7FB] p-5">
+                  <p className="font-bold">{t("defaultAddress")}</p>
+                  <p className="mt-2 text-sm text-[#6B7280]">
+                    ул. Примерная, д. 10
                   </p>
-                  <Link
-                    href="/"
-                    className="mt-5 rounded-2xl bg-[#6D4AFF] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4F32D9]"
-                  >
-                    {t("goToProducts")}
-                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] p-4"
-                    >
-                      <div>
-                        <p className="font-bold">
-                          {t("orderId")}
-                          {order.id}
-                        </p>
-                        <p className="mt-1 text-sm text-[#6B7280]">
-                          {order.itemsCount} {t("itemsCountShort")} •{" "}
-                          {order.total}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-[#F1EDFF] px-3 py-1 text-xs font-bold text-[#6D4AFF]">
-                        {order.status}
-                      </span>
+              </div>
+              <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">{t("orderHistoryTitle")}</h3>
+                    <p className="text-sm text-[#6B7280]">
+                      {t("orderHistorySubtitle")}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  {completedOrders.length === 0 ? (
+                    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F6F7FB] p-6 text-center">
+                      <Package size={34} className="text-[#6D4AFF]" />
+                      <h4 className="mt-4 text-lg font-black">
+                        {t("noOrdersYet")}
+                      </h4>
+                      <p className="mt-2 max-w-[360px] text-sm text-[#6B7280]">
+                        {t("noOrdersMessage")}
+                      </p>
+                      <Link
+                        href="/"
+                        className="mt-5 rounded-2xl bg-[#6D4AFF] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4F32D9]"
+                      >
+                        {t("goToProducts")}
+                      </Link>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-4">
+                      {(showAllOrders ? completedOrders : completedOrders.slice(0, 5)).map((order) => {
+                        const itemsCount = order.items.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        );
+                        const isCancelled =
+                          order.status === "CANCELLED" ||
+                          order.fulfillmentStatus === "CANCELLED";
+                        const statusText = isCancelled ? "Отменен" : "Завершен";
+                        const statusClass = isCancelled
+                          ? "bg-[#FEF2F2] text-[#EF4444]"
+                          : "bg-[#F1EDFF] text-[#6D4AFF]";
+
+                        return (
+                          <Link
+                            href={`/orders/${order.publicId}`}
+                            key={order.id}
+                            className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] p-4 transition hover:border-[#6D4AFF]"
+                          >
+                            <div>
+                              <p className="font-bold">
+                                {t("orderId")}
+                                {order.publicId}
+                              </p>
+                              <p className="mt-1 text-sm text-[#6B7280]">
+                                {itemsCount} {t("itemsCountShort")} •{" "}
+                                {order.grandTotal} ₽
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass}`}
+                            >
+                              {statusText}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                      
+                      {completedOrders.length > 5 && !showAllOrders && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllOrders(true)}
+                          className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl bg-[#F6F7FB] text-sm font-bold text-[#111827] transition hover:bg-[#E5E7EB]"
+                        >
+                          Показать еще ({completedOrders.length - 5})
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -529,15 +338,20 @@ function ProfileButton({
   icon,
   label,
   href,
+  isActive,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   href: string;
+  isActive?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB] ${isActive ? "bg-[#F6F7FB] ring-1 ring-[#E5E7EB]" : ""}`}
     >
       <div className="text-[#6D4AFF]">{icon}</div>
       {label}

@@ -383,6 +383,8 @@ export class AuthService {
         email: true,
         displayName: true,
         phone: true,
+        birthDate: true,
+        gender: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -454,6 +456,14 @@ export class AuthService {
       userData.phone = this.normalizeBuyerPhone(dto.phone);
     }
 
+    if (dto.birthDate !== undefined) {
+      userData.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
+    }
+
+    if (dto.gender !== undefined) {
+      userData.gender = dto.gender;
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (Object.keys(accountData).length > 0) {
@@ -479,6 +489,8 @@ export class AuthService {
             email: true,
             displayName: true,
             phone: true,
+            birthDate: true,
+            gender: true,
             createdAt: true,
             updatedAt: true,
           },

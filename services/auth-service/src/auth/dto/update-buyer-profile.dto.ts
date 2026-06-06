@@ -29,4 +29,22 @@ export class UpdateBuyerProfileDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({
+    example: '1990-01-01T00:00:00.000Z',
+    description: 'Buyer birth date',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  birthDate?: string;
+
+  @ApiPropertyOptional({
+    example: 'male',
+    description: 'Buyer gender',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  gender?: string;
 }

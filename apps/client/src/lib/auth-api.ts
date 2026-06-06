@@ -42,13 +42,17 @@ export type CurrentUser = {
   hasUserProfile?: boolean;
   hasSellerProfile?: boolean;
   sellerStatus?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
   createdAt: string;
 };
 
 export type UpdateClientProfilePayload = {
   displayName?: string;
   email?: string;
-  phone?: string;
+  phone?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
 };
 
 export type BuyerProfile = {
@@ -57,6 +61,8 @@ export type BuyerProfile = {
   email: string;
   displayName: string;
   phone: string | null;
+  birthDate: string | null;
+  gender: string | null;
   createdAt: string;
   updatedAt: string;
 };
