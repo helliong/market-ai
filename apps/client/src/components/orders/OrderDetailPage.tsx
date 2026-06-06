@@ -217,15 +217,15 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   <div key={item.id} className="flex gap-4">
                     <div className="h-20 w-20 shrink-0 rounded-2xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-inner sm:h-24 sm:w-24"></div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="font-bold text-[#6B7280] text-xs uppercase tracking-wider">
+                      <div className="font-bold text-[#6B7280] dark:text-[#94A3B8] text-xs uppercase tracking-wider">
                         {storeName}
                       </div>
-                      <div className="mt-1 text-lg font-black text-[#111827]">
+                      <div className="mt-1 text-lg font-black text-[#111827] dark:text-[#F9FAFB]">
                         {formatMoney(item.productPriceSnapshot, order.currency)}
                       </div>
                       <Link 
                         href={`/products/${item.productId}`}
-                        className="mt-1 line-clamp-2 text-sm text-[#111827] transition hover:text-[#6D4AFF]"
+                        className="mt-1 line-clamp-2 text-sm text-[#111827] dark:text-[#CBD5E1] transition hover:text-[#6D4AFF]"
                       >
                         {item.productTitleSnapshot}
                       </Link>
@@ -235,23 +235,23 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                         </div>
                         <div className="flex items-center gap-2">
                           {cartItem ? (
-                            <div className="flex h-9 items-center rounded-xl bg-[#F3F4F6] p-1">
+                            <div className="flex h-9 items-center rounded-xl bg-[#F3F4F6] dark:bg-[#1E293B] p-1">
                               <button
                                 onClick={() =>
                                   dispatch(decreaseQuantity(item.productId))
                                 }
-                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-[#111827] shadow-sm transition hover:bg-gray-50"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white dark:bg-[#334155] text-[#111827] dark:text-[#F9FAFB] shadow-sm transition hover:bg-gray-50 dark:hover:bg-[#475569]"
                               >
                                 <Minus size={14} />
                               </button>
-                              <span className="w-8 text-center text-sm font-bold text-[#111827]">
+                              <span className="w-8 text-center text-sm font-bold text-[#111827] dark:text-[#F9FAFB]">
                                 {cartItem.quantity}
                               </span>
                               <button
                                 onClick={() =>
                                   dispatch(increaseQuantity(item.productId))
                                 }
-                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-[#111827] shadow-sm transition hover:bg-gray-50"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white dark:bg-[#334155] text-[#111827] dark:text-[#F9FAFB] shadow-sm transition hover:bg-gray-50 dark:hover:bg-[#475569]"
                               >
                                 <Plus size={14} />
                               </button>
@@ -267,16 +267,14 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                                   }),
                                 );
                               }}
-                              className="rounded-xl bg-[#F1EDFF] px-4 py-2 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#E0D4FF]"
+                              className="rounded-xl bg-[#F1EDFF] dark:bg-[#201A3F] px-4 py-2 text-sm font-bold text-[#6D4AFF] dark:text-[#C4B5FD] transition hover:bg-[#E0D4FF] dark:hover:bg-[#6D4AFF]/20"
                             >
                               В корзину
                             </button>
                           )}
                           <button
-                            onClick={() =>
-                              dispatch(toggleFavorite(item.productId))
-                            }
-                            className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${isFavorite ? "text-[#EF4444] bg-[#FEF2F2] " : "bg-[#F3F4F6] text-[#111827] hover:bg-[#E5E7EB] "}`}
+                            onClick={() => dispatch(toggleFavorite(item.productId))}
+                            className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${isFavorite ? 'text-[#EF4444] bg-[#FEF2F2] dark:bg-[#3F1D25]' : 'bg-[#F3F4F6] dark:bg-[#1E293B] text-[#111827] dark:text-[#F9FAFB] hover:bg-[#E5E7EB] dark:hover:bg-[#334155]'}`}
                           >
                             <Heart
                               size={18}
