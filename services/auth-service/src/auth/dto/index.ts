@@ -3,6 +3,7 @@ export { LoginDto } from './login.dto';
 export { VerifyEmailDto } from './verify-email.dto';
 export { SellerRegisterDto } from './seller-register.dto';
 export { SellerLegalProfileDto } from './seller-legal-profile.dto';
+export { UpdateBuyerProfileDto } from './update-buyer-profile.dto';
 export { RejectSellerDto } from './moderation.dto';
 export { ForgotPasswordDto } from './forgot-password.dto';
 export { ResetPasswordCodeDto } from './reset-password-code.dto';

@@ -30,6 +30,7 @@ export function AuthSession() {
             id: user.id,
             name: user.name ?? user.displayName ?? "",
             email: user.email,
+            phone: user.phone,
             isEmailVerified: user.isEmailVerified,
           }),
         );

@@ -277,6 +277,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           id: currentUser.id,
           name: currentUser.name ?? currentUser.displayName ?? user.name,
           email: currentUser.email,
+          phone: currentUser.phone,
           isEmailVerified: currentUser.isEmailVerified,
         }),
       );
@@ -345,6 +346,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           id: currentUser.id,
           name: currentUser.name ?? currentUser.displayName ?? pendingUser.name,
           email: currentUser.email,
+          phone: currentUser.phone,
           isEmailVerified: currentUser.isEmailVerified,
         }),
       );

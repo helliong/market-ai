@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT @map("awaiting_payment")
+  PAID             @map("paid")
+  PROCESSING       @map("processing")
+  SHIPPING         @map("shipping")
+  READY            @map("ready")
+  COMPLETED        @map("completed")
+  CANCELLED        @map("cancelled")
+
+  @@map("order_status")
+}
+
+enum OrderPaymentStatus {
+  PENDING  @map("pending")
+  PAID     @map("paid")
+  CANCELED @map("canceled")
+  FAILED   @map("failed")
+  REFUNDED @map("refunded")
+
+  @@map("order_payment_status")
+}
+
+enum OrderFulfillmentStatus {
+  NEW              @map("new")
+  CONFIRMED        @map("confirmed")
+  PROCESSING       @map("processing")
+  SHIPPED          @map("shipped")
+  READY_FOR_PICKUP @map("ready_for_pickup")
+  DELIVERED        @map("delivered")
+  RECEIVED         @map("received")
+  CANCELED         @map("canceled")
+
+  @@map("order_fulfillment_status")
+}
+
+enum OrderPaymentProvider {
+  YOOKASSA @map("yookassa")
+
+  @@map("order_payment_provider")
+}
+
+enum OrderStatusHistoryKind {
+  ORDER       @map("order")
+  PAYMENT     @map("payment")
+  FULFILLMENT @map("fulfillment")
+
+  @@map("order_status_history_kind")
+}
+
+enum OrderStatusHistorySource {
+  SYSTEM           @map("system")
+  BUYER            @map("buyer")
+  SELLER           @map("seller")
+  ADMIN            @map("admin")
+  PAYMENT_PROVIDER @map("payment_provider")
+
+  @@map("order_status_history_source")
+}
+
+model Order {
+  id                String                 @id @default(uuid()) @db.Uuid
+  publicId          String                 @unique @map("public_id")
+  buyerId           String                 @map("buyer_id")
+  status            OrderStatus            @default(AWAITING_PAYMENT)
+  paymentStatus     OrderPaymentStatus     @default(PENDING) @map("payment_status")
+  fulfillmentStatus OrderFulfillmentStatus @default(NEW) @map("fulfillment_status")
+  deliveryMethod    String                 @map("delivery_method")
+  paymentMethod     String                 @map("payment_method")
+  currency          String                 @default("RUB") @db.VarChar(3)
+  itemsTotal        Decimal                @map("items_total") @db.Decimal(12, 2)
+  deliveryTotal     Decimal                @default(0) @map("delivery_total") @db.Decimal(12, 2)
+  discountTotal     Decimal                @default(0) @map("discount_total") @db.Decimal(12, 2)
+  grandTotal        Decimal                @map("grand_total") @db.Decimal(12, 2)
+  customerName      String                 @map("customer_name")
+  customerPhone     String                 @map("customer_phone")
+  customerEmail     String                 @map("customer_email")
+  deliveryCity      String                 @map("delivery_city")
+  deliveryStreet    String                 @map("delivery_street")
+  deliveryHouse     String                 @map("delivery_house")
+  deliveryFlat      String?                @map("delivery_flat")
+  deliveryComment   String?                @map("delivery_comment")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  paidAt            DateTime?              @map("paid_at")
+  cancelledAt       DateTime?              @map("cancelled_at")
+  completedAt       DateTime?              @map("completed_at")
+
+  items         OrderItem[]
+  payments      OrderPayment[]
+  statusHistory OrderStatusHistory[]
+
+  @@index([buyerId, createdAt])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([fulfillmentStatus])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                   String  @id @default(uuid()) @db.Uuid
+  orderId              String  @map("order_id") @db.Uuid
+  productId            Int     @map("product_id")
+  sellerId             String  @map("seller_id")
+  productTitleSnapshot String  @map("product_title_snapshot")
+  productPriceSnapshot Decimal @map("product_price_snapshot") @db.Decimal(12, 2)
+  quantity             Int
+  lineTotal            Decimal @map("line_total") @db.Decimal(12, 2)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([sellerId])
+  @@map("order_items")
+}
+
+model OrderPayment {
+  id                String               @id @default(uuid()) @db.Uuid
+  orderId           String               @map("order_id") @db.Uuid
+  provider          OrderPaymentProvider
+  providerPaymentId String?              @map("provider_payment_id")
+  status            OrderPaymentStatus   @default(PENDING)
+  amount            Decimal              @db.Decimal(12, 2)
+  rawPayload        Json?                @map("raw_payload")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerPaymentId])
+  @@index([orderId])
+  @@index([status])
+  @@map("order_payments")
+}
+
+model OrderStatusHistory {
+  id         String                   @id @default(uuid()) @db.Uuid
+  orderId    String                   @map("order_id") @db.Uuid
+  kind       OrderStatusHistoryKind   @default(ORDER)
+  fromStatus String?                  @map("from_status")
+  toStatus   String                   @map("to_status")
+  source     OrderStatusHistorySource
+  comment    String?
+  createdAt  DateTime                 @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([kind])
+  @@map("order_status_history")
+}

@@ -88,6 +88,10 @@ export function CheckoutPage() {
   );
 
   useEffect(() => {
+    setPhone(formatRussianPhone(user?.phone ?? ""));
+  }, [user?.phone]);
+
+  useEffect(() => {
     if (!paymentReturn || !isSessionRestored) {
       return;
     }

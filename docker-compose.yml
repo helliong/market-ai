@@ -88,6 +88,7 @@ services:
     ports:
       - "4004:4004"
     environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - CLIENT_URL=${CLIENT_URL}
       - ORDER_SERVICE_PORT=4004
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
@@ -96,6 +97,7 @@ services:
     depends_on:
       - auth-service
       - cart-service
+      - postgres
     networks:
       - market-ai-network
 

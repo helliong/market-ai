@@ -19,6 +19,7 @@ import {
   ResetPasswordDto,
   SellerRegisterDto,
   SellerLegalProfileDto,
+  UpdateBuyerProfileDto,
   VerifyEmailDto,
 } from './dto';
 
@@ -53,6 +54,7 @@ export class AuthService {
           await tx.user.create({
             data: {
               accountId: existingAccount.id,
+              email,
               displayName: dto.name,
             },
           });
@@ -86,6 +88,7 @@ export class AuthService {
           verificationCodeExpires: expiresAt,
           user: {
             create: {
+              email,
               displayName: dto.name,
             },
           },
@@ -136,6 +139,7 @@ export class AuthService {
           await tx.userSeller.create({
             data: {
               accountId: existingAccount.id,
+              email,
               storeName: dto.storeName,
               ownerEmail: email,
               ownerName: dto.storeName,
@@ -175,6 +179,7 @@ export class AuthService {
           verificationCodeExpires: expiresAt,
           seller: {
             create: {
+              email,
               storeName: dto.storeName,
               ownerEmail: email,
               ownerName: dto.storeName,
@@ -356,9 +361,10 @@ export class AuthService {
 
     return {
       id: account.id,
-      email: account.email,
+      email: account.user?.email ?? account.email,
       name: account.user?.displayName ?? null,
       displayName: account.user?.displayName ?? null,
+      phone: account.user?.phone ?? null,
       isEmailVerified: account.isEmailVerified,
       hasUserProfile: Boolean(account.user),
       hasSellerProfile: Boolean(account.seller),
@@ -374,7 +380,9 @@ export class AuthService {
       select: {
         id: true,
         accountId: true,
+        email: true,
         displayName: true,
+        phone: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -387,6 +395,101 @@ export class AuthService {
     return user;
   }
 
+  // Обновляет buyer-профиль текущего аккаунта, включая displayName и phone.
+  async updateUserMe(accountId: string, dto: UpdateBuyerProfileDto) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        seller: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!account?.user) {
+      throw new ForbiddenException('Buyer profile not found');
+    }
+
+    const userId = account.user.id;
+    const userData: Prisma.UserUpdateInput = {};
+    const accountData: Prisma.AccountUpdateInput = {};
+    const sellerData: Prisma.UserSellerUpdateInput = {};
+
+    if (dto.displayName !== undefined) {
+      const displayName = dto.displayName.trim();
+
+      if (displayName.length < 2) {
+        throw new BadRequestException('Display name must be at least 2 characters');
+      }
+
+      userData.displayName = displayName;
+    }
+
+    if (dto.email !== undefined) {
+      const email = this.normalizeEmail(dto.email);
+
+      if (email !== account.email) {
+        accountData.email = email;
+      }
+
+      if (email !== account.user.email) {
+        userData.email = email;
+      }
+
+      if (account.seller) {
+        sellerData.email = email;
+        sellerData.ownerEmail = email;
+      }
+    }
+
+    if (dto.phone !== undefined) {
+      userData.phone = this.normalizeBuyerPhone(dto.phone);
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (Object.keys(accountData).length > 0) {
+          await tx.account.update({
+            where: { id: account.id },
+            data: accountData,
+          });
+        }
+
+        if (account.seller && Object.keys(sellerData).length > 0) {
+          await tx.userSeller.update({
+            where: { id: account.seller.id },
+            data: sellerData,
+          });
+        }
+
+        return tx.user.update({
+          where: { id: userId },
+          data: userData,
+          select: {
+            id: true,
+            accountId: true,
+            email: true,
+            displayName: true,
+            phone: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      });
+    } catch (error) {
+      this.handleUniqueConflict(error);
+      throw error;
+    }
+  }
+
   // Возвращает seller-профиль текущего аккаунта и блокирует suspended sellers.
   async getSellerMe(accountId: string) {
     const seller = await this.prisma.userSeller.findUnique({
@@ -394,6 +497,7 @@ export class AuthService {
       select: {
         id: true,
         accountId: true,
+        email: true,
         storeName: true,
         ownerEmail: true,
         ownerName: true,
@@ -785,6 +889,28 @@ export class AuthService {
   // Нормализует email для единых lookup-операций.
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
+  }
+
+  // Нормализует buyer phone до формата E.164 или очищает пустое значение.
+  private normalizeBuyerPhone(phone: string) {
+    const digits = phone.replace(/\D/g, '');
+
+    if (!digits) {
+      return null;
+    }
+
+    const normalizedDigits =
+      digits.length === 10
+        ? `7${digits}`
+        : digits.length === 11 && digits.startsWith('8')
+          ? `7${digits.slice(1)}`
+          : digits;
+
+    if (!/^7\d{10}$/.test(normalizedDigits)) {
+      throw new BadRequestException('Invalid phone number');
+    }
+
+    return `+${normalizedDigits}`;
   }
 
   // Очищает и нормализует юридические данные продавца перед записью.

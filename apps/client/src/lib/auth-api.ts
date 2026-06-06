@@ -37,11 +37,28 @@ export type CurrentUser = {
   name: string | null;
   displayName?: string | null;
   email: string;
+  phone: string | null;
   isEmailVerified: boolean;
   hasUserProfile?: boolean;
   hasSellerProfile?: boolean;
   sellerStatus?: string | null;
   createdAt: string;
+};
+
+export type UpdateClientProfilePayload = {
+  displayName?: string;
+  email?: string;
+  phone?: string;
+};
+
+export type BuyerProfile = {
+  id: string;
+  accountId: string;
+  email: string;
+  displayName: string;
+  phone: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 // Базовый HTTP-клиент auth-service: добавляет cookies, JSON-заголовки и обрабатывает ошибки.
@@ -101,6 +118,14 @@ export function logoutClient() {
 // Загружает текущего пользователя по активной buyer-сессии.
 export function getCurrentUser() {
   return authRequest<CurrentUser>("/auth/me");
+}
+
+// Обновляет buyer-профиль текущего пользователя.
+export function updateClientProfile(payload: UpdateClientProfilePayload) {
+  return authRequest<BuyerProfile>("/auth/user/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 // Запрашивает письмо с кодом восстановления пароля покупателя.

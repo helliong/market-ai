@@ -52,7 +52,9 @@ model User {
   id          String   @id @default(cuid())
   accountId  String   @unique
   account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email       String
   displayName String
+  phone       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -61,6 +63,7 @@ model UserSeller {
   id                  String       @id @default(cuid())
   accountId           String       @unique
   account             Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email               String
   storeName           String
   ownerEmail          String
   ownerName           String

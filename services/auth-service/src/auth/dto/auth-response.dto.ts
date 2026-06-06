@@ -18,6 +18,9 @@ export class AccountSummaryResponseDto {
   @ApiPropertyOptional({ example: 'Ivan Petrov', nullable: true })
   displayName!: string | null;
 
+  @ApiPropertyOptional({ example: '+79991234567', nullable: true })
+  phone!: string | null;
+
   @ApiProperty({ example: true })
   isEmailVerified!: boolean;
 
@@ -51,8 +54,14 @@ export class BuyerProfileResponseDto {
   @ApiProperty({ example: 'clxaccount123' })
   accountId!: string;
 
+  @ApiProperty({ example: 'buyer@example.com' })
+  email!: string;
+
   @ApiProperty({ example: 'Ivan Petrov' })
   displayName!: string;
+
+  @ApiPropertyOptional({ example: '+79991234567', nullable: true })
+  phone!: string | null;
 
   @ApiProperty({ example: '2026-05-26T17:05:08.200Z' })
   createdAt!: Date;
@@ -113,6 +122,9 @@ export class SellerProfileResponseDto {
 
   @ApiProperty({ example: 'clxaccount123' })
   accountId!: string;
+
+  @ApiProperty({ example: 'seller@example.com' })
+  email!: string;
 
   @ApiProperty({ example: 'Ivan Store' })
   storeName!: string;

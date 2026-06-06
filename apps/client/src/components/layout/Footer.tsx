@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Bot, Heart, Languages, Mail, MapPin, Moon, Phone, Sun } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAppSelector } from "@/store/hooks";
 
 const footerLinks = [
   { href: "/catalog", key: "catalogLink" },
@@ -35,6 +36,7 @@ function getThemeSnapshot() {
 export function Footer() {
   const { t, lang, changeLanguage } = useLanguage();
   const theme = useSyncExternalStore(subscribeToSettings, getThemeSnapshot, () => "light");
+  const user = useAppSelector((state) => state.auth.user);
 
   function handleThemeChange(nextTheme: "light" | "dark") {
     localStorage.setItem("marketai-theme", nextTheme);
@@ -64,7 +66,11 @@ export function Footer() {
             {footerLinks.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={
+                  item.href === "/profile" && !user
+                    ? "/login?redirect=%2Fprofile"
+                    : item.href
+                }
                 className="text-sm font-semibold text-[#6B7280] transition hover:text-[#6D4AFF]"
               >
                 {t(item.key)}

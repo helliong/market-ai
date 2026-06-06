@@ -39,6 +39,7 @@ import {
   ModerationSellerResponseDto,
   ResetPasswordCodeDto,
   SellerProfileResponseDto,
+  UpdateBuyerProfileDto,
   VerifyEmailDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -305,6 +306,40 @@ export class AuthController {
     }
 
     return this.authService.getUserMe(accountId);
+  }
+
+  @Put('user/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('accessToken')
+  @ApiOperation({
+    summary: 'Update buyer profile',
+    description:
+      'Updates editable fields of the current buyer profile. Phone is normalized before saving.',
+  })
+  @ApiOkResponse({
+    type: BuyerProfileResponseDto,
+    description: 'Buyer profile was updated.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Buyer profile data is invalid.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Buyer profile not found.',
+  })
+  // PUT /auth/user/me: обновляет buyer-профиль текущего аккаунта.
+  async updateUserMe(
+    @Req() req: Request,
+    @Body() dto: UpdateBuyerProfileDto,
+  ) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.updateUserMe(accountId, dto);
   }
 
   @Get('seller/me')

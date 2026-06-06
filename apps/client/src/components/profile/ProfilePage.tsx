@@ -1,10 +1,13 @@
 "use client";
 
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
+  AtSign,
   Heart,
   LogOut,
   MapPin,
   Package,
+  Pencil,
   ShoppingCart,
   Star,
   Store,
@@ -12,8 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ADMIN_SELLER_URL } from "@/lib/admin";
-import { logout } from "@/store/authSlice";
-import { logoutClient } from "@/lib/auth-api";
+import { logout, setUser } from "@/store/authSlice";
+import { logoutClient, updateClientProfile } from "@/lib/auth-api";
 import { useAppSelector } from "@/store/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { hydrateCart } from "@/store/cartSlice";
@@ -22,11 +25,21 @@ import { hydrateFavorites } from "@/store/favoritesSlice";
 import { clearOrders } from "@/store/ordersSlice";
 import { useLanguage } from "@/hooks/useLanguage";
 
-// Экран профиля показывает данные пользователя, заказы, адрес и быстрые действия.
 export function ProfilePage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isContactsEditorOpen, setIsContactsEditorOpen] = useState(false);
+  const [isSavingContacts, setIsSavingContacts] = useState(false);
+  const [contactsError, setContactsError] = useState<string>();
+  const [contactsNotice, setContactsNotice] = useState<string>();
+  const [focusTarget, setFocusTarget] = useState<"email" | "phone" | null>(
+    null,
+  );
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
@@ -38,6 +51,79 @@ export function ProfilePage() {
     total: string;
     status: string;
   }[] = [];
+
+  useEffect(() => {
+    setEmail(user?.email ?? "");
+    setPhone(formatRussianPhone(user?.phone ?? ""));
+  }, [user?.email, user?.phone]);
+
+  useEffect(() => {
+    if (!isContactsEditorOpen || !focusTarget) {
+      return;
+    }
+
+    const input =
+      focusTarget === "phone" ? phoneInputRef.current : emailInputRef.current;
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+    setFocusTarget(null);
+  }, [focusTarget, isContactsEditorOpen]);
+
+  async function handleContactsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!user) {
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    const normalizedPhone = normalizeRussianPhone(phone);
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setContactsError("Введите корректный email");
+      setContactsNotice(undefined);
+      return;
+    }
+
+    if (!normalizedPhone) {
+      setContactsError("Введите корректный номер телефона");
+      setContactsNotice(undefined);
+      return;
+    }
+
+    setIsSavingContacts(true);
+    setContactsError(undefined);
+    setContactsNotice(undefined);
+
+    try {
+      const profile = await updateClientProfile({
+        email: trimmedEmail,
+        phone: normalizedPhone,
+      });
+
+      dispatch(
+        setUser({
+          ...user,
+          email: profile.email,
+          name: profile.displayName,
+          phone: profile.phone,
+        }),
+      );
+
+      setEmail(profile.email);
+      setPhone(formatRussianPhone(profile.phone ?? ""));
+      setContactsNotice("Контакты сохранены");
+      setIsContactsEditorOpen(false);
+    } catch (error) {
+      setContactsError(
+        error instanceof Error
+          ? error.message
+          : "Не удалось сохранить контакты",
+      );
+    } finally {
+      setIsSavingContacts(false);
+    }
+  }
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -134,6 +220,188 @@ export function ProfilePage() {
         </aside>
 
         <div className="space-y-6">
+          {user && !user.phone && (
+            <div className="rounded-[32px] border border-[#D9CCFF] bg-gradient-to-r from-[#F6F2FF] to-[#EEF4FF] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-[rgba(109,74,255,0.38)] dark:from-[#201A3F] dark:to-[#162033]">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-[560px]">
+                  <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6D4AFF]">
+                    Контакты
+                  </p>
+                  <h3 className="mt-2 text-2xl font-black text-[#111827]">
+                    Добавьте телефон, чтобы быстрее оформлять заказы
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[#4B5563]">
+                    Сразу переведем вас к полю телефона и сохраним контакты в
+                    профиле, чтобы не вводить их заново при каждом заказе.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsContactsEditorOpen(true);
+                    setFocusTarget("phone");
+                    setContactsError(undefined);
+                    setContactsNotice(undefined);
+                  }}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#6D4AFF] px-5 text-sm font-bold text-white transition hover:bg-[#4F32D9] dark:shadow-[0_12px_28px_rgba(109,74,255,0.24)]"
+                >
+                  Добавить телефон
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                <AtSign size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black">Контакты</h3>
+                <p className="text-sm text-[#6B7280]">
+                  Почта и телефон для входа, подтверждения и оформления заказов
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 rounded-2xl bg-[#F6F7FB] p-5">
+              {!isContactsEditorOpen ? (
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6B7280]">
+                        Email
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="font-bold text-[#111827]">
+                          {user?.email || "Не указан"}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsContactsEditorOpen(true);
+                            setFocusTarget("email");
+                            setContactsError(undefined);
+                            setContactsNotice(undefined);
+                          }}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#D6DAE1] bg-white text-[#6B7280] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
+                          aria-label="Изменить email"
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6B7280]">
+                        Телефон
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="font-bold text-[#111827]">
+                          {user?.phone
+                            ? formatRussianPhone(user.phone)
+                            : "Добавьте телефон"}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsContactsEditorOpen(true);
+                            setFocusTarget("phone");
+                            setContactsError(undefined);
+                            setContactsNotice(undefined);
+                          }}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#D6DAE1] bg-white text-[#6B7280] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
+                          aria-label="Изменить телефон"
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-[#6B7280]">
+                      Эти контакты используются для входа и подставляются в
+                      checkout.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleContactsSubmit} className="space-y-4">
+                  <label className="block">
+                    <span className="text-sm font-bold text-[#111827]">
+                      Email
+                    </span>
+                    <input
+                      ref={emailInputRef}
+                      type="email"
+                      name="email"
+                      value={email}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        setContactsError(undefined);
+                        setContactsNotice(undefined);
+                      }}
+                      placeholder="mail@example.com"
+                      autoComplete="email"
+                      className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:text-[#F9FAFB] dark:placeholder:text-[#94A3B8] dark:focus:border-[#8B5CF6]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-bold text-[#111827]">
+                      Телефон
+                    </span>
+                    <input
+                      ref={phoneInputRef}
+                      type="tel"
+                      name="phone"
+                      value={phone}
+                      onChange={(event) => {
+                        setPhone(formatRussianPhone(event.target.value));
+                        setContactsError(undefined);
+                        setContactsNotice(undefined);
+                      }}
+                      placeholder="+7 (900) 000-00-00"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      maxLength={18}
+                      className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:text-[#F9FAFB] dark:placeholder:text-[#94A3B8] dark:focus:border-[#8B5CF6]"
+                    />
+                  </label>
+                  {contactsError && (
+                    <p className="rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm font-bold text-[#DC2626]">
+                      {contactsError}
+                    </p>
+                  )}
+                  {contactsNotice && (
+                    <p className="rounded-2xl bg-[#ECFDF5] px-4 py-3 text-sm font-bold text-[#059669] dark:bg-[#0F2A24] dark:text-[#6EE7B7]">
+                      {contactsNotice}
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="submit"
+                      disabled={isSavingContacts}
+                      className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#6D4AFF] px-5 text-sm font-bold text-white transition hover:bg-[#4F32D9] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isSavingContacts ? "Сохраняем..." : "Сохранить контакты"}
+                    </button>
+                    {user && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsContactsEditorOpen(false);
+                          setEmail(user.email);
+                          setPhone(formatRussianPhone(user.phone ?? ""));
+                          setContactsError(undefined);
+                          setContactsNotice(undefined);
+                        }}
+                        className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#D6DAE1] bg-white px-5 text-sm font-bold text-[#111827] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF] dark:border-[#334155] dark:bg-[#0F172A] dark:hover:border-[#8B5CF6] dark:hover:text-[#C4B5FD]"
+                      >
+                        Отмена
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+
           <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
@@ -212,7 +480,6 @@ export function ProfilePage() {
   );
 }
 
-// Кнопка-ссылка в профиле для перехода в связанный раздел.
 function ProfileButton({
   icon,
   label,
@@ -231,4 +498,47 @@ function ProfileButton({
       {label}
     </Link>
   );
+}
+
+function formatRussianPhone(value: string) {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith("7") || digits.startsWith("8")) {
+    digits = digits.slice(1);
+  }
+
+  const localDigits = digits.slice(0, 10);
+  const parts = [
+    localDigits.slice(0, 3),
+    localDigits.slice(3, 6),
+    localDigits.slice(6, 8),
+    localDigits.slice(8, 10),
+  ];
+
+  if (!localDigits) return "";
+
+  let phone = `+7 (${parts[0]})`;
+  if (parts[1]) phone += ` ${parts[1]}`;
+  if (parts[2]) phone += `-${parts[2]}`;
+  if (parts[3]) phone += `-${parts[3]}`;
+
+  return phone;
+}
+
+function normalizeRussianPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (!digits) {
+    return null;
+  }
+
+  if (digits.length === 10) {
+    return `+7${digits}`;
+  }
+
+  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
+    return `+7${digits.slice(1)}`;
+  }
+
+  return null;
 }

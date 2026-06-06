@@ -59,6 +59,7 @@ export type SellerLegalProfile = SellerLegalProfilePayload & {
 export type SellerProfile = {
   id: string;
   accountId: string;
+  email: string;
   storeName: string;
   ownerEmail: string;
   ownerName: string;

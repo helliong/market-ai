@@ -24,6 +24,7 @@ export type SellerLegalProfile = {
 export type ModerationSeller = {
   id: string;
   accountId: string;
+  email: string;
   storeName: string;
   ownerEmail: string;
   ownerName: string;
