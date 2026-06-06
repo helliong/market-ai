@@ -223,9 +223,12 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                       <div className="mt-1 text-lg font-black text-[#111827]">
                         {formatMoney(item.productPriceSnapshot, order.currency)}
                       </div>
-                      <div className="mt-1 line-clamp-2 text-sm text-[#111827]">
+                      <Link 
+                        href={`/products/${item.productId}`}
+                        className="mt-1 line-clamp-2 text-sm text-[#111827] transition hover:text-[#6D4AFF]"
+                      >
                         {item.productTitleSnapshot}
-                      </div>
+                      </Link>
                       <div className="mt-auto pt-4 flex items-center justify-between">
                         <div className="text-xs text-[#6B7280]">
                           Кол-во: {item.quantity}

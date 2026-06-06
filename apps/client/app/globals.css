@@ -87,6 +87,10 @@ body {
   color: var(--text-main) !important;
 }
 
+.dark [class~="hover:text-[#6D4AFF]"]:hover {
+  color: var(--primary) !important;
+}
+
 .dark [class~="text-[#6B7280]"],
 .dark [class~="text-[#9CA3AF]"] {
   color: var(--text-muted) !important;
@@ -95,6 +99,10 @@ body {
 .dark [class~="border-[#E5E7EB]"],
 .dark [class~="border-[#D1D5DB]"] {
   border-color: var(--border) !important;
+}
+
+.dark [class~="hover:border-[#6D4AFF]"]:hover {
+  border-color: var(--primary) !important;
 }
 
 .dark [class~="bg-[#E5E7EB]"] {
@@ -179,18 +187,27 @@ body {
   }
 }
 
-.dark .seller-profile-cta {
+.seller-profile-cta {
+  isolation: isolate;
   border-color: rgba(245, 158, 11, 0.58) !important;
   background-color: rgba(245, 158, 11, 0.08) !important;
+  color: #d97706 !important;
+}
+
+.seller-profile-cta:hover {
+  border-color: rgba(251, 191, 36, 0.95) !important;
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  color: #b45309 !important;
+  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+.dark .seller-profile-cta {
   color: #fbbf24 !important;
 }
 
 .dark .seller-profile-cta:hover {
-  border-color: rgba(251, 191, 36, 0.95) !important;
-  background-color: rgba(245, 158, 11, 0.18) !important;
   color: #fde68a !important;
-  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.22) !important;
-  transform: translateY(-1px);
 }
 
 .auth-reset-notice {

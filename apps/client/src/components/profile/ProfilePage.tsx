@@ -14,6 +14,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ADMIN_SELLER_URL } from "@/lib/admin";
 import { logout, setUser } from "@/store/authSlice";
 import { logoutClient, updateClientProfile } from "@/lib/auth-api";
@@ -28,6 +29,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { AccountTab } from "./AccountTab";
 
 export function ProfilePage() {
+  const router = useRouter();
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
@@ -43,6 +45,12 @@ export function ProfilePage() {
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   const [completedOrders, setCompletedOrders] = useState<ApiOrder[]>([]);
   const [showAllOrders, setShowAllOrders] = useState(false);
+
+  useEffect(() => {
+    if (isSessionRestored && !user) {
+      router.push("/login");
+    }
+  }, [isSessionRestored, user, router]);
 
   useEffect(() => {
     let isMounted = true;
@@ -103,10 +111,10 @@ export function ProfilePage() {
             </h3>
             {user && (
               <button
-                onClick={() => setActiveTab("account")}
+                onClick={() => setActiveTab(activeTab === "account" ? "orders" : "account")}
                 className="mt-3 rounded-2xl bg-[#F6F7FB] px-5 py-2 text-sm font-bold text-[#111827] transition hover:bg-[#E5E7EB]"
               >
-                Изменить профиль
+                {activeTab === "account" ? "Вернуться назад" : "Изменить профиль"}
               </button>
             )}
             {!user && (
@@ -148,7 +156,7 @@ export function ProfilePage() {
             {user && (
               <a
                 href={ADMIN_SELLER_URL}
-                className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border border-[#6D4AFF] bg-white text-sm font-black text-[#6D4AFF] transition hover:bg-[#F4F0FF] hover:text-[#4F32D9]"
+                className="seller-profile-cta relative flex h-12 items-center justify-center gap-2 overflow-visible rounded-2xl border text-sm font-black transition"
               >
                 <span
                   className="seller-profile-cta-star seller-profile-cta-star-1"
@@ -181,6 +189,7 @@ export function ProfilePage() {
                   dispatch(hydrateFavorites([]));
                   dispatch(hydrateCompare([]));
                   dispatch(clearOrders());
+                  router.push("/login");
                 }
               }}
               className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEF2F2] text-sm font-bold text-[#EF4444] transition hover:bg-[#FEE2E2]"
@@ -351,7 +360,7 @@ function ProfileButton({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB] ${isActive ? "bg-[#F6F7FB] ring-1 ring-[#E5E7EB]" : ""}`}
+      className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB] ${isActive ? "bg-[#F6F7FB]" : ""}`}
     >
       <div className="text-[#6D4AFF]">{icon}</div>
       {label}

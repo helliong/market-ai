@@ -306,7 +306,7 @@ export function Header() {
           <nav className="order-none ml-auto hidden items-center gap-2 xl:flex">
             <Link
               href="/orders"
-              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
+              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] sm:px-3"
             >
               {activeOrdersCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -319,7 +319,7 @@ export function Header() {
 
             <Link
               href="/favorites"
-              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
+              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] sm:px-3"
             >
               {favoritesCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EF4444] px-1 text-[10px] font-bold text-white">
@@ -332,7 +332,7 @@ export function Header() {
 
             <Link
               href="/cart"
-              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
+              className="relative flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] sm:px-3"
             >
               {cartCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#6D4AFF] px-1 text-[10px] font-bold text-white">
@@ -351,7 +351,7 @@ export function Header() {
                   setIsAddressOpen(false);
                   setIsCatalogOpen(false);
                 }}
-                className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF] sm:px-3"
+                className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-[#6B7280] transition hover:bg-[#F6F7FB] sm:px-3"
               >
                 <User size={20} />
                 <span>{t("profile")}</span>
