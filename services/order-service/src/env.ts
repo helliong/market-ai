@@ -37,3 +37,7 @@ export function loadRootEnv() {
 export function getClientUrl() {
   return process.env.CLIENT_URL ?? 'http://localhost:3000';
 }
+
+export function getCatalogServiceUrl() {
+  return process.env.CATALOG_SERVICE_URL ?? 'http://127.0.0.1:4003';
+}

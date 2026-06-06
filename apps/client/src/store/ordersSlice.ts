@@ -8,8 +8,16 @@ export type ClientOrderStatus =
   | "received"
   | "cancelled";
 
+export type ClientOrderItem = {
+  id: number | string;
+  title: string;
+  price: string;
+  quantity: number;
+};
+
 export type ClientOrder = {
   id: string;
+  serverOrderId?: string;
   date: string;
   title: string;
   itemsCount: number;
@@ -17,6 +25,7 @@ export type ClientOrder = {
   status: ClientOrderStatus;
   statusLabel: string;
   details: string;
+  items?: ClientOrderItem[];
 };
 
 type OrdersState = {
@@ -52,6 +61,26 @@ export const ordersSlice = createSlice({
       }
     },
 
+    cancelOrderLocal: (state, action: PayloadAction<string>) => {
+      const orderIndex = state.active.findIndex(
+        (order) =>
+          order.id === action.payload || order.serverOrderId === action.payload,
+      );
+
+      if (orderIndex < 0) {
+        return;
+      }
+
+      const [order] = state.active.splice(orderIndex, 1);
+
+      state.completed.unshift({
+        ...order,
+        status: "cancelled",
+        statusLabel: "Отменен",
+        details: "Заказ отменен и сохранен в истории.",
+      });
+    },
+
     clearOrdersLocal: (state) => {
       state.active = [];
       state.completed = [];
@@ -59,7 +88,12 @@ export const ordersSlice = createSlice({
   },
 });
 
-export const { hydrateOrders, addActiveOrderLocal, clearOrdersLocal } =
+export const {
+  hydrateOrders,
+  addActiveOrderLocal,
+  cancelOrderLocal,
+  clearOrdersLocal,
+} =
   ordersSlice.actions;
 
 export function hydrateClientOrders() {
@@ -71,6 +105,14 @@ export function hydrateClientOrders() {
 export function addActiveOrder(order: ClientOrder) {
   return (dispatch: AppDispatch, getState: () => RootState) => {
     dispatch(addActiveOrderLocal(order));
+    const state = getState();
+    writeStoredOrders(getCurrentUserKey(state), state.orders);
+  };
+}
+
+export function cancelStoredOrder(orderId: string) {
+  return (dispatch: AppDispatch, getState: () => RootState) => {
+    dispatch(cancelOrderLocal(orderId));
     const state = getState();
     writeStoredOrders(getCurrentUserKey(state), state.orders);
   };

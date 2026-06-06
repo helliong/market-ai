@@ -17,6 +17,7 @@ import Link from "next/link";
 import { ADMIN_SELLER_URL } from "@/lib/admin";
 import { logout, setUser } from "@/store/authSlice";
 import { logoutClient, updateClientProfile } from "@/lib/auth-api";
+import { fetchOrders, type ApiOrder } from "@/lib/order-api";
 import { useAppSelector } from "@/store/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { hydrateCart } from "@/store/cartSlice";
@@ -29,6 +30,9 @@ export function ProfilePage() {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const isSessionRestored = useAppSelector(
+    (state) => state.auth.isSessionRestored,
+  );
   const emailInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
@@ -45,6 +49,7 @@ export function ProfilePage() {
   );
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
   const compareCount = useAppSelector((state) => state.compare.ids.length);
+  const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   const orders: {
     id: number;
     itemsCount: number;
@@ -56,6 +61,42 @@ export function ProfilePage() {
     setEmail(user?.email ?? "");
     setPhone(formatRussianPhone(user?.phone ?? ""));
   }, [user?.email, user?.phone]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    function updateActiveOrdersCount() {
+      if (!isSessionRestored || !user) {
+        setActiveOrdersCount(0);
+        return;
+      }
+
+      fetchOrders()
+        .then((orders) => {
+          if (isMounted) {
+            setActiveOrdersCount(orders.filter(isActiveOrder).length);
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setActiveOrdersCount(0);
+          }
+        });
+    }
+
+    if (!isSessionRestored || !user) {
+      setActiveOrdersCount(0);
+      return;
+    }
+
+    updateActiveOrdersCount();
+    window.addEventListener("orders-updated", updateActiveOrdersCount);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("orders-updated", updateActiveOrdersCount);
+    };
+  }, [isSessionRestored, user]);
 
   useEffect(() => {
     if (!isContactsEditorOpen || !focusTarget) {
@@ -164,7 +205,11 @@ export function ProfilePage() {
             />
             <ProfileButton
               icon={<Package size={18} />}
-              label={t("orderHistory")}
+              label={
+                activeOrdersCount > 0
+                  ? `${t("orderHistory")} (${activeOrdersCount})`
+                  : t("orderHistory")
+              }
               href="/orders"
             />
             {user && (
@@ -541,4 +586,16 @@ function normalizeRussianPhone(value: string) {
   }
 
   return null;
+}
+
+function isActiveOrder(order: ApiOrder) {
+  const status = order.status.toLowerCase();
+  const fulfillmentStatus = order.fulfillmentStatus.toLowerCase();
+
+  return !(
+    status.includes("cancel") ||
+    status.includes("complete") ||
+    fulfillmentStatus.includes("cancel") ||
+    fulfillmentStatus.includes("received")
+  );
 }

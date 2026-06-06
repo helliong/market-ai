@@ -106,6 +106,7 @@ export function CheckoutPage() {
     dispatch(
       addActiveOrder({
         id: pendingOrder.orderId.slice(0, 8).toUpperCase(),
+        serverOrderId: pendingOrder.orderId,
         date: formatOrderDate(pendingOrder.createdAt),
         title: buildOrderTitle(pendingOrder.items),
         itemsCount: pendingOrder.items.reduce(
@@ -114,8 +115,10 @@ export function CheckoutPage() {
         ),
         total: pendingOrder.total,
         status: "processing",
-        statusLabel: "Оплачен, в обработке",
-        details: "Продавец готовит товары к отправке",
+        statusLabel: "Заказ принят",
+        details:
+          "Мы уже передали заказ продавцу и обновим статус, когда он будет готов к отправке.",
+        items: pendingOrder.items,
       }),
     );
 

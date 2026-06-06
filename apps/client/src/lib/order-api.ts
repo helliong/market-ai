@@ -35,9 +35,36 @@ export type CheckoutOrderPayload = {
 
 export type CheckoutOrderResponse = {
   orderId: string;
+  publicId?: string;
   paymentId: string;
   status: string;
+  paymentStatus?: string;
   confirmationUrl?: string;
+};
+
+export type ApiOrderItem = {
+  id: string;
+  productId: number;
+  sellerId: string;
+  productTitleSnapshot: string;
+  productPriceSnapshot: string;
+  quantity: number;
+  lineTotal: string;
+};
+
+export type ApiOrder = {
+  id: string;
+  publicId: string;
+  buyerId: string;
+  status: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  grandTotal: string;
+  currency: string;
+  createdAt: string;
+  cancelledAt?: string | null;
+  completedAt?: string | null;
+  items: ApiOrderItem[];
 };
 
 export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
@@ -57,4 +84,37 @@ export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
   }
 
   return data as CheckoutOrderResponse;
+}
+
+export async function fetchOrders() {
+  const response = await fetch(`${ORDER_API_URL}/orders`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Failed to load orders");
+  }
+
+  return data as ApiOrder[];
+}
+
+export async function cancelOrder(orderId: string) {
+  const response = await fetch(
+    `${ORDER_API_URL}/orders/${encodeURIComponent(orderId)}/cancel`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Failed to cancel order");
+  }
+
+  return data as ApiOrder;
 }

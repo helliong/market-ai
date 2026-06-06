@@ -14,7 +14,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { getClientUrl } from '../env';
+import { getCatalogServiceUrl, getClientUrl } from '../env';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type CheckoutItem = {
@@ -75,6 +75,22 @@ type StatusTransitionOrder = {
   fulfillmentStatus: OrderFulfillmentStatus;
 };
 
+type CatalogProductResponse = {
+  id: number;
+  sellerId: string;
+  name: string;
+  price: number | string;
+};
+
+type ResolvedCheckoutItem = {
+  productId: number;
+  sellerId: string;
+  title: string;
+  price: Prisma.Decimal;
+  quantity: number;
+  lineTotal: Prisma.Decimal;
+};
+
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -86,22 +102,22 @@ export class OrdersService {
       throw new BadRequestException('Cart is empty');
     }
 
-    const amount = calculateAmount(items);
-
-    if (amount <= 0) {
-      throw new BadRequestException('Order amount must be greater than zero');
-    }
+    const resolvedItems = await this.resolveCheckoutItems(items);
+    const grandTotal = resolvedItems.reduce(
+      (sum, item) => sum.add(item.lineTotal),
+      new Prisma.Decimal(0),
+    );
 
     const customer = normalizeCustomer(payload.customer);
     const delivery = normalizeDelivery(payload.delivery);
+    const buyerId = normalizeBuyerId(payload.buyerId);
     const paymentMethod = payload.payment?.method?.trim() || 'card';
-    const grandTotal = new Prisma.Decimal(amount.toFixed(2));
 
     const order = await this.prisma.$transaction((tx) =>
       tx.order.create({
         data: {
           publicId: createPublicOrderId(),
-          buyerId: payload.buyerId?.trim() || customer.email || 'guest',
+          buyerId,
           status: OrderStatus.AWAITING_PAYMENT,
           paymentStatus: OrderPaymentStatus.PENDING,
           fulfillmentStatus: OrderFulfillmentStatus.NEW,
@@ -121,21 +137,14 @@ export class OrdersService {
           deliveryFlat: delivery.flat || null,
           deliveryComment: delivery.comment || null,
           items: {
-            create: items.map((item) => {
-              const price = parsePrice(item.price);
-              const quantity = Number.isFinite(item.quantity)
-                ? item.quantity
-                : 0;
-
-              return {
-                productId: item.productId,
-                sellerId: item.sellerId?.trim() || 'unknown',
-                productTitleSnapshot: item.title,
-                productPriceSnapshot: new Prisma.Decimal(price),
-                quantity,
-                lineTotal: new Prisma.Decimal(price).mul(quantity),
-              };
-            }),
+            create: resolvedItems.map((item) => ({
+              productId: item.productId,
+              sellerId: item.sellerId,
+              productTitleSnapshot: item.title,
+              productPriceSnapshot: item.price,
+              quantity: item.quantity,
+              lineTotal: item.lineTotal,
+            })),
           },
           payments: {
             create: {
@@ -251,6 +260,142 @@ export class OrdersService {
     return order;
   }
 
+  async findBuyerOrder(buyerId: string, orderId: string) {
+    const orderLookup = await buildBuyerOrderLookup(
+      this.prisma,
+      buyerId,
+      orderId,
+    );
+    const order = await this.prisma.order.findFirst({
+      where: {
+        buyerId,
+        OR: orderLookup,
+      },
+      include: {
+        items: true,
+        payments: true,
+        statusHistory: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
+  }
+
+  async cancelBuyerOrder(buyerId: string, orderId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const orderLookup = await buildBuyerOrderLookup(tx, buyerId, orderId);
+      const order = await tx.order.findFirst({
+        where: {
+          buyerId,
+          OR: orderLookup,
+        },
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      if (order.status === OrderStatus.CANCELLED) {
+        return order;
+      }
+
+      if (order.status === OrderStatus.COMPLETED) {
+        throw new BadRequestException('Completed order cannot be cancelled');
+      }
+
+      const nextPaymentStatus =
+        order.paymentStatus === OrderPaymentStatus.PENDING
+          ? OrderPaymentStatus.CANCELED
+          : order.paymentStatus;
+
+      const updatedOrder = await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          status: OrderStatus.CANCELLED,
+          paymentStatus: nextPaymentStatus,
+          fulfillmentStatus: OrderFulfillmentStatus.CANCELED,
+          cancelledAt: new Date(),
+        },
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+
+      if (nextPaymentStatus === OrderPaymentStatus.CANCELED) {
+        await tx.orderPayment.updateMany({
+          where: {
+            orderId: order.id,
+            status: OrderPaymentStatus.PENDING,
+          },
+          data: {
+            status: OrderPaymentStatus.CANCELED,
+          },
+        });
+      }
+
+      const historyRows: Prisma.OrderStatusHistoryCreateManyInput[] = [
+        {
+          orderId: order.id,
+          kind: OrderStatusHistoryKind.ORDER,
+          fromStatus: order.status,
+          toStatus: OrderStatus.CANCELLED,
+          source: OrderStatusHistorySource.BUYER,
+          comment: 'Buyer cancelled order',
+        },
+        {
+          orderId: order.id,
+          kind: OrderStatusHistoryKind.FULFILLMENT,
+          fromStatus: order.fulfillmentStatus,
+          toStatus: OrderFulfillmentStatus.CANCELED,
+          source: OrderStatusHistorySource.BUYER,
+          comment: 'Buyer cancelled fulfillment',
+        },
+      ];
+
+      if (nextPaymentStatus !== order.paymentStatus) {
+        historyRows.push({
+          orderId: order.id,
+          kind: OrderStatusHistoryKind.PAYMENT,
+          fromStatus: order.paymentStatus,
+          toStatus: nextPaymentStatus,
+          source: OrderStatusHistorySource.BUYER,
+          comment: 'Pending payment cancelled by buyer',
+        });
+      }
+
+      await tx.orderStatusHistory.createMany({
+        data: historyRows,
+      });
+
+      return updatedOrder;
+    });
+  }
+
   async handleYookassaWebhook(payload: unknown) {
     const notification = payload as YookassaWebhookPayload;
     const payment = notification.object;
@@ -361,6 +506,76 @@ export class OrdersService {
     }
 
     return data as YookassaPaymentResponse;
+  }
+
+  private async resolveCheckoutItems(items: CheckoutItem[]) {
+    const resolvedItems = await Promise.all(
+      items.map(async (item) => {
+        const quantity = normalizeQuantity(item.quantity);
+        const product = await this.fetchCatalogProduct(item.productId);
+        const price = normalizeCatalogPrice(product.price);
+
+        return {
+          productId: product.id,
+          sellerId: product.sellerId,
+          title: product.name,
+          price,
+          quantity,
+          lineTotal: price.mul(quantity),
+        };
+      }),
+    );
+
+    const grandTotal = resolvedItems.reduce(
+      (sum, item) => sum.add(item.lineTotal),
+      new Prisma.Decimal(0),
+    );
+
+    if (grandTotal.lte(0)) {
+      throw new BadRequestException('Order amount must be greater than zero');
+    }
+
+    return resolvedItems;
+  }
+
+  private async fetchCatalogProduct(productId: number) {
+    if (!Number.isInteger(productId) || productId <= 0) {
+      throw new BadRequestException('Invalid product id');
+    }
+
+    const catalogUrl = getCatalogServiceUrl().replace(/\/$/, '');
+    let response: Response;
+
+    try {
+      response = await retry(() =>
+        fetch(`${catalogUrl}/products/${productId}`, {
+          method: 'GET',
+        }),
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        'Catalog service is temporarily unavailable. Please try again.',
+      );
+    }
+
+    const data = (await response.json().catch(() => null)) as
+      | CatalogProductResponse
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      const message =
+        data && 'message' in data && data.message
+          ? data.message
+          : 'Product is not available';
+      throw new BadRequestException(message);
+    }
+
+    if (!isCatalogProduct(data)) {
+      throw new ServiceUnavailableException('Catalog returned invalid product');
+    }
+
+    return data;
   }
 
   private async markPaymentCreationFailed(orderId: string) {
@@ -542,18 +757,6 @@ export class OrdersService {
   }
 }
 
-function calculateAmount(items: CheckoutItem[]) {
-  return items.reduce((sum, item) => {
-    const price = parsePrice(item.price);
-    const quantity = Number.isFinite(item.quantity) ? item.quantity : 0;
-    return sum + price * quantity;
-  }, 0);
-}
-
-function parsePrice(price: string) {
-  return Number(price.replace(/[^\d]/g, ''));
-}
-
 function normalizeCustomer(customer: CheckoutPayload['customer']) {
   const name = customer?.name?.trim();
   const phone = customer?.phone?.trim();
@@ -564,6 +767,49 @@ function normalizeCustomer(customer: CheckoutPayload['customer']) {
   }
 
   return { name, phone, email };
+}
+
+function normalizeBuyerId(buyerId?: string) {
+  const normalizedBuyerId = buyerId?.trim();
+
+  if (!normalizedBuyerId) {
+    throw new BadRequestException('Buyer account is required');
+  }
+
+  return normalizedBuyerId;
+}
+
+function normalizeQuantity(quantity: number) {
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new BadRequestException('Item quantity must be greater than zero');
+  }
+
+  return quantity;
+}
+
+function normalizeCatalogPrice(price: number | string) {
+  const decimal = new Prisma.Decimal(price);
+
+  if (decimal.lte(0)) {
+    throw new BadRequestException('Product price must be greater than zero');
+  }
+
+  return decimal;
+}
+
+function isCatalogProduct(
+  product: CatalogProductResponse | { message?: string } | null,
+): product is CatalogProductResponse {
+  return Boolean(
+    product &&
+      typeof product === 'object' &&
+      typeof (product as CatalogProductResponse).id === 'number' &&
+      typeof (product as CatalogProductResponse).sellerId === 'string' &&
+      (product as CatalogProductResponse).sellerId.trim() &&
+      typeof (product as CatalogProductResponse).name === 'string' &&
+      (typeof (product as CatalogProductResponse).price === 'number' ||
+        typeof (product as CatalogProductResponse).price === 'string'),
+  );
 }
 
 function normalizeDelivery(delivery: CheckoutPayload['delivery']) {
@@ -591,8 +837,8 @@ function createPublicOrderId() {
   return `MA-${date}-${suffix}`;
 }
 
-function buildOrderLookup(orderId: string) {
-  const lookup: Array<{ id?: string; publicId?: string }> = [
+function buildOrderLookup(orderId: string): Prisma.OrderWhereInput[] {
+  const lookup: Prisma.OrderWhereInput[] = [
     { publicId: orderId },
   ];
 
@@ -603,10 +849,41 @@ function buildOrderLookup(orderId: string) {
   return lookup;
 }
 
+async function buildBuyerOrderLookup(
+  client: Pick<Prisma.TransactionClient, '$queryRaw'>,
+  buyerId: string,
+  orderId: string,
+) {
+  const lookup = buildOrderLookup(orderId);
+
+  if (!isUuidPrefix(orderId)) {
+    return lookup;
+  }
+
+  const prefix = `${orderId.toLowerCase()}%`;
+  const rows = await client.$queryRaw<Array<{ id: string }>>`
+    SELECT id::text AS id
+    FROM "orders"
+    WHERE "buyer_id" = ${buyerId}
+      AND id::text LIKE ${prefix}
+    LIMIT 1
+  `;
+
+  if (rows[0]?.id) {
+    lookup.push({ id: rows[0].id });
+  }
+
+  return lookup;
+}
+
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
+}
+
+function isUuidPrefix(value: string) {
+  return /^[0-9a-f]{8}$/i.test(value);
 }
 
 async function retry<T>(action: () => Promise<T>, attempts = 2) {

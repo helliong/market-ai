@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { getClientUrl, loadRootEnv } from './env';
 
@@ -7,6 +8,8 @@ async function bootstrap() {
   loadRootEnv();
 
   const app = await NestFactory.create(AppModule);
+
+  app.use(cookieParser());
 
   // Разрешаем клиентскому фронтенду отправлять checkout-запросы с cookies.
   app.enableCors({

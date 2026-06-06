@@ -91,6 +91,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - CLIENT_URL=${CLIENT_URL}
       - ORDER_SERVICE_PORT=4004
+      - CATALOG_SERVICE_URL=http://catalog-service:4003
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
       - YOOKASSA_API_KEY=${YOOKASSA_API_KEY}
       - NODE_ENV=production

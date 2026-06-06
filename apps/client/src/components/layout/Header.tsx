@@ -27,6 +27,7 @@ import { hydrateFavorites } from "@/store/favoritesSlice";
 import { clearOrders } from "@/store/ordersSlice";
 import { categories } from "@/data/categories";
 import { logoutClient } from "@/lib/auth-api";
+import { fetchOrders, type ApiOrder } from "@/lib/order-api";
 import { getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -53,10 +54,11 @@ export function Header() {
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
-  const activeOrdersCount = useAppSelector(
-    (state) => state.orders.active.length,
-  );
   const user = useAppSelector((state) => state.auth.user);
+  const isSessionRestored = useAppSelector(
+    (state) => state.auth.isSessionRestored,
+  );
+  const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
   const mobileNavItemClass = (isActive: boolean) =>
     `relative flex h-12 items-center justify-center rounded-xl px-2 py-2 transition hover:bg-[#6D4AFF] hover:text-white active:bg-[#4F32D9] active:text-white [&>span:last-child]:hidden ${
@@ -95,6 +97,42 @@ export function Header() {
     return () =>
       document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    function updateActiveOrdersCount() {
+      if (!isSessionRestored || !user) {
+        setActiveOrdersCount(0);
+        return;
+      }
+
+      fetchOrders()
+        .then((orders) => {
+          if (isMounted) {
+            setActiveOrdersCount(orders.filter(isActiveOrder).length);
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setActiveOrdersCount(0);
+          }
+        });
+    }
+
+    if (!isSessionRestored || !user) {
+      setActiveOrdersCount(0);
+      return;
+    }
+
+    updateActiveOrdersCount();
+    window.addEventListener("orders-updated", updateActiveOrdersCount);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("orders-updated", updateActiveOrdersCount);
+    };
+  }, [isSessionRestored, pathname, user]);
 
   useEffect(() => {
     function handleOpenCatalog() {
@@ -725,5 +763,17 @@ function ProfileLanguageSelect({
         <option value="kk">Қазақша</option>
       </select>
     </label>
+  );
+}
+
+function isActiveOrder(order: ApiOrder) {
+  const status = order.status.toLowerCase();
+  const fulfillmentStatus = order.fulfillmentStatus.toLowerCase();
+
+  return !(
+    status.includes("cancel") ||
+    status.includes("complete") ||
+    fulfillmentStatus.includes("cancel") ||
+    fulfillmentStatus.includes("received")
   );
 }

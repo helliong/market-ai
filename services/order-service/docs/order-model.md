@@ -90,35 +90,38 @@ Aggregate order statuses:
 
 ## Checkout lifecycle
 
-1. `POST /orders/checkout` validates auth, cart/items, customer, delivery and totals.
-2. In one DB transaction, the service creates `orders` with:
+1. `POST /orders/checkout` validates auth, cart/items, customer and delivery.
+2. The service resolves every `product_id` through catalog-service and uses catalog `sellerId`, `name` and `price` as the trusted order item snapshot.
+3. In one DB transaction, the service creates `orders` with:
    - `status = awaiting_payment`
    - `payment_status = pending`
    - `fulfillment_status = new`
-3. The same transaction creates `order_items` from item snapshots.
-4. The same transaction writes initial `order_status_history` rows.
-5. The service creates a YooKassa payment with `metadata.order_id = orders.id`.
-6. The service updates/creates `order_payments` with `provider_payment_id`, `status = pending`, amount and raw provider response.
-7. The client redirects to YooKassa `confirmation_url`.
-8. YooKassa calls `POST /payments/yookassa/webhook`.
-9. Webhook handler finds `order_payments` by `provider + provider_payment_id` or `orders.id` from metadata.
-10. On `payment.succeeded`, the service changes:
+4. The same transaction creates `order_items` from trusted catalog snapshots.
+5. The same transaction writes initial `order_status_history` rows.
+6. The service creates a YooKassa payment with `metadata.order_id = orders.id`.
+7. The service updates/creates `order_payments` with `provider_payment_id`, `status = pending`, amount and raw provider response.
+8. The client redirects to YooKassa `confirmation_url`.
+9. YooKassa calls `POST /payments/yookassa/webhook`.
+10. Webhook handler finds `order_payments` by `provider + provider_payment_id` or `orders.id` from metadata.
+11. On `payment.succeeded`, the service changes:
     - `order_payments.status: pending -> paid`
     - `orders.payment_status: pending -> paid`
     - `orders.status: awaiting_payment -> paid` or `processing`
     - `orders.fulfillment_status: new -> confirmed` or `processing`
     - `orders.paid_at = now()`
-11. Every status change is appended to `order_status_history`.
-12. Order history UI calls backend instead of rebuilding history from `localStorage`.
+12. Every status change is appended to `order_status_history`.
+13. Order history UI calls backend instead of rebuilding history from `localStorage`.
 
 ## Suggested API
 
 - `POST /orders/checkout`
   - Creates order, order items and payment, returns `{ orderId, publicId, paymentId, status, paymentStatus, confirmationUrl }`.
 - `GET /orders`
-  - Returns paginated buyer order history. In production, buyer should come from auth token; `buyerId` query may be kept only for internal/admin/debug use.
+  - Returns paginated buyer order history for the current BUYER `accessToken` cookie. `buyerId` must come from JWT `sub`, not from query params.
 - `GET /orders/:id`
-  - Returns one order with items, payments and optionally status history.
+  - Returns one current-buyer order with items, payments and optionally status history.
+- `POST /orders/:id/cancel`
+  - Cancels one current-buyer order, moves it to aggregate `cancelled`, fulfillment `canceled`, logs status history and returns the updated order.
 - `GET /orders/:id/status-history`
   - Returns audit trail if the profile/admin UI needs it separately.
 - `POST /payments/yookassa/webhook`
@@ -128,6 +131,6 @@ Aggregate order statuses:
 
 - Generate `public_id` server-side, for example `MA-YYYYMMDD-000001` using a DB-backed sequence or a short sortable id with a unique constraint.
 - Treat YooKassa webhooks as idempotent: repeated `payment.succeeded` should not create duplicate transitions.
-- Never trust client-supplied prices for final totals. The service should resolve current products from catalog at checkout, then save snapshots.
+- Never trust client-supplied prices, titles or seller ids for final totals and snapshots. The service resolves current products from catalog at checkout, then saves snapshots.
 - Keep `raw_payload` for payment audit, but do not expose it to buyer-facing API.
 - Consider reserving stock in catalog/cart flow before redirecting to payment, then committing reservation after successful payment.
