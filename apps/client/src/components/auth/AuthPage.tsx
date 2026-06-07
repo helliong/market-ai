@@ -279,6 +279,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           email: currentUser.email,
           phone: currentUser.phone,
           isEmailVerified: currentUser.isEmailVerified,
+          avatar: currentUser.avatar,
         }),
       );
 
@@ -348,6 +349,7 @@ export function AuthPage({ mode, audience = "client" }: AuthPageProps) {
           email: currentUser.email,
           phone: currentUser.phone,
           isEmailVerified: currentUser.isEmailVerified,
+          avatar: currentUser.avatar,
         }),
       );
 

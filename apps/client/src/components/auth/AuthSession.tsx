@@ -32,6 +32,7 @@ export function AuthSession() {
             email: user.email,
             phone: user.phone,
             isEmailVerified: user.isEmailVerified,
+            avatar: user.avatar,
           }),
         );
 

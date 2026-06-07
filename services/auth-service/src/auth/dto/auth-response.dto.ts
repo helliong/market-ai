@@ -43,6 +43,9 @@ export class AccountSummaryResponseDto {
   })
   sellerStatus!: string | null;
 
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...', nullable: true })
+  avatar!: string | null;
+
   @ApiProperty({ example: '2026-05-26T17:05:08.200Z' })
   createdAt!: Date;
 }

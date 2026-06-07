@@ -370,6 +370,7 @@ export class AuthService {
       hasUserProfile: Boolean(account.user),
       hasSellerProfile: Boolean(account.seller),
       sellerStatus: account.seller?.status ?? null,
+      avatar: account.user?.avatar ?? null,
       createdAt: account.createdAt,
     };
   }
@@ -386,6 +387,7 @@ export class AuthService {
         phone: true,
         birthDate: true,
         gender: true,
+        avatar: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -465,6 +467,10 @@ export class AuthService {
       userData.gender = dto.gender;
     }
 
+    if (dto.avatar !== undefined) {
+      userData.avatar = dto.avatar;
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (Object.keys(accountData).length > 0) {
@@ -492,6 +498,7 @@ export class AuthService {
             phone: true,
             birthDate: true,
             gender: true,
+            avatar: true,
             createdAt: true,
             updatedAt: true,
           },

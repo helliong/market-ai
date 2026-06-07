@@ -9,6 +9,7 @@ export type AuthUser = {
   birthDate?: string | null;
   gender?: string | null;
   displayName?: string | null;
+  avatar?: string | null;
 };
 
 type AuthState = {

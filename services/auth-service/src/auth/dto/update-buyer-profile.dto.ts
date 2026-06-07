@@ -47,4 +47,13 @@ export class UpdateBuyerProfileDto {
   @IsOptional()
   @IsString()
   gender?: string;
+
+  @ApiPropertyOptional({
+    example: 'data:image/png;base64,...',
+    description: 'Base64 encoded avatar image',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }

@@ -361,8 +361,16 @@ export function Header() {
                 <div className="absolute right-0 top-full z-50 w-[340px] pt-2">
                   <div className="rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
                     <div className="flex items-center gap-4 border-b border-[#E5E7EB] pb-4">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                        <User size={24} />
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                        {user?.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt="Avatar"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <User size={24} />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-base font-black text-[#111827]">
@@ -635,8 +643,16 @@ export function Header() {
             <div className="fixed bottom-[74px] left-4 right-4 z-50">
               <div className="rounded-[24px] bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
                 <div className="flex items-center gap-4 border-b border-[#E5E7EB] pb-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                    <User size={24} />
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="Avatar"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User size={24} />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-base font-black text-[#111827]">

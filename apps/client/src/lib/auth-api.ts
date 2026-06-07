@@ -41,6 +41,7 @@ export type CurrentUser = {
   email: string;
   phone: string | null;
   isEmailVerified: boolean;
+  avatar?: string | null;
   hasUserProfile?: boolean;
   hasSellerProfile?: boolean;
   sellerStatus?: string | null;
@@ -55,6 +56,7 @@ export type UpdateClientProfilePayload = {
   phone?: string | null;
   birthDate?: string | null;
   gender?: string | null;
+  avatar?: string | null;
 };
 
 export type BuyerProfile = {

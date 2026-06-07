@@ -12,6 +12,7 @@ import {
   Star,
   Store,
   User,
+  Camera,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,71 @@ export function ProfilePage() {
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   const [completedOrders, setCompletedOrders] = useState<ApiOrder[]>([]);
   const [showAllOrders, setShowAllOrders] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Поддерживаются только изображения формата JPG, PNG или WEBP.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Размер файла не должен превышать 5 МБ.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const MAX_SIZE = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+
+        try {
+          setIsUploadingAvatar(true);
+          await updateClientProfile({ avatar: compressedBase64 });
+          if (user) {
+            dispatch(setUser({ ...user, avatar: compressedBase64 }));
+          }
+        } catch (err) {
+          console.error("Failed to upload avatar", err);
+          alert("Не удалось загрузить фото. Попробуйте позже.");
+        } finally {
+          setIsUploadingAvatar(false);
+        }
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (isSessionRestored && !user) {
@@ -103,8 +169,32 @@ export function ProfilePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
         <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white">
-              <User size={42} />
+            <div className="group relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white overflow-hidden shadow-inner">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User size={42} />
+              )}
+              {user && (
+                <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 backdrop-blur-sm">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={isUploadingAvatar}
+                  />
+                  {isUploadingAvatar ? (
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <Camera size={24} className="text-white" />
+                  )}
+                </label>
+              )}
             </div>
             <h3 className="mt-4 text-lg font-black text-[#111827]">
               {user ? user.name : "Гость"}
