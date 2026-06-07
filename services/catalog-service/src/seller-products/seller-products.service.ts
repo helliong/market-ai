@@ -88,6 +88,7 @@ export class SellerProductsService {
         data: {
           sellerId,
           storeName: seller.storeName,
+          storeStatus: seller.status,
           sku: normalizeSku(dto.sku),
           name: dto.name.trim(),
           description: dto.description?.trim() ?? '',
@@ -279,6 +280,7 @@ export class SellerProductsService {
         const data = {
           sellerId,
           storeName: seller.storeName,
+          storeStatus: seller.status,
           sku: row.sku,
           name: row.name,
           description: row.description,
@@ -358,6 +360,7 @@ export class SellerProductsService {
     id: number;
     sellerId: string;
     storeName: string;
+    storeStatus: string;
     sku: string;
     name: string;
     description: string;

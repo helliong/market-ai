@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
@@ -26,6 +27,47 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('MarketAI Catalog Service')
+    .setDescription(
+      [
+        'Catalog API for public products and seller product management.',
+        '',
+        'Seller endpoints use the sellerAccessToken HttpOnly cookie issued by auth-service.',
+        'Use /auth/seller/login in auth-service first, then send requests with credentials enabled.',
+      ].join('\n'),
+    )
+    .setVersion('1.0')
+    .addServer('http://127.0.0.1:4003', 'Local development')
+    .addServer('http://localhost:4003', 'Local development (localhost)')
+    .addTag('Products', 'Public product catalog')
+    .addTag('Seller products', 'Seller product management')
+    .addCookieAuth(
+      'sellerAccessToken',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'sellerAccessToken',
+        description:
+          'Seller JWT access token stored in an HttpOnly cookie by auth-service.',
+      },
+      'sellerAccessToken',
+    )
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, swaggerDocument, {
+    customSiteTitle: 'MarketAI Catalog API',
+    swaggerOptions: {
+      docExpansion: 'none',
+      filter: true,
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'method',
+    },
+  });
 
   await app.listen(process.env.CATALOG_SERVICE_PORT ?? 4003);
 }

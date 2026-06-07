@@ -7,6 +7,7 @@ import {
   Megaphone,
   Moon,
   Package,
+  PauseCircle,
   Settings,
   Sun,
   Users,
@@ -14,8 +15,9 @@ import {
 import {
   getCurrentSeller,
   logoutSellerAccount,
+  pauseSellerStore,
+  resumeSellerStore,
   saveSellerLegalProfile,
-  setStorePauseState,
   submitSellerLegalProfile,
   updateSellerProfile,
 } from "./auth-api";
@@ -519,12 +521,31 @@ function App() {
   }
 
   function handleDeactivateStore() {
+    const isPaused = sellerProfile?.status === "PAUSED";
+
     setDialog({
-      title: t("settingsDeactivateTitle"),
-      message: t("settingsDeactivateDialog"),
+      title: t(isPaused ? "settingsResumeTitle" : "settingsDeactivateTitle"),
+      message: t(isPaused ? "settingsResumeDialog" : "settingsDeactivateDialog"),
       variant: "danger",
-      confirmLabel: t("settingsDeactivate"),
+      confirmLabel: t(isPaused ? "settingsResume" : "settingsDeactivate"),
       cancelLabel: t("cancel"),
+      onConfirm: async () => {
+        try {
+          const updatedProfile = isPaused
+            ? await resumeSellerStore()
+            : await pauseSellerStore();
+          setSellerProfile(updatedProfile);
+          setStoreName(updatedProfile.storeName);
+        } catch (error) {
+          setDialog({
+            title: t("checkFields"),
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to update store status",
+          });
+        }
+      },
     });
   }
 
@@ -568,6 +589,8 @@ function App() {
           : t("sellerStatusRejected");
       case "SUSPENDED":
         return t("sellerStatusSuspended");
+      case "PAUSED":
+        return t("sellerStatusPaused");
       default:
         return "";
     }
@@ -745,6 +768,25 @@ function App() {
       </aside>
 
       <main className="content">
+        {sellerProfile?.status === "PAUSED" && (
+          <div className="store-paused-banner" role="status">
+            <span className="store-paused-banner-icon">
+              <PauseCircle aria-hidden="true" />
+            </span>
+            <div>
+              <strong>{t("sellerPausedBannerTitle")}</strong>
+              <p>{t("sellerPausedBannerDescription")}</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleDeactivateStore}
+            >
+              {t("settingsResume")}
+            </button>
+          </div>
+        )}
+
         <header className="topbar">
           <div>
             <h1>{t("adminPanel")}</h1>
@@ -777,6 +819,7 @@ function App() {
         {page === "orders" && (
           <OrdersPage orders={orders} onStatusChange={updateOrderStatus} />
         )}
+        {page === "promotion" && <PromotionPage />}
         {page === "users" && (
           <UsersPage
             users={users}
@@ -794,11 +837,6 @@ function App() {
             onSubmitLegalProfile={handleSubmitLegalProfile}
             onDeactivateStore={handleDeactivateStore}
             onDeleteStore={handleDeleteStore}
-            onPauseStore={async (isPaused) => {
-              await setStorePauseState(isPaused);
-              const nextProfile = await getCurrentSeller();
-              setSellerProfile(nextProfile);
-            }}
           />
         )}
       </main>

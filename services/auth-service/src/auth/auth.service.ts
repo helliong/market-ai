@@ -532,7 +532,6 @@ export class AuthService {
         inn: true,
         phone: true,
         legalProfile: true,
-        isPaused: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -563,7 +562,7 @@ export class AuthService {
       throw new ForbiddenException('Seller profile is suspended');
     }
 
-    const updated = await this.prisma.userSeller.update({
+    return this.prisma.userSeller.update({
       where: { id: seller.id },
       data: {
         ...(dto.storeName !== undefined && { storeName: dto.storeName }),
@@ -590,17 +589,28 @@ export class AuthService {
         inn: true,
         phone: true,
         legalProfile: true,
-        isPaused: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+  }
 
-    if (dto.storeName && dto.storeName !== seller.storeName) {
-      await this.prisma.$executeRaw`UPDATE "Product" SET "storeName" = ${dto.storeName} WHERE "sellerId" = ${seller.accountId}`;
-    }
+  async pauseSellerStore(accountId: string) {
+    return this.updateSellerStoreStatus(
+      accountId,
+      SellerStatus.ACTIVATED,
+      SellerStatus.PAUSED,
+      'Only activated stores can be paused',
+    );
+  }
 
-    return updated;
+  async resumeSellerStore(accountId: string) {
+    return this.updateSellerStoreStatus(
+      accountId,
+      SellerStatus.PAUSED,
+      SellerStatus.ACTIVATED,
+      'Only paused stores can be resumed',
+    );
   }
 
 
@@ -760,35 +770,6 @@ export class AuthService {
     });
   }
 
-  async setStorePauseState(accountId: string, isPaused: boolean) {
-    const seller = await this.prisma.userSeller.findUnique({
-      where: { accountId },
-    });
-
-    if (!seller) {
-      throw new ForbiddenException('Seller profile not found');
-    }
-
-    await this.prisma.userSeller.update({
-      where: { accountId },
-      data: { isPaused },
-    });
-
-    // Notify catalog service
-    const catalogUrl = this.configService.get<string>('CATALOG_SERVICE_URL') ?? 'http://127.0.0.1:4003';
-    try {
-      await fetch(`${catalogUrl}/internal/sellers/${accountId}/pause`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPaused }),
-      });
-    } catch (e) {
-      console.error('Failed to sync pause state to catalog service', e);
-    }
-
-    return { message: 'Store pause state updated', isPaused };
-  }
-
   // Находит seller-профиль, который еще можно редактировать по legal data.
   private async getSellerForLegalUpdate(accountId: string) {
     const seller = await this.prisma.userSeller.findUnique({
@@ -803,11 +784,69 @@ export class AuthService {
       throw new ForbiddenException('Seller profile is suspended');
     }
 
-    if (seller.status === SellerStatus.ACTIVATED) {
+    if (
+      seller.status === SellerStatus.ACTIVATED ||
+      seller.status === SellerStatus.PAUSED
+    ) {
       throw new BadRequestException('Activated seller legal data is locked');
     }
 
     return seller;
+  }
+
+  private async updateSellerStoreStatus(
+    accountId: string,
+    expectedStatus: SellerStatus,
+    nextStatus: SellerStatus,
+    invalidStatusMessage: string,
+  ) {
+    const seller = await this.prisma.userSeller.findUnique({
+      where: { accountId },
+    });
+
+    if (!seller) {
+      throw new ForbiddenException('Seller profile not found');
+    }
+
+    if (seller.status === SellerStatus.SUSPENDED) {
+      throw new ForbiddenException('Seller profile is suspended');
+    }
+
+    if (seller.status !== expectedStatus) {
+      throw new BadRequestException(invalidStatusMessage);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedSeller = await tx.userSeller.update({
+        where: { id: seller.id },
+        data: { status: nextStatus },
+        select: {
+          id: true,
+          accountId: true,
+          email: true,
+          storeName: true,
+          description: true,
+          city: true,
+          ownerEmail: true,
+          ownerName: true,
+          status: true,
+          reviewComment: true,
+          submittedAt: true,
+          reviewedAt: true,
+          agreementAcceptedAt: true,
+          legalName: true,
+          inn: true,
+          phone: true,
+          legalProfile: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      await tx.$executeRaw`UPDATE "Product" SET "storeStatus" = ${nextStatus} WHERE "sellerId" = ${seller.accountId}`;
+
+      return updatedSeller;
+    });
   }
 
   // Создает reset-код для buyer или seller credentials и отправляет письмо нужного назначения.

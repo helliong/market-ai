@@ -40,7 +40,6 @@ type AuthenticatedRequest = Request & {
 
 @UseGuards(JwtAuthGuard)
 @Controller()
-@ApiTags('Shopping state')
 @ApiCookieAuth('accessToken')
 @ApiUnauthorizedResponse({
   description:
@@ -50,6 +49,7 @@ export class ShoppingController {
   constructor(private readonly shoppingService: ShoppingService) {}
 
   @Get('cart')
+  @ApiTags('Cart')
   @ApiOperation({
     summary: 'Get buyer cart',
     description:
@@ -65,6 +65,7 @@ export class ShoppingController {
   }
 
   @Post('cart/items')
+  @ApiTags('Cart')
   @ApiOperation({
     summary: 'Add product to cart',
     description:
@@ -88,6 +89,7 @@ export class ShoppingController {
   }
 
   @Patch('cart/items/:productId')
+  @ApiTags('Cart')
   @ApiOperation({
     summary: 'Set cart item quantity',
     description:
@@ -120,6 +122,7 @@ export class ShoppingController {
   }
 
   @Delete('cart/items/:productId')
+  @ApiTags('Cart')
   @ApiOperation({
     summary: 'Remove product from cart',
     description: 'Removes one product from the current buyer cart.',
@@ -148,6 +151,7 @@ export class ShoppingController {
   }
 
   @Delete('cart')
+  @ApiTags('Cart')
   @ApiOperation({
     summary: 'Clear buyer cart',
     description: 'Removes all products from the current buyer cart.',
@@ -162,6 +166,7 @@ export class ShoppingController {
   }
 
   @Get('favorites')
+  @ApiTags('Favorites')
   @ApiOperation({
     summary: 'Get favorite products',
     description:
@@ -177,6 +182,7 @@ export class ShoppingController {
   }
 
   @Post('favorites/:productId')
+  @ApiTags('Favorites')
   @ApiOperation({
     summary: 'Add product to favorites',
     description:
@@ -203,6 +209,7 @@ export class ShoppingController {
   }
 
   @Delete('favorites/:productId')
+  @ApiTags('Favorites')
   @ApiOperation({
     summary: 'Remove product from favorites',
     description: 'Removes a product from current buyer favorites.',
@@ -231,6 +238,7 @@ export class ShoppingController {
   }
 
   @Get('compare')
+  @ApiTags('Compare')
   @ApiOperation({
     summary: 'Get compare list',
     description:
@@ -246,6 +254,7 @@ export class ShoppingController {
   }
 
   @Post('compare/:productId')
+  @ApiTags('Compare')
   @ApiOperation({
     summary: 'Add product to compare list',
     description:
@@ -272,6 +281,7 @@ export class ShoppingController {
   }
 
   @Delete('compare/:productId')
+  @ApiTags('Compare')
   @ApiOperation({
     summary: 'Remove product from compare list',
     description: 'Removes a product from current buyer comparison list.',

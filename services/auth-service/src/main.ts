@@ -4,7 +4,11 @@ import type { NextFunction, Request, Response } from 'express';
 import { json, urlencoded } from 'express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  type OpenAPIObject,
+  SwaggerModule,
+} from '@nestjs/swagger';
 
 // Запускает auth-service, настраивает CORS, cookie parser, Swagger и глобальную валидацию DTO.
 async function bootstrap() {
@@ -73,7 +77,12 @@ async function bootstrap() {
     .setVersion('1.0')
     .addServer('http://127.0.0.1:4001', 'Local development')
     .addServer('http://localhost:4001', 'Local development (localhost)')
-    .addTag('Auth', 'Account, buyer profile and seller profile authorization')
+    .addTag('Auth - Account', 'Shared account email verification endpoints')
+    .addTag('Auth - Buyer', 'Buyer registration, session and profile endpoints')
+    .addTag('Auth - Seller', 'Seller registration, session and store profile endpoints')
+    .addTag('Seller legal', 'Seller legal profile and legal review submission')
+    .addTag('Moderator', 'Manual moderation admin endpoints')
+    .addTag('Public store', 'Public store profile lookup')
     .addCookieAuth(
       'accessToken',
       {
@@ -117,6 +126,7 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  groupAuthSwaggerTags(swaggerDocument);
 
   SwaggerModule.setup('docs', app, swaggerDocument, {
     customSiteTitle: 'MarketAI Auth API',
@@ -196,6 +206,58 @@ async function bootstrap() {
   });
 
   await app.listen(process.env.PORT ?? 4001);
+}
+
+function groupAuthSwaggerTags(document: OpenAPIObject) {
+  const tagDescriptions = new Map(
+    (document.tags ?? []).map((tag) => [tag.name, tag.description]),
+  );
+
+  for (const [path, pathItem] of Object.entries(document.paths)) {
+    for (const operation of Object.values(pathItem ?? {})) {
+      if (!operation || typeof operation !== 'object' || !('tags' in operation)) {
+        continue;
+      }
+
+      operation.tags = [getAuthSwaggerTag(path)];
+    }
+  }
+
+  document.tags = [
+    'Auth - Account',
+    'Auth - Buyer',
+    'Auth - Seller',
+    'Seller legal',
+    'Moderator',
+    'Public store',
+  ].map((name) => ({
+    name,
+    description: tagDescriptions.get(name),
+  }));
+}
+
+function getAuthSwaggerTag(path: string) {
+  if (path.startsWith('/auth/admin/')) {
+    return 'Moderator';
+  }
+
+  if (path.startsWith('/auth/store/')) {
+    return 'Public store';
+  }
+
+  if (path.startsWith('/auth/seller/legal-profile')) {
+    return 'Seller legal';
+  }
+
+  if (path.startsWith('/auth/seller/')) {
+    return 'Auth - Seller';
+  }
+
+  if (path === '/auth/verify-email' || path === '/auth/resend-verification') {
+    return 'Auth - Account';
+  }
+
+  return 'Auth - Buyer';
 }
 
 bootstrap();

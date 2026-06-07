@@ -10,6 +10,7 @@ enum SellerStatus {
   PENDING_LEGAL_DATA
   UNDER_REVIEW
   ACTIVATED
+  PAUSED
   SUSPENDED
   REJECTED
 }
@@ -80,7 +81,6 @@ model UserSeller {
   phone               String?
   description         String?
   city                String?
-  isPaused            Boolean      @default(false)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 

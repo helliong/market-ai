@@ -1,6 +1,10 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  type OpenAPIObject,
+  SwaggerModule,
+} from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
@@ -51,10 +55,10 @@ async function bootstrap() {
     .setVersion('1.0')
     .addServer('http://127.0.0.1:4002', 'Local development')
     .addServer('http://localhost:4002', 'Local development (localhost)')
-    .addTag(
-      'Shopping state',
-      'Buyer cart, favorites and product comparison persistence',
-    )
+    .addTag('Cart', 'Buyer cart item persistence')
+    .addTag('Favorites', 'Buyer favorite product persistence')
+    .addTag('Compare', 'Buyer product comparison persistence')
+    .addTag('Health', 'Service health check')
     .addCookieAuth(
       'accessToken',
       {
@@ -69,6 +73,7 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  groupCartSwaggerTags(swaggerDocument);
 
   SwaggerModule.setup('docs', app, swaggerDocument, {
     customSiteTitle: 'MarketAI Cart API',
@@ -84,4 +89,42 @@ async function bootstrap() {
 
   await app.listen(process.env.CART_SERVICE_PORT ?? 4002);
 }
+
+function groupCartSwaggerTags(document: OpenAPIObject) {
+  const tagDescriptions = new Map(
+    (document.tags ?? []).map((tag) => [tag.name, tag.description]),
+  );
+
+  for (const [path, pathItem] of Object.entries(document.paths)) {
+    for (const operation of Object.values(pathItem ?? {})) {
+      if (!operation || typeof operation !== 'object' || !('tags' in operation)) {
+        continue;
+      }
+
+      operation.tags = [getCartSwaggerTag(path)];
+    }
+  }
+
+  document.tags = ['Cart', 'Favorites', 'Compare', 'Health'].map((name) => ({
+    name,
+    description: tagDescriptions.get(name),
+  }));
+}
+
+function getCartSwaggerTag(path: string) {
+  if (path.startsWith('/favorites')) {
+    return 'Favorites';
+  }
+
+  if (path.startsWith('/compare')) {
+    return 'Compare';
+  }
+
+  if (path.startsWith('/cart')) {
+    return 'Cart';
+  }
+
+  return 'Health';
+}
+
 bootstrap();

@@ -602,6 +602,69 @@ input:disabled {
   overflow-x: auto;
 }
 
+.store-paused-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.store-paused-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.store-paused-banner-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.store-paused-banner strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.store-paused-banner p {
+  margin: 4px 0 0;
+  color: #92400e;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.dark .store-paused-banner {
+  border-color: rgba(250, 204, 21, 0.38);
+  background: #2a2110;
+  color: #fde68a;
+}
+
+.dark .store-paused-banner-icon {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+
+.dark .store-paused-banner p {
+  color: #fcd34d;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -2248,9 +2311,19 @@ th {
   }
 
   .topbar,
+  .store-paused-banner,
   .section-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .store-paused-banner {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .store-paused-banner .secondary-button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .seller-auth-footer-settings {

@@ -10,8 +10,8 @@ export class ProductsService {
     const products = await this.prisma.product.findMany({
       where: {
         status: 'active',
+        storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
-        isSellerPaused: false,
       },
     });
 
@@ -23,8 +23,8 @@ export class ProductsService {
       where: {
         id: productId,
         status: 'active',
+        storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
-        isSellerPaused: false,
       },
     });
 
@@ -39,6 +39,7 @@ export class ProductsService {
     id: number;
     sellerId: string;
     storeName: string;
+    storeStatus: string;
     sku: string;
     name: string;
     description: string;

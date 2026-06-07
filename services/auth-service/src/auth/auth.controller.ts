@@ -50,11 +50,11 @@ import { ModerationAdminGuard } from './guards/moderation-admin.guard';
 
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
-@ApiTags('Auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @ApiTags('Auth - Buyer')
   @ApiOperation({
     summary: 'Register buyer profile',
     description:
@@ -74,6 +74,7 @@ export class AuthController {
   }
 
   @Post('seller/register')
+  @ApiTags('Auth - Seller')
   @ApiOperation({
     summary: 'Register seller profile',
     description:
@@ -97,6 +98,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @ApiTags('Auth - Account')
   @ApiOperation({
     summary: 'Verify email',
     description:
@@ -116,6 +118,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @ApiTags('Auth - Buyer')
   @ApiOperation({
     summary: 'Login buyer',
     description:
@@ -144,6 +147,7 @@ export class AuthController {
   }
 
   @Post('seller/login')
+  @ApiTags('Auth - Seller')
   @ApiOperation({
     summary: 'Login seller',
     description:
@@ -178,6 +182,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiTags('Auth - Buyer')
   @ApiCookieAuth('refreshToken')
   @ApiOperation({
     summary: 'Refresh buyer tokens',
@@ -216,6 +221,7 @@ export class AuthController {
   }
 
   @Post('seller/refresh')
+  @ApiTags('Auth - Seller')
   @ApiCookieAuth('sellerRefreshToken')
   @ApiOperation({
     summary: 'Refresh seller tokens',
@@ -258,6 +264,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiTags('Auth - Buyer')
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Get current account',
@@ -285,6 +292,7 @@ export class AuthController {
 
   @Get('user/me')
   @UseGuards(JwtAuthGuard)
+  @ApiTags('Auth - Buyer')
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Get buyer profile',
@@ -312,6 +320,7 @@ export class AuthController {
 
   @Put('user/me')
   @UseGuards(JwtAuthGuard)
+  @ApiTags('Auth - Buyer')
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Update buyer profile',
@@ -346,6 +355,7 @@ export class AuthController {
 
   @Get('seller/me')
   @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Auth - Seller')
   @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Get seller profile',
@@ -373,6 +383,7 @@ export class AuthController {
 
   @Put('seller/me')
   @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Auth - Seller')
   @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Update current seller profile',
@@ -394,8 +405,71 @@ export class AuthController {
     return this.authService.updateSellerMe(accountId, dto);
   }
 
+  @Post('seller/store/pause')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Auth - Seller')
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Pause current seller store',
+    description:
+      'Moves an activated seller store to PAUSED. Paused stores stay editable in seller admin but are hidden from public storefront and catalog.',
+  })
+  @ApiCreatedResponse({
+    type: SellerProfileResponseDto,
+    description: 'Seller store was paused.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Seller store is not activated.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller profile not found or suspended.',
+  })
+  async pauseSellerStore(@Req() req: Request) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.pauseSellerStore(accountId);
+  }
+
+  @Post('seller/store/resume')
+  @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Auth - Seller')
+  @ApiCookieAuth('sellerAccessToken')
+  @ApiOperation({
+    summary: 'Resume current seller store',
+    description:
+      'Moves a paused seller store back to ACTIVATED and restores its products in public catalog.',
+  })
+  @ApiCreatedResponse({
+    type: SellerProfileResponseDto,
+    description: 'Seller store was resumed.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Seller store is not paused.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller profile not found or suspended.',
+  })
+  async resumeSellerStore(@Req() req: Request) {
+    const accountId = (req as any).user?.sub;
+
+    if (!accountId) {
+      throw new UnauthorizedException('No account');
+    }
+
+    return this.authService.resumeSellerStore(accountId);
+  }
+
   @Put('seller/legal-profile')
   @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Seller legal')
   @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Save seller legal data',
@@ -430,6 +504,7 @@ export class AuthController {
 
   @Post('seller/legal-profile/submit')
   @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Seller legal')
   @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Submit seller legal data for review',
@@ -460,6 +535,7 @@ export class AuthController {
   }
 
   @Post('admin/login')
+  @ApiTags('Moderator')
   @ApiOperation({
     summary: 'Login moderation admin',
     description: 'Validates admin email, password and key from environment variables.',
@@ -478,6 +554,7 @@ export class AuthController {
 
   @Get('admin/sellers/review')
   @UseGuards(ModerationAdminGuard)
+  @ApiTags('Moderator')
   @ApiHeader({
     name: 'x-admin-key',
     description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
@@ -504,6 +581,7 @@ export class AuthController {
 
   @Get('admin/users/search')
   @UseGuards(ModerationAdminGuard)
+  @ApiTags('Moderator')
   @ApiHeader({
     name: 'x-admin-key',
     description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
@@ -520,6 +598,7 @@ export class AuthController {
 
   @Get('admin/sellers/search')
   @UseGuards(ModerationAdminGuard)
+  @ApiTags('Moderator')
   @ApiHeader({
     name: 'x-admin-key',
     description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
@@ -536,6 +615,7 @@ export class AuthController {
 
   @Post('admin/sellers/:sellerId/approve')
   @UseGuards(ModerationAdminGuard)
+  @ApiTags('Moderator')
   @ApiHeader({
     name: 'x-admin-key',
     description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
@@ -561,6 +641,7 @@ export class AuthController {
 
   @Post('admin/sellers/:sellerId/reject')
   @UseGuards(ModerationAdminGuard)
+  @ApiTags('Moderator')
   @ApiHeader({
     name: 'x-admin-key',
     description: 'Temporary manual moderation key from MODERATION_ADMIN_KEY.',
@@ -588,6 +669,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ApiTags('Auth - Buyer')
   @ApiOperation({
     summary: 'Request buyer password reset',
     description:
@@ -603,6 +685,7 @@ export class AuthController {
   }
 
   @Post('seller/forgot-password')
+  @ApiTags('Auth - Seller')
   @ApiOperation({
     summary: 'Request seller password reset',
     description:
@@ -618,6 +701,7 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @ApiTags('Auth - Account')
   @ApiOperation({
     summary: 'Resend email verification code',
     description:
@@ -633,6 +717,7 @@ export class AuthController {
   }
 
   @Post('reset-password/verify-code')
+  @ApiTags('Auth - Buyer')
   @ApiOperation({
     summary: 'Verify buyer password reset code',
     description:
@@ -652,6 +737,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @ApiTags('Auth - Buyer')
   @ApiOperation({
     summary: 'Reset buyer password',
     description:
@@ -671,6 +757,7 @@ export class AuthController {
   }
 
   @Post('seller/reset-password/verify-code')
+  @ApiTags('Auth - Seller')
   @ApiOperation({
     summary: 'Verify seller password reset code',
     description:
@@ -690,6 +777,7 @@ export class AuthController {
   }
 
   @Post('seller/reset-password')
+  @ApiTags('Auth - Seller')
   @ApiOperation({
     summary: 'Reset seller password',
     description:
@@ -710,6 +798,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @ApiTags('Auth - Buyer')
   @ApiCookieAuth('accessToken')
   @ApiOperation({
     summary: 'Logout buyer',
@@ -740,6 +829,7 @@ export class AuthController {
 
   @Post('seller/logout')
   @UseGuards(SellerJwtAuthGuard)
+  @ApiTags('Auth - Seller')
   @ApiCookieAuth('sellerAccessToken')
   @ApiOperation({
     summary: 'Logout seller',
@@ -790,21 +880,8 @@ export class AuthController {
     });
   }
 
-  @UseGuards(SellerJwtAuthGuard)
-  @Post('seller/pause')
-  @ApiOperation({
-    summary: 'Toggle seller store pause state',
-    description: 'Sets the isPaused flag for the current seller.',
-  })
-  async setStorePauseState(@Req() req: Request, @Body('isPaused') isPaused: boolean) {
-    const accountId = (req as any).user?.sub;
-    if (!accountId) {
-      throw new UnauthorizedException('No seller account');
-    }
-    return this.authService.setStorePauseState(accountId, isPaused);
-  }
-
   @Get('store/:storeName')
+  @ApiTags('Public store')
   @ApiOperation({
     summary: 'Get public store profile',
     description: 'Returns public info of an activated store by its name.',

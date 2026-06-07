@@ -37,6 +37,7 @@ export type SellerStatus =
   | "PENDING_LEGAL_DATA"
   | "UNDER_REVIEW"
   | "ACTIVATED"
+  | "PAUSED"
   | "REJECTED"
   | "SUSPENDED";
 
@@ -74,7 +75,6 @@ export type SellerProfile = {
   inn: string | null;
   phone: string | null;
   legalProfile: SellerLegalProfile | null;
-  isPaused: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -203,6 +203,18 @@ export function submitSellerLegalProfile() {
   );
 }
 
+export function pauseSellerStore() {
+  return authRequest<SellerProfile>("/auth/seller/store/pause", {
+    method: "POST",
+  });
+}
+
+export function resumeSellerStore() {
+  return authRequest<SellerProfile>("/auth/seller/store/resume", {
+    method: "POST",
+  });
+}
+
 // Завершает seller-сессию и очищает auth cookies продавца.
 export function logoutSellerAccount() {
   return authRequest<{ message: string }>("/auth/seller/logout", {
@@ -233,12 +245,3 @@ export function resetSellerPassword(payload: ResetPasswordPayload) {
     body: JSON.stringify(payload),
   });
 }
-
-// Изменяет состояние паузы магазина
-export function setStorePauseState(isPaused: boolean) {
-  return authRequest<{ message: string; isPaused: boolean }>("/auth/seller/pause", {
-    method: "POST",
-    body: JSON.stringify({ isPaused }),
-  });
-}
-

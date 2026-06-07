@@ -1,0 +1,1 @@
+ALTER TYPE "SellerStatus" ADD VALUE 'PAUSED';
