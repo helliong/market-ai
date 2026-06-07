@@ -174,6 +174,7 @@ export function SettingsPage({
         phone: shop.phone,
         email: shop.email,
       });
+      onStoreNameChange(nextStoreName);
       showToast(t("settingsSaved"), "success");
     } catch (error) {
       showToast(getErrorMessage(error), "error");

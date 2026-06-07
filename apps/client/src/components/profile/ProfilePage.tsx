@@ -166,8 +166,8 @@ export function ProfilePage() {
         </h1>
         <p className="mt-2 text-[#6B7280]">{t("profileSubtitle")}</p>
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
-        <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:gap-8 items-start">
+        <aside className="sticky top-[96px] rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col items-center text-center">
             <div className="group relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white overflow-hidden shadow-inner">
               {user?.avatar ? (
@@ -384,8 +384,8 @@ export function ProfilePage() {
                           order.fulfillmentStatus === "CANCELLED";
                         const statusText = isCancelled ? "Отменен" : "Завершен";
                         const statusClass = isCancelled
-                          ? "bg-[#FEF2F2] text-[#EF4444]"
-                          : "bg-[#F1EDFF] text-[#6D4AFF]";
+                          ? "bg-[#FEF2F2] text-[#EF4444] dark:bg-[#3F1D25] dark:text-[#FCA5A5]"
+                          : "bg-[#F1EDFF] text-[#6D4AFF] dark:bg-[#201A3F] dark:text-[#C4B5FD]";
 
                         return (
                           <Link

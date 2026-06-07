@@ -218,10 +218,10 @@ function OrderCard({ order }: { order: OrderView }) {
           <div
             className={`order-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
               isCancelled
-                ? "bg-[#FEF2F2] text-[#EF4444]"
+                ? "bg-[#FEF2F2] text-[#EF4444] dark:bg-[#3F1D25] dark:text-[#FCA5A5]"
                 : isCompleted
-                  ? "bg-[#ECFDF5] text-[#10B981]"
-                  : "bg-[#F1EDFF] text-[#6D4AFF]"
+                  ? "bg-[#ECFDF5] text-[#10B981] dark:bg-[#064E3B] dark:text-[#34D399]"
+                  : "bg-[#F1EDFF] text-[#6D4AFF] dark:bg-[#201A3F] dark:text-[#C4B5FD]"
             }`}
           >
             {isCancelled ? (
@@ -254,10 +254,10 @@ function OrderCard({ order }: { order: OrderView }) {
           <span
             className={`inline-flex h-9 w-fit items-center justify-center rounded-full px-4 text-xs font-black ${
               isCancelled
-                ? "bg-[#FEF2F2] text-[#EF4444]"
+                ? "bg-[#FEF2F2] text-[#EF4444] dark:bg-[#3F1D25] dark:text-[#FCA5A5]"
                 : isCompleted
-                  ? "bg-[#ECFDF5] text-[#047857]"
-                  : "bg-[#F1EDFF] text-[#6D4AFF]"
+                  ? "bg-[#ECFDF5] text-[#047857] dark:bg-[#064E3B] dark:text-[#34D399]"
+                  : "bg-[#F1EDFF] text-[#6D4AFF] dark:bg-[#201A3F] dark:text-[#C4B5FD]"
             }`}
           >
             {order.statusLabel}

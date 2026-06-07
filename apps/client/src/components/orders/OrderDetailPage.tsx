@@ -140,6 +140,14 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
     order.deliveryMethod === "courier"
       ? "Курьерская доставка"
       : "Доставка в пункт выдачи";
+
+  const paymentUrl =
+    order?.payments?.[0]?.rawPayload &&
+    typeof order.payments[0].rawPayload === "object" &&
+    "confirmation" in order.payments[0].rawPayload
+      ? (order.payments[0].rawPayload as any).confirmation?.confirmation_url
+      : null;
+
   const addressParts = [
     order.deliveryCity,
     order.deliveryStreet,
@@ -326,7 +334,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
             <div className="flex justify-between">
               <div className="flex flex-col">
                 <span className="text-lg font-black text-[#111827]">
-                  Оплачено
+                  {order.status === "AWAITING_PAYMENT" ? "К оплате" : "Оплачено"}
                 </span>
                 <span className="text-xs text-[#6B7280]">
                   {paymentMethodLabel}
@@ -336,6 +344,15 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 {grandTotalStr}
               </span>
             </div>
+
+            {order.status === "AWAITING_PAYMENT" && paymentUrl && (
+              <a
+                href={paymentUrl}
+                className="mt-6 flex w-full justify-center items-center rounded-2xl bg-[#10B981] py-4 text-center text-sm font-bold text-white transition hover:bg-[#059669]"
+              >
+                Оплатить заказ
+              </a>
+            )}
 
             <button
               onClick={handleRepeatOrder}

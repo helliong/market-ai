@@ -1,11 +1,11 @@
 import type { OrderStatus, ProductStatus, UserRole, UserStatus } from "./types";
 
-// Форматирует число в валюту для таблиц и статистики продавца.
 export function formatCurrency(value: number) {
-  return `${new Intl.NumberFormat("ru-RU").format(value)} ₽`;
+  return `₽ ${new Intl.NumberFormat("ru-RU", {
+    maximumFractionDigits: 0,
+  }).format(value)}`;
 }
 
-// Возвращает человекочитаемую подпись статуса товара.
 export function productStatusLabel(status: ProductStatus) {
   const labels: Record<ProductStatus, string> = {
     active: "Активный",
@@ -16,7 +16,6 @@ export function productStatusLabel(status: ProductStatus) {
   return labels[status];
 }
 
-// Возвращает человекочитаемую подпись статуса заказа.
 export function orderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
     processing: "В обработке",
@@ -27,7 +26,6 @@ export function orderStatusLabel(status: OrderStatus) {
   return labels[status];
 }
 
-// Возвращает человекочитаемую подпись роли пользователя.
 export function userRoleLabel(role: UserRole) {
   const labels: Record<UserRole, string> = {
     admin: "Администратор",
@@ -38,7 +36,6 @@ export function userRoleLabel(role: UserRole) {
   return labels[role];
 }
 
-// Возвращает человекочитаемую подпись статуса пользователя.
 export function userStatusLabel(status: UserStatus) {
   const labels: Record<UserStatus, string> = {
     active: "Активен",

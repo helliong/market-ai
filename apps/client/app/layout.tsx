@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { StoreProvider } from "@/store/provider";
 import { AIWidget } from "@/components/home/AIWidget";
+import { CookieBanner } from "@/components/layout/CookieBanner";
 
 export const metadata: Metadata = {
   title: "Market AI",
@@ -26,6 +27,7 @@ export default function RootLayout({
               <div className="mobile-safe-content flex-1">{children}</div>
               <Footer />
               <AIWidget />
+              <CookieBanner />
             </div>
           </ThemeProvider>
         </StoreProvider>

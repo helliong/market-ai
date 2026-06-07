@@ -39,6 +39,7 @@ export type Order = {
   updatedAt: string;
   paidAt: string | null;
   cancelledAt: string | null;
+  cancellationReason?: string | null;
   completedAt: string | null;
   items: OrderItem[];
 };

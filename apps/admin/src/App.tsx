@@ -39,6 +39,7 @@ import { ProductModal } from "./admin/components/ProductModal";
 import { emptyProductForm } from "./admin/data";
 import { DashboardPage } from "./admin/pages/DashboardPage";
 import { OrdersPage } from "./admin/pages/OrdersPage";
+import { PromotionPage } from "./admin/pages/PromotionPage";
 import { ProductsPage } from "./admin/pages/ProductsPage";
 import { SettingsPage } from "./admin/pages/SettingsPage";
 import { UsersPage } from "./admin/pages/UsersPage";
@@ -63,6 +64,7 @@ type Page =
   | "dashboard"
   | "products"
   | "orders"
+  | "promotion"
   | "users"
   | "settings"
   | "register"
@@ -74,6 +76,7 @@ const pagePaths: Record<Page, string> = {
   dashboard: "/dashboard",
   products: "/products",
   orders: "/orders",
+  promotion: "/promotion",
   users: "/users",
   settings: "/settings",
   register: "/register",
@@ -84,7 +87,7 @@ type MenuPage = Exclude<
   Page,
   "welcome" | "register" | "login" | "agreement" | "settings"
 >;
-type SidebarItem = MenuPage | "promotion";
+type SidebarItem = MenuPage;
 
 const PUBLIC_PAGES: Page[] = ["welcome", "register", "login", "agreement"];
 
@@ -243,7 +246,7 @@ function App() {
               total: sellerTotal,
               status: (fStatus as OrderStatus) || "processing",
               items: items,
-              cancellationReason: ro.cancellationReason,
+              cancellationReason: ro.cancellationReason ?? undefined,
             };
           });
           setOrders(mappedOrders);
@@ -467,19 +470,6 @@ function App() {
     navigateToPage(nextPage);
   }
 
-  function handlePromotionPlaceholder() {
-    if (!isMenuOpen) {
-      setIsMenuOpen(true);
-    }
-
-    setDialog({
-      title: "Продвижение в разработке",
-      message:
-        "Скоро здесь появятся инструменты для поднятия товаров в выдаче, настройки промо-кампаний и управления приоритетными позициями.",
-      confirmLabel: "Понятно",
-    });
-  }
-
   function openStoreMenu() {
     setIsMenuOpen(true);
     setIsStoreMenuOpen(true);
@@ -626,7 +616,7 @@ function App() {
             return (
               <button
                 key={item}
-                className={`${!isPromotion && page === item ? "active" : ""} ${isPromotion ? "is-coming-soon" : ""}`}
+                className={`${page === item ? "active" : ""} ${isPromotion ? "is-coming-soon" : ""}`}
                 title={
                   isPromotion
                     ? "Фича в разработке: продвижение товаров"
@@ -639,11 +629,6 @@ function App() {
                 }
                 onClick={(event) => {
                   event.stopPropagation();
-                  if (isPromotion) {
-                    handlePromotionPlaceholder();
-                    return;
-                  }
-
                   handleMenuItemClick(item);
                 }}
               >
@@ -766,7 +751,15 @@ function App() {
           <button className="profile-button">{t("adminButton")}</button>
         </header>
 
-        {page === "dashboard" && <DashboardPage stats={dashboardStats} />}
+        {page === "dashboard" && (
+          <DashboardPage
+            stats={dashboardStats}
+            orders={orders}
+            products={products}
+            users={users}
+            onNavigate={navigateToPage}
+          />
+        )}
         {page === "products" && (
           <ProductsPage
             products={products}

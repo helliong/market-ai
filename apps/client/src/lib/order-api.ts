@@ -74,6 +74,7 @@ export type ApiOrder = {
   cancellationReason?: string | null;
   completedAt?: string | null;
   items: ApiOrderItem[];
+  payments?: any[];
 };
 
 export async function createCheckoutOrder(payload: CheckoutOrderPayload) {

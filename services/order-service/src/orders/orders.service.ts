@@ -249,6 +249,9 @@ export class OrdersService {
             sellerId,
           },
         },
+        paymentStatus: {
+          in: ['PAID', 'REFUNDED'],
+        },
       },
       include: {
         items: true,

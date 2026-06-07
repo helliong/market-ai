@@ -46,8 +46,6 @@ const statusOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "cancelled", label: "Отмененные" },
 ];
 
-const timelineSteps = ["Новый", "Подтвержден", "Сборка", "Передан"];
-
 function getOrderDate(index: number) {
   return `13.05.2025 в ${String(14 - (index % 4)).padStart(2, "0")}:${String(
     32 - index * 3,
@@ -93,9 +91,8 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
   }, [orders, query, statusFilter]);
 
   const selectedOrder =
-    orders.find((order) => order.id === selectedOrderId) ??
-    filteredOrders[0] ??
-    orders[0];
+    filteredOrders.find((order) => order.id === selectedOrderId) ??
+    filteredOrders[0];
 
   const stats = useMemo(
     () => ({
@@ -176,7 +173,7 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
         </button>
       </div>
 
-      <div className="orders-board">
+      <div className={`orders-board ${filteredOrders.length === 0 ? "is-empty" : ""}`}>
         <div className="orders-list-modern">
           {filteredOrders.map((order) => {
             const isExpanded = expandedOrderId === order.id;
@@ -225,7 +222,7 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
                       onStatusChange(order.id, event.target.value as OrderStatus)
                     }
                     aria-label={`Изменить статус заказа ${order.publicId}`}
-                    disabled={order.status === "cancelled"}
+                    disabled={order.status === "cancelled" || order.status === "completed"}
                   >
                     <option value="processing">В работе</option>
                     <option value="completed">Готовый</option>
