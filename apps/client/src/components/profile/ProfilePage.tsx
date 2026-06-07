@@ -176,7 +176,7 @@ export function ProfilePage() {
         <p className="mt-2 text-[#6B7280]">{t("profileSubtitle")}</p>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:gap-8 items-start">
-        <aside className="sticky top-[96px] rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] lg:sticky lg:top-[96px]">
           <div className="flex flex-col items-center text-center">
             <div className="group relative flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] text-white overflow-hidden shadow-inner">
               {user?.avatar ? (
