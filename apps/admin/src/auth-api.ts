@@ -74,6 +74,7 @@ export type SellerProfile = {
   inn: string | null;
   phone: string | null;
   legalProfile: SellerLegalProfile | null;
+  isPaused: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -232,3 +233,12 @@ export function resetSellerPassword(payload: ResetPasswordPayload) {
     body: JSON.stringify(payload),
   });
 }
+
+// Изменяет состояние паузы магазина
+export function setStorePauseState(isPaused: boolean) {
+  return authRequest<{ message: string; isPaused: boolean }>("/auth/seller/pause", {
+    method: "POST",
+    body: JSON.stringify({ isPaused }),
+  });
+}
+

@@ -11,6 +11,7 @@ export class ProductsService {
       where: {
         status: 'active',
         stock: { gt: 0 },
+        isSellerPaused: false,
       },
     });
 
@@ -23,6 +24,7 @@ export class ProductsService {
         id: productId,
         status: 'active',
         stock: { gt: 0 },
+        isSellerPaused: false,
       },
     });
 

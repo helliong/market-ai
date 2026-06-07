@@ -49,6 +49,7 @@ type SettingsPageProps = {
   onSubmitLegalProfile: () => Promise<void>;
   onDeactivateStore: () => void;
   onDeleteStore: () => void;
+  onPauseStore: (isPaused: boolean) => Promise<void>;
 };
 
 const initialTeam: TeamMember[] = [
@@ -71,6 +72,7 @@ export function SettingsPage({
   onSubmitLegalProfile,
   onDeactivateStore,
   onDeleteStore,
+  onPauseStore,
 }: SettingsPageProps) {
   const { t } = useLanguage();
   const [shop, setShop] = useState({
@@ -101,6 +103,9 @@ export function SettingsPage({
   const isUnderReview = sellerProfile?.status === "UNDER_REVIEW";
   const canEditLegal = !isActivated && !isUnderReview;
   const canManageTeam = isActivated;
+
+  const [isPaused, setIsPaused] = useState(sellerProfile?.isPaused ?? false);
+  const [isPausing, setIsPausing] = useState(false);
 
   const ownerMember = useMemo<TeamMember>(
     () => ({
@@ -197,6 +202,20 @@ export function SettingsPage({
       showToast(t("settingsLegalSubmitted"), "success");
     } catch (error) {
       showToast(getErrorMessage(error), "error");
+    }
+  }
+
+  async function handleTogglePause() {
+    try {
+      setIsPausing(true);
+      const nextState = !isPaused;
+      await onPauseStore(nextState);
+      setIsPaused(nextState);
+      showToast(nextState ? "Магазин поставлен на паузу" : "Магазин снят с паузы", "success");
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setIsPausing(false);
     }
   }
 
@@ -372,6 +391,28 @@ export function SettingsPage({
                 />
               </span>
             </label>
+            
+            <div className="mt-8 border-t border-[#E5E7EB] pt-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-[#111827]">Пауза магазина</h3>
+                  <p className="mt-1 text-sm text-[#6B7280]">Временно скрыть товары из каталога. Вы сможете вернуться к продажам в любой момент.</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isPausing}
+                  onClick={handleTogglePause}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${isPaused ? "bg-[#10B981]" : "bg-[#E5E7EB]"}`}
+                  role="switch"
+                  aria-checked={isPaused}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isPaused ? "translate-x-5" : "translate-x-0"}`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

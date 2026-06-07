@@ -790,6 +790,20 @@ export class AuthController {
     });
   }
 
+  @UseGuards(SellerJwtAuthGuard)
+  @Post('seller/pause')
+  @ApiOperation({
+    summary: 'Toggle seller store pause state',
+    description: 'Sets the isPaused flag for the current seller.',
+  })
+  async setStorePauseState(@Req() req: Request, @Body('isPaused') isPaused: boolean) {
+    const accountId = (req as any).user?.sub;
+    if (!accountId) {
+      throw new UnauthorizedException('No seller account');
+    }
+    return this.authService.setStorePauseState(accountId, isPaused);
+  }
+
   @Get('store/:storeName')
   @ApiOperation({
     summary: 'Get public store profile',

@@ -15,6 +15,7 @@ import {
   getCurrentSeller,
   logoutSellerAccount,
   saveSellerLegalProfile,
+  setStorePauseState,
   submitSellerLegalProfile,
   updateSellerProfile,
 } from "./auth-api";
@@ -793,6 +794,11 @@ function App() {
             onSubmitLegalProfile={handleSubmitLegalProfile}
             onDeactivateStore={handleDeactivateStore}
             onDeleteStore={handleDeleteStore}
+            onPauseStore={async (isPaused) => {
+              await setStorePauseState(isPaused);
+              const nextProfile = await getCurrentSeller();
+              setSellerProfile(nextProfile);
+            }}
           />
         )}
       </main>

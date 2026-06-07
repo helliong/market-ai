@@ -17,6 +17,7 @@ model Product {
   price       Decimal  @db.Decimal(12, 2)
   stock       Int      @default(0)
   status      String   @default("active")
+  isSellerPaused Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

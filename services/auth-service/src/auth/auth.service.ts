@@ -532,6 +532,7 @@ export class AuthService {
         inn: true,
         phone: true,
         legalProfile: true,
+        isPaused: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -589,6 +590,7 @@ export class AuthService {
         inn: true,
         phone: true,
         legalProfile: true,
+        isPaused: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -756,6 +758,35 @@ export class AuthService {
       where: { accountId, scope },
       data: { refreshTokenHash: null },
     });
+  }
+
+  async setStorePauseState(accountId: string, isPaused: boolean) {
+    const seller = await this.prisma.userSeller.findUnique({
+      where: { accountId },
+    });
+
+    if (!seller) {
+      throw new ForbiddenException('Seller profile not found');
+    }
+
+    await this.prisma.userSeller.update({
+      where: { accountId },
+      data: { isPaused },
+    });
+
+    // Notify catalog service
+    const catalogUrl = this.configService.get<string>('CATALOG_SERVICE_URL') ?? 'http://127.0.0.1:4003';
+    try {
+      await fetch(`${catalogUrl}/internal/sellers/${accountId}/pause`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPaused }),
+      });
+    } catch (e) {
+      console.error('Failed to sync pause state to catalog service', e);
+    }
+
+    return { message: 'Store pause state updated', isPaused };
   }
 
   // Находит seller-профиль, который еще можно редактировать по legal data.
