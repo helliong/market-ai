@@ -236,6 +236,7 @@ function App() {
             let fStatus = ro.fulfillmentStatus.toLowerCase();
             if (fStatus === "canceled") fStatus = "cancelled";
             if (fStatus === "new") fStatus = "processing";
+            if (fStatus === "received") fStatus = "completed";
             
             return {
               id: ro.id,

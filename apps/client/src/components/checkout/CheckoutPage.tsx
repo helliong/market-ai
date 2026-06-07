@@ -187,7 +187,7 @@ export function CheckoutPage() {
     return (
       <section className="mx-auto max-w-[960px] px-4 py-10 md:px-8 md:py-14">
         <div className="flex min-h-[480px] flex-col items-center justify-center rounded-[32px] bg-white p-8 text-center shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <div className="flex h-20 w-20 items-center justify-center rounded-[28px] dark:bg-[#10B981] text-white">
+          <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[#10B981] text-white">
             <CheckCircle2 size={42} />
           </div>
           <h1 className="mt-6 text-3xl font-black md:text-4xl">

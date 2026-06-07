@@ -7,7 +7,7 @@ import {
   LogOut,
   MapPin,
   Package,
-  Pencil,
+  Truck,
   ShoppingCart,
   Star,
   Store,
@@ -44,6 +44,7 @@ export function ProfilePage() {
   const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
   const compareCount = useAppSelector((state) => state.compare.ids.length);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
+  const [activeOrders, setActiveOrders] = useState<ApiOrder[]>([]);
   const [completedOrders, setCompletedOrders] = useState<ApiOrder[]>([]);
   const [showAllOrders, setShowAllOrders] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -124,6 +125,7 @@ export function ProfilePage() {
     function updateOrdersData() {
       if (!isSessionRestored || !user) {
         setActiveOrdersCount(0);
+        setActiveOrders([]);
         setCompletedOrders([]);
         return;
       }
@@ -131,13 +133,16 @@ export function ProfilePage() {
       fetchOrders()
         .then((data) => {
           if (isMounted) {
-            setActiveOrdersCount(data.filter(isActiveOrder).length);
+            const active = data.filter(isActiveOrder);
+            setActiveOrdersCount(active.length);
+            setActiveOrders(active);
             setCompletedOrders(data.filter((o) => !isActiveOrder(o)));
           }
         })
         .catch(() => {
           if (isMounted) {
             setActiveOrdersCount(0);
+            setActiveOrders([]);
             setCompletedOrders([]);
           }
         });
@@ -343,6 +348,84 @@ export function ProfilePage() {
                   </p>
                 </div>
               </div>
+              
+              <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E0F2FE] text-[#0EA5E9] dark:bg-[#082F49] dark:text-[#38BDF8]">
+                    <Truck size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">Актуальные заказы</h3>
+                    <p className="text-sm text-[#6B7280]">
+                      В сборке или в пути
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  {activeOrders.length === 0 ? (
+                    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F6F7FB] p-6 text-center">
+                      <Truck size={34} className="text-[#0EA5E9]" />
+                      <h4 className="mt-4 text-lg font-black">
+                        Нет активных заказов
+                      </h4>
+                      <p className="mt-2 max-w-[360px] text-sm text-[#6B7280]">
+                        Здесь появятся заказы, которые оплачиваются, собираются или едут к вам.
+                      </p>
+                      <Link
+                        href="/catalog"
+                        className="mt-5 rounded-2xl bg-[#0EA5E9] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0284C7]"
+                      >
+                        Перейти в каталог
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {activeOrders.map((order) => {
+                        const itemsCount = order.items.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0
+                        );
+                        
+                        let statusText = "В обработке";
+                        let statusClass = "bg-[#FEF9C3] text-[#CA8A04] dark:bg-[#422006] dark:text-[#FDE047]";
+                        
+                        if (order.status === "AWAITING_PAYMENT") {
+                          statusText = "Ожидает оплаты";
+                          statusClass = "bg-[#FEE2E2] text-[#EF4444] dark:bg-[#450A0A] dark:text-[#FCA5A5]";
+                        } else if (order.fulfillmentStatus === "SHIPPED" || order.fulfillmentStatus === "READY_FOR_PICKUP") {
+                          statusText = order.fulfillmentStatus === "SHIPPED" ? "В пути" : "Готов к выдаче";
+                          statusClass = "bg-[#E0F2FE] text-[#0EA5E9] dark:bg-[#082F49] dark:text-[#38BDF8]";
+                        }
+
+                        return (
+                          <Link
+                            href={`/orders/${order.publicId}`}
+                            key={order.id}
+                            className="flex items-center justify-between rounded-2xl border border-[#E5E7EB] p-4 transition hover:border-[#0EA5E9]"
+                          >
+                            <div>
+                              <p className="font-bold">
+                                {t("orderId")}
+                                {order.publicId}
+                              </p>
+                              <p className="mt-1 text-sm text-[#6B7280]">
+                                {itemsCount} {t("itemsCountShort")} •{" "}
+                                {order.grandTotal} ₽
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-bold ${statusClass}`}
+                            >
+                              {statusText}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
