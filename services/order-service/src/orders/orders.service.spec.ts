@@ -74,7 +74,7 @@ describe('OrdersService', () => {
       id: mockOrderId,
       status: OrderStatus.AWAITING_PAYMENT,
       paymentStatus: OrderPaymentStatus.PENDING,
-      fulfillmentStatus: OrderFulfillmentStatus.NEW,
+      fulfillmentStatus: OrderFulfillmentStatus.PROCESSING,
     };
 
     it('should throw BadRequestException if provider_payment_id is missing', async () => {

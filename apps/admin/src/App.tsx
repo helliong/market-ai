@@ -26,6 +26,7 @@ import {
   importSellerProductsTemplate,
   updateSellerProduct,
 } from "./catalog-api";
+import { getSellerOrders, updateSellerOrderStatus } from "./order-api";
 import type {
   SellerProfile,
   SellerLegalProfilePayload,
@@ -196,6 +197,74 @@ function App() {
     };
   }, [page, t]);
 
+  useEffect(() => {
+    if (page !== "orders" && page !== "dashboard") {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadOrders() {
+      try {
+        const [rawOrders, sellerProducts] = await Promise.all([
+          getSellerOrders(),
+          getSellerProducts(),
+        ]);
+        if (isMounted) {
+          setProducts(sellerProducts);
+          const mappedOrders: Order[] = rawOrders.map((ro) => {
+            const sellerTotal = ro.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+            const skus = ro.items
+              .map((item) => sellerProducts.find((p) => p.id === item.productId)?.sku || "N/A")
+              .join(", ");
+            const titles = ro.items.map((item) => item.productTitleSnapshot).join(", ");
+            
+            const items = ro.items.map((item) => {
+              const sku = sellerProducts.find((p) => p.id === item.productId)?.sku || "N/A";
+              return {
+                id: item.id,
+                sku: sku,
+                productName: item.productTitleSnapshot,
+                quantity: item.quantity,
+                price: Number(item.productPriceSnapshot),
+              };
+            });
+
+            let fStatus = ro.fulfillmentStatus.toLowerCase();
+            if (fStatus === "canceled") fStatus = "cancelled";
+            if (fStatus === "new") fStatus = "processing";
+            
+            return {
+              id: ro.id,
+              publicId: ro.publicId,
+              sku: skus,
+              productName: titles,
+              customer: ro.customerName || "Customer",
+              total: sellerTotal,
+              status: (fStatus as OrderStatus) || "processing",
+              items: items,
+              cancellationReason: ro.cancellationReason,
+            };
+          });
+          setOrders(mappedOrders);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDialog({
+            title: t("checkFields"),
+            message: error instanceof Error ? error.message : "Failed to load orders",
+          });
+        }
+      }
+    }
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page, t]);
+
   const dashboardStats = useMemo(() => {
     const activeOrders = orders.filter((order) => order.status !== "cancelled");
     const revenue = activeOrders.reduce((sum, order) => sum + order.total, 0);
@@ -351,12 +420,23 @@ function App() {
     });
   }
 
-  function updateOrderStatus(orderId: string, status: OrderStatus) {
-    setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.id === orderId ? { ...order, status } : order,
-      ),
-    );
+  async function updateOrderStatus(orderId: string, status: OrderStatus, reason?: string) {
+    try {
+      await updateSellerOrderStatus(orderId, status, reason);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === orderId ? { ...order, status } : order,
+        ),
+      );
+    } catch (error) {
+      setDialog({
+        title: t("checkFields"),
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to update order status",
+      });
+    }
   }
 
   function updateUserRole(userId: number, role: UserRole) {

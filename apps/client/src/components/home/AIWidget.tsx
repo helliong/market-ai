@@ -3,10 +3,12 @@
 import { Bot, MessageCircle, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
+import { usePathname } from "next/navigation";
 
 // Плавающий AI-виджет для быстрых подсказок по выбору товаров.
 export function AIWidget() {
   const { t } = useLanguage();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -59,17 +61,19 @@ export function AIWidget() {
     };
   }, [isOpen]);
 
+  if (pathname.startsWith("/checkout")) return null;
+
   return (
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 cursor-default bg-[#111827]/35 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[60] cursor-default bg-[#111827]/35 backdrop-blur-[2px]"
           onClick={() => setIsOpen(false)}
         />
       )}
       {isOpen && (
         <div
-          className="fixed inset-4 sm:left-auto z-50 flex flex-col overflow-hidden rounded-[32px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)] sm:w-[500px]"
+          className="fixed inset-4 sm:left-auto z-[70] flex flex-col overflow-hidden rounded-[32px] bg-white shadow-[0_24px_80px_rgba(79,50,217,0.25)] sm:w-[500px]"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-center justify-end p-5">

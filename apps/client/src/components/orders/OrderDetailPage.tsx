@@ -194,6 +194,11 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
             <h2 className="text-2xl font-black text-[#111827]">
               {statusLabel}
             </h2>
+            {order.status.toLowerCase().includes("cancel") && order.cancellationReason && (
+              <p className="mt-2 text-sm font-bold text-[#EF4444]">
+                Причина отмены: {order.cancellationReason}
+              </p>
+            )}
             <div className="mt-4 flex flex-wrap gap-3">
               <button className="rounded-2xl bg-[#F1EDFF] px-4 py-2.5 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#E0D4FF]">
                 Связаться с продавцом

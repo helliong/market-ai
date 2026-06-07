@@ -120,7 +120,7 @@ export class OrdersService {
           buyerId,
           status: OrderStatus.AWAITING_PAYMENT,
           paymentStatus: OrderPaymentStatus.PENDING,
-          fulfillmentStatus: OrderFulfillmentStatus.NEW,
+          fulfillmentStatus: OrderFulfillmentStatus.PROCESSING,
           deliveryMethod: delivery.method,
           paymentMethod,
           currency: 'RUB',
@@ -169,7 +169,7 @@ export class OrdersService {
               },
               {
                 kind: OrderStatusHistoryKind.FULFILLMENT,
-                toStatus: OrderFulfillmentStatus.NEW,
+                toStatus: OrderFulfillmentStatus.PROCESSING,
                 source: OrderStatusHistorySource.SYSTEM,
                 comment: 'Fulfillment created',
               },
@@ -233,6 +233,78 @@ export class OrdersService {
       },
       orderBy: {
         createdAt: 'desc',
+      },
+    });
+  }
+
+  async findOrdersBySeller(sellerId: string) {
+    if (!sellerId.trim()) {
+      throw new BadRequestException('sellerId is required');
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        items: {
+          some: {
+            sellerId,
+          },
+        },
+      },
+      include: {
+        items: true,
+        payments: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return orders.map((order) => ({
+      ...order,
+      items: order.items.filter((item) => item.sellerId === sellerId),
+    }));
+  }
+
+  async updateSellerOrderStatus(sellerId: string, orderId: string, targetStatus: string, reason?: string) {
+    if (!sellerId.trim() || !orderId.trim()) {
+      throw new BadRequestException('sellerId and orderId are required');
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: buildOrderLookup(orderId),
+        items: {
+          some: {
+            sellerId,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found or access denied');
+    }
+
+    let newStatus = order.status;
+    let newFulfillmentStatus = order.fulfillmentStatus;
+
+    if (targetStatus === 'completed') {
+      newStatus = OrderStatus.COMPLETED;
+      newFulfillmentStatus = OrderFulfillmentStatus.RECEIVED;
+    } else if (targetStatus === 'cancelled') {
+      newStatus = OrderStatus.CANCELLED;
+      newFulfillmentStatus = OrderFulfillmentStatus.CANCELED;
+    }
+
+    return this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: newStatus,
+        fulfillmentStatus: newFulfillmentStatus,
+        ...(reason && targetStatus === 'cancelled' ? { cancellationReason: reason } : {}),
+      },
+      include: {
+        items: true,
       },
     });
   }

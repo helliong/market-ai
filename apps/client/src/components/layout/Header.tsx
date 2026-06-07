@@ -387,6 +387,7 @@ export function Header() {
                             href="/orders"
                             icon={<Package size={18} />}
                             label={t("orderHistory")}
+                            count={activeOrdersCount}
                             onClick={() => setIsProfileOpen(false)}
                           />
                         </>
@@ -660,6 +661,7 @@ export function Header() {
                         href="/orders"
                         icon={<Package size={18} />}
                         label={t("orderHistory")}
+                        count={activeOrdersCount}
                         onClick={() => setIsProfileOpen(false)}
                       />
                     </>
@@ -720,11 +722,13 @@ function ProfileMenuLink({
   icon,
   label,
   href,
+  count,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   href: string;
+  count?: number;
   onClick: () => void;
 }) {
   return (
@@ -734,7 +738,12 @@ function ProfileMenuLink({
       className="flex h-12 items-center gap-3 rounded-2xl px-4 text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB]"
     >
       <span className="text-[#6D4AFF]">{icon}</span>
-      <span>{label}</span>
+      <span className="flex-1">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#F1EDFF] px-2 text-xs font-black text-[#6D4AFF]">
+          {count}
+        </span>
+      )}
     </Link>
   );
 }

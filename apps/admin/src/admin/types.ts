@@ -11,13 +11,26 @@ export type Product = {
   status: ProductStatus;
 };
 
-export type OrderStatus = "new" | "processing" | "completed" | "cancelled";
+export type OrderStatus = "processing" | "completed" | "cancelled";
+
+export type OrderItem = {
+  id: string;
+  sku: string;
+  productName: string;
+  quantity: number;
+  price: number;
+};
 
 export type Order = {
   id: string;
+  publicId: string;
+  sku: string;
+  productName: string;
   customer: string;
   total: number;
   status: OrderStatus;
+  items?: OrderItem[];
+  cancellationReason?: string;
 };
 
 export type UserRole = "admin" | "seller" | "user";

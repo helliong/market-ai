@@ -113,15 +113,22 @@ async function authRequest<T>(
   return data as T;
 }
 
+let refreshPromise: Promise<{ message: string }> | null = null;
+
 // Обновляет seller access/refresh cookies через refresh endpoint.
 export function refreshSellerSession() {
-  return authRequest<{ message: string }>(
-    "/auth/seller/refresh",
-    {
-      method: "POST",
-    },
-    false,
-  );
+  if (!refreshPromise) {
+    refreshPromise = authRequest<{ message: string }>(
+      "/auth/seller/refresh",
+      {
+        method: "POST",
+      },
+      false,
+    ).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 // Регистрирует профиль продавца и запускает отправку кода подтверждения email.

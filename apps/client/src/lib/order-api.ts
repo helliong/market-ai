@@ -71,6 +71,7 @@ export type ApiOrder = {
   currency: string;
   createdAt: string;
   cancelledAt?: string | null;
+  cancellationReason?: string | null;
   completedAt?: string | null;
   items: ApiOrderItem[];
 };

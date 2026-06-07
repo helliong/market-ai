@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtStrategy } from './auth/jwt.strategy';
+import { SellerJwtStrategy } from './auth/seller-jwt.strategy';
 import { OrdersController } from './orders/orders.controller';
 import { OrdersService } from './orders/orders.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,6 +19,6 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
   ],
   controllers: [AppController, OrdersController],
-  providers: [AppService, OrdersService, JwtStrategy],
+  providers: [AppService, OrdersService, JwtStrategy, SellerJwtStrategy],
 })
 export class AppModule {}

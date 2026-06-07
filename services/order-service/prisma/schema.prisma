@@ -91,6 +91,7 @@ model Order {
   updatedAt         DateTime               @updatedAt @map("updated_at")
   paidAt            DateTime?              @map("paid_at")
   cancelledAt       DateTime?              @map("cancelled_at")
+  cancellationReason String?               @map("cancellation_reason")
   completedAt       DateTime?              @map("completed_at")
 
   items         OrderItem[]

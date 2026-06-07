@@ -11,9 +11,17 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  // Разрешаем клиентскому фронтенду отправлять checkout-запросы с cookies.
+  // Разрешаем клиентскому фронтенду и админке отправлять checkout-запросы с cookies.
   app.enableCors({
-    origin: [getClientUrl(), 'http://127.0.0.1:3000', 'http://localhost:3000'],
+    origin: [
+      getClientUrl(), 
+      'http://127.0.0.1:3000', 
+      'http://localhost:3000',
+      'http://127.0.0.1:3001', 
+      'http://localhost:3001',
+      'http://127.0.0.1:5173', 
+      'http://localhost:5173'
+    ],
     credentials: true,
   });
 

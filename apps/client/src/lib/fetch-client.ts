@@ -1,7 +1,7 @@
 const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
 
 let isRefreshing = false;
-let failedQueue: { resolve: (value?: unknown) => void; reject: (reason?: any) => void }[] = [];
+let failedQueue: { resolve: (value: void | PromiseLike<void>) => void; reject: (reason?: any) => void }[] = [];
 
 function processQueue(error: Error | null) {
   failedQueue.forEach((prom) => {

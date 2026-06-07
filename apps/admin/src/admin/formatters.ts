@@ -19,7 +19,6 @@ export function productStatusLabel(status: ProductStatus) {
 // Возвращает человекочитаемую подпись статуса заказа.
 export function orderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
-    new: "Новый",
     processing: "В обработке",
     completed: "Завершен",
     cancelled: "Отменен",

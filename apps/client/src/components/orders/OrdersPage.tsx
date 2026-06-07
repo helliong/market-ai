@@ -39,6 +39,7 @@ type OrderView = {
     total: string;
   }>;
   isServerOrder: boolean;
+  cancellationReason?: string | null;
 };
 
 export function OrdersPage() {
@@ -264,6 +265,11 @@ function OrderCard({ order }: { order: OrderView }) {
           <span className="max-w-[360px] text-sm font-semibold text-[#6B7280] lg:text-right">
             {order.details}
           </span>
+          {isCancelled && order.cancellationReason && (
+            <span className="max-w-[360px] text-sm font-bold text-[#EF4444] lg:text-right mt-1">
+              Причина: {order.cancellationReason}
+            </span>
+          )}
         </div>
       </div>
     </article>
@@ -316,6 +322,7 @@ function mapApiOrderToView(order: ApiOrder): OrderView {
     ...getStatusCopy(status),
     items,
     isServerOrder: true,
+    cancellationReason: order.cancellationReason,
   };
 }
 
