@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "./fetch-client";
+
 const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
 
@@ -74,68 +76,25 @@ export type ApiOrder = {
 };
 
 export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
-  const response = await fetch(`${ORDER_API_URL}/orders/checkout`, {
+  return fetchWithAuth<CheckoutOrderResponse>(`${ORDER_API_URL}/orders/checkout`, {
     method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(payload),
   });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Failed to create payment");
-  }
-
-  return data as CheckoutOrderResponse;
 }
 
 export async function fetchOrders() {
-  const response = await fetch(`${ORDER_API_URL}/orders`, {
-    method: "GET",
-    credentials: "include",
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Failed to load orders");
-  }
-
-  return data as ApiOrder[];
+  return fetchWithAuth<ApiOrder[]>(`${ORDER_API_URL}/orders`);
 }
 
 export async function cancelOrder(orderId: string) {
-  const response = await fetch(
+  return fetchWithAuth<ApiOrder>(
     `${ORDER_API_URL}/orders/${encodeURIComponent(orderId)}/cancel`,
     {
       method: "POST",
-      credentials: "include",
     },
   );
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Failed to cancel order");
-  }
-
-  return data as ApiOrder;
 }
 
 export async function fetchOrder(orderId: string) {
-  const response = await fetch(`${ORDER_API_URL}/orders/${encodeURIComponent(orderId)}`, {
-    method: "GET",
-    credentials: "include",
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Failed to load order");
-  }
-
-  return data as ApiOrder;
+  return fetchWithAuth<ApiOrder>(`${ORDER_API_URL}/orders/${encodeURIComponent(orderId)}`);
 }

@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "./fetch-client";
+
 const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
 
@@ -67,32 +69,9 @@ export type BuyerProfile = {
   updatedAt: string;
 };
 
-// Базовый HTTP-клиент auth-service: добавляет cookies, JSON-заголовки и обрабатывает ошибки.
-async function authRequest<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`${AUTH_API_URL}${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Auth request failed");
-  }
-
-  return data as T;
-}
-
 // Регистрирует покупателя и запускает отправку кода подтверждения email.
 export function registerClient(payload: RegisterPayload) {
-  return authRequest<{ message: string }>("/auth/register", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/register`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -100,7 +79,7 @@ export function registerClient(payload: RegisterPayload) {
 
 // Подтверждает email покупателя по шестизначному коду из письма.
 export function verifyClientEmail(payload: VerifyEmailPayload) {
-  return authRequest<{ message: string }>("/auth/verify-email", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/verify-email`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -108,7 +87,7 @@ export function verifyClientEmail(payload: VerifyEmailPayload) {
 
 // Авторизует покупателя и получает auth cookies от backend.
 export function loginClient(payload: LoginPayload) {
-  return authRequest<{ message: string }>("/auth/login", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/login`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -116,19 +95,19 @@ export function loginClient(payload: LoginPayload) {
 
 // Завершает buyer-сессию и очищает auth cookies на backend.
 export function logoutClient() {
-  return authRequest<{ message: string }>("/auth/logout", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/logout`, {
     method: "POST",
   });
 }
 
 // Загружает текущего пользователя по активной buyer-сессии.
 export function getCurrentUser() {
-  return authRequest<CurrentUser>("/auth/me");
+  return fetchWithAuth<CurrentUser>(`${AUTH_API_URL}/auth/me`);
 }
 
 // Обновляет buyer-профиль текущего пользователя.
 export function updateClientProfile(payload: UpdateClientProfilePayload) {
-  return authRequest<BuyerProfile>("/auth/user/me", {
+  return fetchWithAuth<BuyerProfile>(`${AUTH_API_URL}/auth/user/me`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -136,7 +115,7 @@ export function updateClientProfile(payload: UpdateClientProfilePayload) {
 
 // Запрашивает письмо с кодом восстановления пароля покупателя.
 export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
-  return authRequest<{ message: string }>("/auth/forgot-password", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/forgot-password`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -144,7 +123,7 @@ export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
 
 // Проверяет код восстановления до перехода к вводу нового пароля.
 export function verifyClientPasswordResetCode(payload: ResetPasswordCodePayload) {
-  return authRequest<{ message: string }>("/auth/reset-password/verify-code", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/reset-password/verify-code`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -152,7 +131,7 @@ export function verifyClientPasswordResetCode(payload: ResetPasswordCodePayload)
 
 // Меняет пароль покупателя по валидному коду восстановления.
 export function resetClientPassword(payload: ResetPasswordPayload) {
-  return authRequest<{ message: string }>("/auth/reset-password", {
+  return fetchWithAuth<{ message: string }>(`${AUTH_API_URL}/auth/reset-password`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -167,5 +146,5 @@ export type PublicStoreProfile = {
 
 // Возвращает публичную информацию о магазине.
 export function getPublicStoreProfile(storeName: string) {
-  return authRequest<PublicStoreProfile>(`/auth/store/${encodeURIComponent(storeName)}`);
+  return fetchWithAuth<PublicStoreProfile>(`${AUTH_API_URL}/auth/store/${encodeURIComponent(storeName)}`);
 }
