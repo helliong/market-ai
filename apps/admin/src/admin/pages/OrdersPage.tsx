@@ -55,14 +55,20 @@ function getOrderDate(index: number) {
 export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(
-    orders.length > 0 ? orders[0].id : null,
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(
+    new Set(orders.length > 0 ? [orders[0].id] : []),
   );
   const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("Нет в наличии");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(
     orders[0]?.id ?? null,
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, statusFilter]);
 
   useEffect(() => {
     if (orders.length === 0 || selectedOrderId) {
@@ -70,7 +76,7 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
     }
 
     setSelectedOrderId(orders[0].id);
-    setExpandedOrderId(orders[0].id);
+    setExpandedOrderIds(new Set([orders[0].id]));
   }, [orders, selectedOrderId]);
 
   const filteredOrders = useMemo(() => {
@@ -90,6 +96,13 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
     });
   }, [orders, query, statusFilter]);
 
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredOrders.slice(startIndex, startIndex + pageSize);
+  }, [filteredOrders, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+
   const selectedOrder =
     filteredOrders.find((order) => order.id === selectedOrderId) ??
     filteredOrders[0];
@@ -105,7 +118,15 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
 
   function selectOrder(orderId: string) {
     setSelectedOrderId(orderId);
-    setExpandedOrderId((current) => (current === orderId ? null : orderId));
+    setExpandedOrderIds((current) => {
+      const next = new Set(current);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -173,10 +194,10 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
         </button>
       </div>
 
-      <div className={`orders-board ${filteredOrders.length === 0 ? "is-empty" : ""}`}>
+      <div className={`orders-board ${paginatedOrders.length === 0 ? "is-empty" : ""}`}>
         <div className="orders-list-modern">
-          {filteredOrders.map((order) => {
-            const isExpanded = expandedOrderId === order.id;
+          {paginatedOrders.map((order) => {
+            const isExpanded = expandedOrderIds.has(order.id);
             const isSelected = selectedOrder?.id === order.id;
             const tone = statusToneLabels[order.status];
 
@@ -346,23 +367,37 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
           {filteredOrders.length > 0 && (
             <div className="orders-pagination">
               <span>
-                Показано 1-{filteredOrders.length} из {orders.length} заказов
+                Показано {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, filteredOrders.length)} из {filteredOrders.length} заказов
               </span>
-              <div className="orders-pages">
-                <button type="button" className="active">
-                  1
-                </button>
-                <button type="button">2</button>
-                <button type="button">3</button>
-                <span>...</span>
-                <button type="button">
-                  <ChevronsRight aria-hidden="true" />
-                </button>
-              </div>
-              <button type="button" className="orders-page-size">
-                20 на странице
-                <ChevronDown aria-hidden="true" />
-              </button>
+              {totalPages > 1 && (
+                <div className="orders-pages">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const page = i + 1;
+                    return (
+                      <button
+                        key={page}
+                        type="button"
+                        className={currentPage === page ? "active" : ""}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <select 
+                className="orders-page-size"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10 на странице</option>
+                <option value={20}>20 на странице</option>
+                <option value={50}>50 на странице</option>
+              </select>
             </div>
           )}
         </div>

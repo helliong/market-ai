@@ -24,7 +24,7 @@ export const compareSlice = createSlice({
       if (state.ids.includes(action.payload)) {
         state.ids = state.ids.filter((id) => id !== action.payload);
       } else if (state.ids.length < COMPARE_LIMIT) {
-        state.ids.push(action.payload);
+        state.ids.unshift(action.payload);
       } else {
         return;
       }

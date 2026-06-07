@@ -25,7 +25,7 @@ export const favoritesSlice = createSlice({
       if (state.ids.includes(action.payload)) {
         state.ids = state.ids.filter((id) => id !== action.payload);
       } else {
-        state.ids.push(action.payload);
+        state.ids.unshift(action.payload);
       }
     },
   },

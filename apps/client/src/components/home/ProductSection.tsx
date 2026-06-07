@@ -1,8 +1,6 @@
 "use client";
-import Link from "next/link";
 import { AdPlaceholderCard } from "@/components/ui/AdPlaceholderCard";
 import { ProductCard } from "@/components/ui/ProductCard";
-import { useLanguage } from "@/hooks/useLanguage";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import type { ClientProduct } from "@/lib/catalog-products";
 
@@ -18,10 +16,13 @@ type ProductGridSlot =
       placement: number;
     };
 
+type ProductSectionProps = {
+  initialProducts?: Product[];
+};
+
 // Блок главной страницы с популярными товарами и рекламными слотами.
-export function ProductSection() {
-  const { t } = useLanguage();
-  const products = useCatalogProducts();
+export function ProductSection({ initialProducts = [] }: ProductSectionProps) {
+  const products = useCatalogProducts(initialProducts);
 
   return (
     <section className="mx-auto mt-12 max-w-[1440px] px-4 pb-16 md:px-8">

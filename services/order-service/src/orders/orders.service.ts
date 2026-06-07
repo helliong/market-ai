@@ -91,6 +91,11 @@ type ResolvedCheckoutItem = {
   lineTotal: Prisma.Decimal;
 };
 
+type CatalogStockMutationItem = {
+  productId: number;
+  quantity: number;
+};
+
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -112,32 +117,96 @@ export class OrdersService {
     const delivery = normalizeDelivery(payload.delivery);
     const buyerId = normalizeBuyerId(payload.buyerId);
     const paymentMethod = payload.payment?.method?.trim() || 'card';
+    const stockItems = buildCatalogStockMutationItems(resolvedItems);
 
-    const order = await this.prisma.$transaction((tx) =>
+    await this.reserveCatalogStock(stockItems);
+
+    let order: Awaited<ReturnType<typeof this.createOrder>>;
+
+    try {
+      order = await this.createOrder({
+        buyerId,
+        customer,
+        delivery,
+        grandTotal,
+        paymentMethod,
+        resolvedItems,
+      });
+    } catch (error) {
+      await this.releaseCatalogStock(stockItems).catch(() => undefined);
+      throw error;
+    }
+
+    let payment: YookassaPaymentResponse;
+
+    try {
+      payment = await this.createYookassaPayment({
+        orderId: order.id,
+        amount: order.grandTotal.toFixed(2),
+        description: `MarketAI order ${order.publicId} (test)`,
+        returnUrl:
+          payload.returnUrl ??
+          `${getClientUrl()}/checkout?payment=return&orderId=${order.id}`,
+      });
+    } catch (error) {
+      await this.markPaymentCreationFailed(order.id);
+      await this.releaseCatalogStock(stockItems).catch(() => undefined);
+      throw error;
+    }
+
+    await this.prisma.orderPayment.update({
+      where: {
+        id: order.payments[0].id,
+      },
+      data: {
+        providerPaymentId: payment.id,
+        rawPayload: payment as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return {
+      orderId: order.id,
+      publicId: order.publicId,
+      paymentId: payment.id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      confirmationUrl: payment.confirmation?.confirmation_url,
+    };
+  }
+
+  private createOrder(input: {
+    buyerId: string;
+    customer: ReturnType<typeof normalizeCustomer>;
+    delivery: ReturnType<typeof normalizeDelivery>;
+    grandTotal: Prisma.Decimal;
+    paymentMethod: string;
+    resolvedItems: ResolvedCheckoutItem[];
+  }) {
+    return this.prisma.$transaction((tx) =>
       tx.order.create({
         data: {
           publicId: createPublicOrderId(),
-          buyerId,
+          buyerId: input.buyerId,
           status: OrderStatus.AWAITING_PAYMENT,
           paymentStatus: OrderPaymentStatus.PENDING,
           fulfillmentStatus: OrderFulfillmentStatus.PROCESSING,
-          deliveryMethod: delivery.method,
-          paymentMethod,
+          deliveryMethod: input.delivery.method,
+          paymentMethod: input.paymentMethod,
           currency: 'RUB',
-          itemsTotal: grandTotal,
+          itemsTotal: input.grandTotal,
           deliveryTotal: new Prisma.Decimal(0),
           discountTotal: new Prisma.Decimal(0),
-          grandTotal,
-          customerName: customer.name,
-          customerPhone: customer.phone,
-          customerEmail: customer.email,
-          deliveryCity: delivery.city,
-          deliveryStreet: delivery.street,
-          deliveryHouse: delivery.house,
-          deliveryFlat: delivery.flat || null,
-          deliveryComment: delivery.comment || null,
+          grandTotal: input.grandTotal,
+          customerName: input.customer.name,
+          customerPhone: input.customer.phone,
+          customerEmail: input.customer.email,
+          deliveryCity: input.delivery.city,
+          deliveryStreet: input.delivery.street,
+          deliveryHouse: input.delivery.house,
+          deliveryFlat: input.delivery.flat || null,
+          deliveryComment: input.delivery.comment || null,
           items: {
-            create: resolvedItems.map((item) => ({
+            create: input.resolvedItems.map((item) => ({
               productId: item.productId,
               sellerId: item.sellerId,
               productTitleSnapshot: item.title,
@@ -150,7 +219,7 @@ export class OrdersService {
             create: {
               provider: OrderPaymentProvider.YOOKASSA,
               status: OrderPaymentStatus.PENDING,
-              amount: grandTotal,
+              amount: input.grandTotal,
             },
           },
           statusHistory: {
@@ -181,41 +250,6 @@ export class OrdersService {
         },
       }),
     );
-
-    let payment: YookassaPaymentResponse;
-
-    try {
-      payment = await this.createYookassaPayment({
-        orderId: order.id,
-        amount: order.grandTotal.toFixed(2),
-        description: `MarketAI order ${order.publicId} (test)`,
-        returnUrl:
-          payload.returnUrl ??
-          `${getClientUrl()}/checkout?payment=return&orderId=${order.id}`,
-      });
-    } catch (error) {
-      await this.markPaymentCreationFailed(order.id);
-      throw error;
-    }
-
-    await this.prisma.orderPayment.update({
-      where: {
-        id: order.payments[0].id,
-      },
-      data: {
-        providerPaymentId: payment.id,
-        rawPayload: payment as unknown as Prisma.InputJsonValue,
-      },
-    });
-
-    return {
-      orderId: order.id,
-      publicId: order.publicId,
-      paymentId: payment.id,
-      status: order.status,
-      paymentStatus: order.paymentStatus,
-      confirmationUrl: payment.confirmation?.confirmation_url,
-    };
   }
 
   async findOrdersByBuyer(buyerId: string) {
@@ -268,7 +302,12 @@ export class OrdersService {
     }));
   }
 
-  async updateSellerOrderStatus(sellerId: string, orderId: string, targetStatus: string, reason?: string) {
+  async updateSellerOrderStatus(
+    sellerId: string,
+    orderId: string,
+    targetStatus: string,
+    reason?: string,
+  ) {
     if (!sellerId.trim() || !orderId.trim()) {
       throw new BadRequestException('sellerId and orderId are required');
     }
@@ -304,7 +343,9 @@ export class OrdersService {
       data: {
         status: newStatus,
         fulfillmentStatus: newFulfillmentStatus,
-        ...(reason && targetStatus === 'cancelled' ? { cancellationReason: reason } : {}),
+        ...(reason && targetStatus === 'cancelled'
+          ? { cancellationReason: reason }
+          : {}),
       },
       include: {
         items: true,
@@ -597,6 +638,50 @@ export class OrdersService {
     return data as YookassaPaymentResponse;
   }
 
+  private reserveCatalogStock(items: CatalogStockMutationItem[]) {
+    return this.mutateCatalogStock('reserve', items);
+  }
+
+  private releaseCatalogStock(items: CatalogStockMutationItem[]) {
+    return this.mutateCatalogStock('release', items);
+  }
+
+  private async mutateCatalogStock(
+    action: 'reserve' | 'release',
+    items: CatalogStockMutationItem[],
+  ) {
+    const catalogUrl = getCatalogServiceUrl().replace(/\/$/, '');
+    let response: Response;
+
+    try {
+      response = await retry(() =>
+        fetch(`${catalogUrl}/internal/products/stock/${action}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ items }),
+        }),
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        'Catalog stock service is temporarily unavailable. Please try again.',
+      );
+    }
+
+    const data = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+
+    if (!response.ok) {
+      const message =
+        data?.message && Array.isArray(data.message)
+          ? data.message.join(', ')
+          : data?.message;
+      throw new BadRequestException(message ?? 'Product stock is unavailable');
+    }
+  }
+
   private async resolveCheckoutItems(items: CheckoutItem[]) {
     const resolvedItems = await Promise.all(
       items.map(async (item) => {
@@ -852,7 +937,9 @@ function normalizeCustomer(customer: CheckoutPayload['customer']) {
   const email = customer?.email?.trim();
 
   if (!name || !phone || !email) {
-    throw new BadRequestException('Customer name, phone and email are required');
+    throw new BadRequestException(
+      'Customer name, phone and email are required',
+    );
   }
 
   return { name, phone, email };
@@ -886,18 +973,34 @@ function normalizeCatalogPrice(price: number | string) {
   return decimal;
 }
 
+function buildCatalogStockMutationItems(items: ResolvedCheckoutItem[]) {
+  const quantitiesByProductId = new Map<number, number>();
+
+  for (const item of items) {
+    quantitiesByProductId.set(
+      item.productId,
+      (quantitiesByProductId.get(item.productId) ?? 0) + item.quantity,
+    );
+  }
+
+  return [...quantitiesByProductId.entries()].map(([productId, quantity]) => ({
+    productId,
+    quantity,
+  }));
+}
+
 function isCatalogProduct(
   product: CatalogProductResponse | { message?: string } | null,
 ): product is CatalogProductResponse {
   return Boolean(
     product &&
-      typeof product === 'object' &&
-      typeof (product as CatalogProductResponse).id === 'number' &&
-      typeof (product as CatalogProductResponse).sellerId === 'string' &&
-      (product as CatalogProductResponse).sellerId.trim() &&
-      typeof (product as CatalogProductResponse).name === 'string' &&
-      (typeof (product as CatalogProductResponse).price === 'number' ||
-        typeof (product as CatalogProductResponse).price === 'string'),
+    typeof product === 'object' &&
+    typeof (product as CatalogProductResponse).id === 'number' &&
+    typeof (product as CatalogProductResponse).sellerId === 'string' &&
+    (product as CatalogProductResponse).sellerId.trim() &&
+    typeof (product as CatalogProductResponse).name === 'string' &&
+    (typeof (product as CatalogProductResponse).price === 'number' ||
+      typeof (product as CatalogProductResponse).price === 'string'),
   );
 }
 
@@ -907,7 +1010,9 @@ function normalizeDelivery(delivery: CheckoutPayload['delivery']) {
   const house = delivery?.house?.trim();
 
   if (!city || !street || !house) {
-    throw new BadRequestException('Delivery city, street and house are required');
+    throw new BadRequestException(
+      'Delivery city, street and house are required',
+    );
   }
 
   return {
@@ -927,9 +1032,7 @@ function createPublicOrderId() {
 }
 
 function buildOrderLookup(orderId: string): Prisma.OrderWhereInput[] {
-  const lookup: Prisma.OrderWhereInput[] = [
-    { publicId: orderId },
-  ];
+  const lookup: Prisma.OrderWhereInput[] = [{ publicId: orderId }];
 
   if (isUuid(orderId)) {
     lookup.push({ id: orderId });

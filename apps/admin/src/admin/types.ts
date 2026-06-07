@@ -31,6 +31,7 @@ export type Order = {
   status: OrderStatus;
   items?: OrderItem[];
   cancellationReason?: string;
+  createdAt: string;
 };
 
 export type UserRole = "admin" | "seller" | "user";

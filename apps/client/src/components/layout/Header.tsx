@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { logout } from "@/store/authSlice";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { hydrateCart } from "@/store/cartSlice";
 import { hydrateCompare } from "@/store/compareSlice";
 import { hydrateFavorites } from "@/store/favoritesSlice";
@@ -53,7 +54,9 @@ export function Header() {
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
-  const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
+  const favoriteIds = useAppSelector((state) => state.favorites.ids);
+  const products = useCatalogProducts();
+  const favoritesCount = products.filter(p => favoriteIds.includes(p.id)).length;
   const user = useAppSelector((state) => state.auth.user);
   const isSessionRestored = useAppSelector(
     (state) => state.auth.isSessionRestored,

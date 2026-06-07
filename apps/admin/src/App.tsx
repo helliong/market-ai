@@ -251,6 +251,7 @@ function App() {
               status: (fStatus as OrderStatus) || "processing",
               items: items,
               cancellationReason: ro.cancellationReason ?? undefined,
+              createdAt: ro.createdAt,
             };
           });
           setOrders(mappedOrders);

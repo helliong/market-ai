@@ -366,6 +366,8 @@ export class SellerProductsService {
     description: string;
     category: string;
     price: Prisma.Decimal;
+    rating: Prisma.Decimal;
+    reviews: number;
     stock: number;
     status: string;
     createdAt: Date;
@@ -374,6 +376,7 @@ export class SellerProductsService {
     return {
       ...product,
       price: product.price.toNumber(),
+      rating: product.rating.toNumber(),
     };
   }
 }

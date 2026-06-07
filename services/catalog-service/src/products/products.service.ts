@@ -35,6 +35,23 @@ export class ProductsService {
     return this.toResponse(product);
   }
 
+  async findProductBySku(sku: string) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        sku,
+        status: 'active',
+        storeStatus: 'ACTIVATED',
+        stock: { gt: 0 },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found by SKU');
+    }
+
+    return this.toResponse(product);
+  }
+
   private toResponse(product: {
     id: number;
     sellerId: string;
@@ -45,6 +62,8 @@ export class ProductsService {
     description: string;
     category: string;
     price: Prisma.Decimal;
+    rating: Prisma.Decimal;
+    reviews: number;
     stock: number;
     status: string;
     createdAt: Date;
@@ -53,7 +72,30 @@ export class ProductsService {
     return {
       ...product,
       price: product.price.toNumber(),
+      rating: product.rating.toNumber(),
     };
+  }
+
+  async reserveProductsStock(items: { productId: number; quantity: number }[]) {
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        }),
+      ),
+    );
+  }
+
+  async releaseProductsStock(items: { productId: number; quantity: number }[]) {
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { increment: item.quantity } },
+        }),
+      ),
+    );
   }
 }
 

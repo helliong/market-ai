@@ -11,8 +11,9 @@ import {
   Users,
   Wallet,
   XCircle,
+  Info,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, useMemo } from "react";
 import { formatCurrency } from "../formatters";
 import type { Order, OrderStatus, Product, User } from "../types";
 
@@ -48,9 +49,82 @@ export function DashboardPage({
   users,
   onNavigate,
 }: DashboardPageProps) {
-  const activeOrders = orders.filter((order) => order.status !== "cancelled");
-  const averageCheck =
-    activeOrders.length > 0 ? stats.revenue / activeOrders.length : 0;
+  const [period, setPeriod] = useState<"today" | "7d" | "30d">("today");
+
+  const {
+    currentRevenue,
+    prevRevenue,
+    currentAverage,
+    prevAverage,
+    revenueGrowth,
+    averageGrowth,
+    filteredOrdersCount,
+    currentCancelledCount,
+  } = useMemo(() => {
+    const now = new Date();
+    let currentStart = new Date();
+    let prevStart = new Date();
+    let prevEnd = new Date();
+
+    if (period === "today") {
+      currentStart.setHours(0, 0, 0, 0);
+      prevStart = new Date(currentStart);
+      prevStart.setDate(prevStart.getDate() - 1);
+      prevEnd = new Date(currentStart);
+      prevEnd.setMilliseconds(-1);
+    } else if (period === "7d") {
+      currentStart.setDate(now.getDate() - 7);
+      prevStart = new Date(currentStart);
+      prevStart.setDate(prevStart.getDate() - 7);
+      prevEnd = new Date(currentStart);
+      prevEnd.setMilliseconds(-1);
+    } else if (period === "30d") {
+      currentStart.setDate(now.getDate() - 30);
+      prevStart = new Date(currentStart);
+      prevStart.setDate(prevStart.getDate() - 30);
+      prevEnd = new Date(currentStart);
+      prevEnd.setMilliseconds(-1);
+    }
+
+    const currentOrders = orders.filter((o) => {
+      if (o.status === "cancelled") return false;
+      const d = new Date(o.createdAt);
+      return d >= currentStart && d <= now;
+    });
+
+    const prevOrders = orders.filter((o) => {
+      if (o.status === "cancelled") return false;
+      const d = new Date(o.createdAt);
+      return d >= prevStart && d <= prevEnd;
+    });
+
+    const cRev = currentOrders.reduce((sum, o) => sum + o.total, 0);
+    const pRev = prevOrders.reduce((sum, o) => sum + o.total, 0);
+
+    const cAvg = currentOrders.length > 0 ? cRev / currentOrders.length : 0;
+    const pAvg = prevOrders.length > 0 ? pRev / prevOrders.length : 0;
+
+    const rGrowth = pRev > 0 ? Math.round(((cRev - pRev) / pRev) * 100) : cRev > 0 ? 100 : 0;
+    const aGrowth = pAvg > 0 ? Math.round(((cAvg - pAvg) / pAvg) * 100) : cAvg > 0 ? 100 : 0;
+
+    const currentCancelledCount = orders.filter((o) => {
+      // Только отмены со стороны продавца имеют cancellationReason
+      if (o.status !== "cancelled" || !o.cancellationReason) return false;
+      const d = new Date(o.createdAt);
+      return d >= currentStart && d <= now;
+    }).length;
+
+    return {
+      currentRevenue: cRev,
+      prevRevenue: pRev,
+      currentAverage: cAvg,
+      prevAverage: pAvg,
+      revenueGrowth: rGrowth,
+      averageGrowth: aGrowth,
+      filteredOrdersCount: currentOrders.length,
+      currentCancelledCount,
+    };
+  }, [orders, period]);
   const activeProducts = products.filter((product) => product.status === "active");
   const draftProducts = products.filter((product) => product.status === "draft");
   const lowStockProducts = products.filter(
@@ -64,7 +138,12 @@ export function DashboardPage({
     (status) => ({
       status,
       label: orderStatusLabels[status],
-      value: orders.filter((order) => order.status === status).length,
+      value: orders.filter((order) => {
+        if (order.status !== status) return false;
+        // Для 'cancelled' учитываем только отмены продавца (есть причина)
+        if (status === "cancelled" && !order.cancellationReason) return false;
+        return true;
+      }).length,
       tone: orderStatusTones[status],
     }),
   );
@@ -72,6 +151,12 @@ export function DashboardPage({
   const topProducts = getTopProducts(orders, products);
   const hasActivity =
     stats.products > 0 || stats.orders > 0 || stats.users > 0 || stats.revenue > 0;
+
+  const maxCancellations = period === "today" ? 5 : period === "7d" ? 10 : 15;
+  const isCancellationsHigh = currentCancelledCount > maxCancellations;
+  const cancellationsTooltipText = isCancellationsHigh
+    ? "Внимание: критический уровень отмен! При систематических отменах заказов работа вашего магазина может быть приостановлена платформой. Пожалуйста, следите за актуальностью остатков."
+    : "Количество отмененных заказов. Старайтесь избегать частых отмен: это негативно влияет на рейтинг и может привести к временной блокировке магазина.";
 
   return (
     <section className="dashboard-overview" aria-label="Обзор магазина">
@@ -82,11 +167,11 @@ export function DashboardPage({
         </div>
 
         <div className="dashboard-periods" aria-label="Период отчета">
-          <button type="button" className="active">
+          <button type="button" className={period === "today" ? "active" : ""} onClick={() => setPeriod("today")}>
             Сегодня
           </button>
-          <button type="button">7 дней</button>
-          <button type="button">30 дней</button>
+          <button type="button" className={period === "7d" ? "active" : ""} onClick={() => setPeriod("7d")}>7 дней</button>
+          <button type="button" className={period === "30d" ? "active" : ""} onClick={() => setPeriod("30d")}>30 дней</button>
           <span>Обновлено 12:40</span>
         </div>
       </div>
@@ -94,24 +179,27 @@ export function DashboardPage({
       <div className="dashboard-metrics" aria-label="Ключевые показатели">
         <MetricCard
           icon={<TrendingUp />}
-          tone="green"
+          tone={revenueGrowth >= 0 ? "green" : "red"}
           label="Выручка"
-          value={formatCurrency(stats.revenue)}
-          caption={stats.revenue > 0 ? "+12% к периоду" : "Пока нет продаж"}
+          value={formatCurrency(currentRevenue)}
+          caption={currentRevenue > 0 || prevRevenue > 0 ? `${revenueGrowth > 0 ? "+" : ""}${revenueGrowth}% к прошлому периоду` : "Пока нет продаж"}
+          tooltip="Сумма всех успешно оплаченных и завершенных заказов (за вычетом отмененных) за выбранный период. Процент роста считается относительно предыдущего аналогичного периода."
         />
         <MetricCard
           icon={<ShoppingBag />}
           tone="blue"
           label="Заказы"
-          value={String(stats.orders)}
-          caption={`${processingOrders.length} в обработке`}
+          value={String(filteredOrdersCount)}
+          caption={`${processingOrders.length} в обработке (за всё время)`}
+          tooltip="Общее число заказов (без учета отмененных), оформленных за выбранный период."
         />
         <MetricCard
           icon={<Wallet />}
-          tone="teal"
+          tone={averageGrowth >= 0 ? "teal" : "red"}
           label="Средний чек"
-          value={formatCurrency(averageCheck)}
-          caption={averageCheck > 0 ? "+4% к периоду" : "Нет активных заказов"}
+          value={formatCurrency(currentAverage)}
+          caption={currentAverage > 0 || prevAverage > 0 ? `${averageGrowth > 0 ? "+" : ""}${averageGrowth}% к прошлому периоду` : "Нет активных заказов"}
+          tooltip="Выручка, поделенная на количество заказов за выбранный период."
         />
         <MetricCard
           icon={<Package />}
@@ -119,6 +207,7 @@ export function DashboardPage({
           label="Товары"
           value={String(activeProducts.length)}
           caption={`${draftProducts.length} черновиков`}
+          tooltip="Количество активных товаров, доступных покупателям. Черновики не участвуют в поиске."
         />
         <MetricCard
           icon={<Boxes />}
@@ -126,6 +215,7 @@ export function DashboardPage({
           label="Остатки"
           value={String(lowStockProducts.length)}
           caption="заканчиваются"
+          tooltip="Считаются товары, которых осталось от 1 до 5 шт. (включительно). Это помогает вовремя пополнять запасы, чтобы не терять продажи."
         />
         <MetricCard
           icon={<Users />}
@@ -133,6 +223,7 @@ export function DashboardPage({
           label="Команда"
           value={String(users.length)}
           caption={pluralizeUsers(users.length)}
+          tooltip="Количество пользователей, имеющих доступ к управлению магазином."
         />
       </div>
 
@@ -185,7 +276,15 @@ export function DashboardPage({
           <div className="status-bars">
             {statusStats.map((item) => (
               <div className="status-bar-row" key={item.status}>
-                <span>{item.label}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  {item.label}
+                  {item.status === "cancelled" && (
+                    <InlineTooltip
+                      text={cancellationsTooltipText}
+                      tone={isCancellationsHigh ? "red" : "gray"}
+                    />
+                  )}
+                </span>
                 <div className="status-bar-track">
                   <div
                     className={`status-bar-fill ${item.tone}`}
@@ -297,22 +396,71 @@ function MetricCard({
   label,
   value,
   caption,
+  tooltip,
 }: {
-  icon: ReactNode;
-  tone: "green" | "blue" | "teal" | "violet" | "amber";
+  icon: React.ReactNode;
+  tone: "green" | "blue" | "teal" | "violet" | "amber" | "red";
   label: string;
   value: string;
   caption: string;
+  tooltip?: string;
 }) {
   return (
     <article className="dashboard-metric-card">
       <span className={`dashboard-icon ${tone}`}>{icon}</span>
       <div>
-        <p>{label}</p>
+        <p style={{ display: "flex", alignItems: "center", gap: "6px", margin: 0 }}>
+          <span>{label}</span>
+          {tooltip && <InlineTooltip text={tooltip} />}
+        </p>
         <strong>{value}</strong>
         <span>{caption}</span>
       </div>
     </article>
+  );
+}
+
+function InlineTooltip({ text, tone = "gray" }: { text: string; tone?: "gray" | "red" }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const color = tone === "red" ? "#ef4444" : "currentColor";
+
+  return (
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", transform: "translateY(-1px)" }}>
+      <Info
+        size={14}
+        style={{ cursor: "pointer", opacity: tone === "red" ? 1 : 0.5, transition: "opacity 0.2s", color }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowTooltip(!showTooltip);
+        }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      />
+      {showTooltip && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            marginBottom: "8px",
+            backgroundColor: "#1f2937",
+            color: "#ffffff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            fontSize: "13px",
+            width: "240px",
+            zIndex: 20,
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+            lineHeight: 1.4,
+            fontWeight: "normal",
+            pointerEvents: "none",
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -342,7 +490,7 @@ function AttentionItem({
   tone,
   label,
 }: {
-  icon: ReactNode;
+  icon: React.ReactNode;
   tone: "blue" | "amber" | "red";
   label: string;
 }) {

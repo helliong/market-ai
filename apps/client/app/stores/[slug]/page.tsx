@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
+import { StoreUnavailableState } from "@/components/not-found/StoreUnavailableState";
 import { StorePage } from "@/components/store/StorePage";
-import { findStoreNameBySlug } from "@/lib/stores";
 import { getPublicStoreProfile } from "@/lib/auth-api";
+import { findStoreNameBySlug } from "@/lib/stores";
 
 type StoreRouteProps = {
   params: Promise<{
@@ -10,13 +10,17 @@ type StoreRouteProps = {
   }>;
 };
 
-// Маршрут магазина находит название магазина по slug и открывает витрину магазина.
 export default async function StoreRoute({ params }: StoreRouteProps) {
   const { slug } = await params;
   const storeName = await findStoreNameBySlug(slug);
 
   if (!storeName) {
-    notFound();
+    return (
+      <main>
+        <Header />
+        <StoreUnavailableState />
+      </main>
+    );
   }
 
   const storeProfile = await getPublicStoreProfile(storeName).catch(() => null);

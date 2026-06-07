@@ -14,11 +14,13 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { getCatalogQuickPicks, getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
+import type { ClientProduct } from "@/lib/catalog-products";
 
 type CatalogPageProps = {
   initialCategory?: number | "all";
   initialQuery?: string;
   initialSubcategory?: string;
+  initialProducts?: ClientProduct[];
 };
 
 type SortMode = "popular" | "rating" | "priceAsc" | "priceDesc";
@@ -28,6 +30,7 @@ export function CatalogPage({
   initialCategory = "all",
   initialQuery = "",
   initialSubcategory = "",
+  initialProducts = [],
 }: CatalogPageProps) {
   const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
@@ -38,7 +41,7 @@ export function CatalogPage({
   const [sort, setSort] = useState<SortMode>("popular");
   const [onlyDiscounts, setOnlyDiscounts] = useState(false);
   const [fastDelivery, setFastDelivery] = useState(false);
-  const products = useCatalogProducts();
+  const products = useCatalogProducts(initialProducts);
 
   useEffect(() => {
     setSelectedCategory(initialCategory);
@@ -64,6 +67,9 @@ export function CatalogPage({
       const matchesCategory =
         selectedCategory === "all" ||
         product.categoryIds.includes(selectedCategory);
+      const matchesSubcategory = 
+        !isSubcategoryPage || 
+        product.category?.toLowerCase() === initialSubcategory.toLowerCase();
       const matchesSearch =
         !normalizedQuery ||
         product.title.toLowerCase().includes(normalizedQuery) ||
@@ -72,7 +78,7 @@ export function CatalogPage({
       const matchesDiscount = !onlyDiscounts || Boolean(product.oldPrice);
       const matchesDelivery = !fastDelivery || product.rating >= 4.7;
 
-      return matchesCategory && matchesSearch && matchesDiscount && matchesDelivery;
+      return matchesCategory && matchesSubcategory && matchesSearch && matchesDiscount && matchesDelivery;
     });
 
     return [...filtered].sort((left, right) => {
@@ -81,7 +87,7 @@ export function CatalogPage({
       if (sort === "priceDesc") return parseProductPrice(right.price) - parseProductPrice(left.price);
       return right.reviews - left.reviews;
     });
-  }, [fastDelivery, onlyDiscounts, searchQuery, selectedCategory, sort]);
+  }, [fastDelivery, onlyDiscounts, searchQuery, selectedCategory, sort, products, initialSubcategory, isSubcategoryPage]);
 
   if (shouldShowProducts) {
     return (

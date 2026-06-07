@@ -1,15 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Minus, Plus, Scale, ShoppingCart, Star, Store } from "lucide-react";
-import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
+import {
+  Heart,
+  Minus,
+  Plus,
+  Scale,
+  ShoppingCart,
+  Star,
+  Store,
+} from "lucide-react";
+import {
+  addToCart,
+  decreaseQuantity,
+  increaseQuantity,
+} from "@/store/cartSlice";
 import { toggleCompare } from "@/store/compareSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { getStoreSlug } from "@/lib/store-slug";
+import { getProductPath } from "@/lib/product-url";
 
 type ProductCardProps = {
   id: number;
+  sku: string;
   title: string;
   price: string;
   oldPrice?: string;
@@ -17,26 +31,38 @@ type ProductCardProps = {
   reviews: number;
   badge?: string;
   storeName?: string;
+  categoryIds?: number[];
+  category?: string;
   showTomorrowCartButton?: boolean;
 };
 
 // Карточка товара показывает цену, рейтинг, магазин и действия корзины/избранного/сравнения.
 export function ProductCard({
   id,
+  sku,
   title,
   price,
   oldPrice,
   rating,
   reviews,
   storeName,
+  categoryIds,
+  category,
   showTomorrowCartButton = false,
 }: ProductCardProps) {
   const dispatch = useAppDispatch();
-  const cartItem = useAppSelector((state) => state.cart.items.find((item) => item.id === id));
-  const isFavorite = useAppSelector((state) => state.favorites.ids.includes(id));
+  const cartItem = useAppSelector((state) =>
+    state.cart.items.find((item) => item.id === id),
+  );
+  const isFavorite = useAppSelector((state) =>
+    state.favorites.ids.includes(id),
+  );
   const isCompared = useAppSelector((state) => state.compare.ids.includes(id));
-  const isCompareLimitReached = useAppSelector((state) => state.compare.ids.length >= 6);
+  const isCompareLimitReached = useAppSelector(
+    (state) => state.compare.ids.length >= 6,
+  );
   const isCompareDisabled = !isCompared && isCompareLimitReached;
+  const productHref = getProductHref(id, sku, title, category);
 
   return (
     <article className="group relative rounded-[18px] bg-white p-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(109,74,255,0.14)] sm:rounded-[24px] sm:p-4">
@@ -73,7 +99,7 @@ export function ProductCard({
       </div>
 
       <Link
-        href={`/products/${id}`}
+        href={productHref}
         className="flex aspect-[3/4] min-h-[168px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] sm:min-h-[250px] sm:rounded-[20px]"
       >
         <div className="h-24 w-16 rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105 sm:h-36 sm:w-24 sm:rounded-[24px]" />
@@ -81,7 +107,7 @@ export function ProductCard({
 
       <div className="mt-3 sm:mt-4">
         <Link
-          href={`/products/${id}`}
+          href={productHref}
           className="line-clamp-2 min-h-[36px] text-[12px] font-bold leading-[1.35] text-[#111827] transition hover:text-[#6D4AFF] sm:min-h-[44px] sm:text-[15px] sm:leading-[1.45]"
         >
           {title}
@@ -92,7 +118,10 @@ export function ProductCard({
             href={`/stores/${getStoreSlug(storeName)}`}
             className="mt-2 flex min-h-[18px] items-center gap-1.5 text-[11px] font-semibold text-[#6B7280] transition hover:text-[#6D4AFF] sm:text-xs"
           >
-            <Store size={13} className="shrink-0 text-[#6D4AFF] sm:h-3.5 sm:w-3.5" />
+            <Store
+              size={13}
+              className="shrink-0 text-[#6D4AFF] sm:h-3.5 sm:w-3.5"
+            />
             <span className="line-clamp-1">{storeName}</span>
           </Link>
         )}
@@ -149,11 +178,21 @@ export function ProductCard({
             title="Добавить в корзину. Доставка завтра"
             className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#6D4AFF] px-3 text-xs font-bold text-white transition hover:bg-[#4F32D9] sm:mt-4 sm:h-11 sm:gap-2 sm:rounded-2xl sm:text-sm"
           >
-            <ShoppingCart size={16} className="shrink-0 sm:h-[18px] sm:w-[18px]" />
+            <ShoppingCart
+              size={16}
+              className="shrink-0 sm:h-[18px] sm:w-[18px]"
+            />
             Завтра
           </button>
         )}
       </div>
     </article>
   );
+}
+
+function getProductHref(productId: number, sku?: string, title?: string, category?: string) {
+  if (sku && title && category) {
+    return getProductPath({ sku, title, category });
+  }
+  return `/products/${productId}`;
 }

@@ -33,6 +33,7 @@ type Product = {
   description?: string;
   storeName?: string;
   categoryIds?: number[];
+  category?: string;
 };
 
 type ProductPageProps = {
@@ -61,25 +62,28 @@ export function ProductPage({ product }: ProductPageProps) {
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#6B7280]">
-        <Link href="/" className="transition hover:text-[#6D4AFF]">
-          {t("homeBreadcrumb")}
-        </Link>
-        <span>/</span>
-        <Link href="/catalog" className="transition hover:text-[#6D4AFF]">
-          Каталог
-        </Link>
         {productCategory && (
           <>
-            <span>/</span>
             <Link
               href={`/catalog?category=${productCategory.id}`}
               className="transition hover:text-[#6D4AFF]"
             >
               {t(productCategory.title)}
             </Link>
+            <span>/</span>
           </>
         )}
-        <span>/</span>
+        {product.category && (
+          <>
+            <Link
+              href={`/catalog?category=${productCategory?.id ?? 1}&subcategory=${encodeURIComponent(product.category)}`}
+              className="transition hover:text-[#6D4AFF]"
+            >
+              {product.category}
+            </Link>
+            <span>/</span>
+          </>
+        )}
         <span className="line-clamp-1 text-[var(--text-main)]">{product.title}</span>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">

@@ -14,4 +14,9 @@ export class ProductsController {
   findProduct(@Param('productId', ParseIntPipe) productId: number) {
     return this.productsService.findProduct(productId);
   }
+
+  @Get('sku/:sku')
+  findProductBySku(@Param('sku') sku: string) {
+    return this.productsService.findProductBySku(sku);
+  }
 }

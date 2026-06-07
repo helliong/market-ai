@@ -11,7 +11,7 @@ export class ShoppingService {
   async getCart(accountId: string) {
     const items = await this.prisma.cartItem.findMany({
       where: { accountId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return {
@@ -72,7 +72,7 @@ export class ShoppingService {
   async getFavorites(accountId: string) {
     const items = await this.prisma.favoriteItem.findMany({
       where: { accountId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return { ids: items.map((item) => item.productId) };
@@ -106,7 +106,7 @@ export class ShoppingService {
   async getCompare(accountId: string) {
     const items = await this.prisma.compareItem.findMany({
       where: { accountId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return { ids: items.map((item) => item.productId), limit: COMPARE_LIMIT };

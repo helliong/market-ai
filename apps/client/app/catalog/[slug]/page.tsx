@@ -4,6 +4,7 @@ import {
   getCatalogSearchQuery,
   getCatalogTitleFromSlug,
 } from "@/lib/catalog-slug";
+import { getCatalogProducts } from "@/lib/catalog-products";
 
 type CatalogSubcategoryRouteProps = {
   params: Promise<{
@@ -17,6 +18,7 @@ export default async function CatalogSubcategoryRoute({
 }: CatalogSubcategoryRouteProps) {
   const { slug } = await params;
   const subcategoryTitle = getCatalogTitleFromSlug(slug);
+  const products = await getCatalogProducts();
 
   return (
     <main>
@@ -25,6 +27,7 @@ export default async function CatalogSubcategoryRoute({
         initialCategory={1}
         initialQuery={getCatalogSearchQuery(subcategoryTitle)}
         initialSubcategory={subcategoryTitle}
+        initialProducts={products}
       />
     </main>
   );

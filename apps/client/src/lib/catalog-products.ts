@@ -1,5 +1,6 @@
 export type ClientProduct = {
   id: number;
+  sku: string;
   title: string;
   price: string;
   oldPrice?: string;
@@ -9,6 +10,7 @@ export type ClientProduct = {
   description?: string;
   storeName?: string;
   categoryIds: number[];
+  category?: string;
 };
 
 type ApiProduct = {
@@ -18,6 +20,8 @@ type ApiProduct = {
   description: string;
   category: string;
   price: number;
+  rating?: number;
+  reviews?: number;
   stock: number;
   status: string;
   storeName?: string;
@@ -35,6 +39,18 @@ export async function getCatalogProduct(
   productId: number,
 ): Promise<ClientProduct | null> {
   const apiProduct = await fetchApiProduct(productId);
+
+  if (apiProduct) {
+    return mapApiProduct(apiProduct);
+  }
+
+  return null;
+}
+
+export async function getCatalogProductBySku(
+  sku: string,
+): Promise<ClientProduct | null> {
+  const apiProduct = await fetchApiProductBySku(sku);
 
   if (apiProduct) {
     return mapApiProduct(apiProduct);
@@ -75,17 +91,48 @@ async function fetchApiProduct(productId: number) {
   }
 }
 
+async function fetchApiProductBySku(sku: string) {
+  try {
+    let response = await fetch(
+      `${CATALOG_API_URL}/products/sku/${encodeURIComponent(sku)}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    const upperSku = sku.toUpperCase();
+    if (!response.ok && upperSku !== sku) {
+      response = await fetch(
+        `${CATALOG_API_URL}/products/sku/${encodeURIComponent(upperSku)}`,
+        {
+          cache: "no-store",
+        },
+      );
+    }
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as ApiProduct;
+  } catch {
+    return null;
+  }
+}
+
 function mapApiProduct(product: ApiProduct): ClientProduct {
   return {
     id: product.id,
+    sku: product.sku,
     title: product.name,
     price: formatPrice(product.price),
-    rating: 4.8,
-    reviews: 0,
+    rating: product.rating ?? 0,
+    reviews: product.reviews ?? 0,
     badge: "New",
     description: product.description,
     storeName: product.storeName ?? "MarketAI Store",
     categoryIds: inferCategoryIds(product.category),
+    category: product.category,
   };
 }
 

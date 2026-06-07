@@ -27,19 +27,66 @@ export function CartPage() {
   const favoriteIds = useAppSelector((state) => state.favorites.ids);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const knownItemIdsRef = useRef<number[]>([]);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
     const itemIds = items.map((item) => item.id);
+
+    if (!isInitializedRef.current) {
+      if (itemIds.length === 0) return;
+      isInitializedRef.current = true;
+
+      try {
+        const savedSelected = localStorage.getItem("cartSelectedIds");
+        const savedKnown = localStorage.getItem("cartKnownItemIds");
+        
+        let initialSelected = itemIds;
+        let initialKnown: number[] = [];
+
+        if (savedKnown && savedSelected) {
+          const parsedKnown = JSON.parse(savedKnown);
+          const parsedSelected = JSON.parse(savedSelected);
+          if (Array.isArray(parsedKnown) && Array.isArray(parsedSelected)) {
+            initialKnown = parsedKnown;
+            initialSelected = parsedSelected.filter((id) => itemIds.includes(id));
+          }
+        }
+
+        const trulyNewItemIds = itemIds.filter((id) => !initialKnown.includes(id));
+        const finalSelected = Array.from(new Set([...initialSelected, ...trulyNewItemIds]));
+        
+        setSelectedIds(finalSelected);
+        knownItemIdsRef.current = itemIds;
+        localStorage.setItem("cartKnownItemIds", JSON.stringify(itemIds));
+      } catch (e) {
+        setSelectedIds(itemIds);
+        knownItemIdsRef.current = itemIds;
+      }
+      return;
+    }
+
     const knownItemIds = knownItemIdsRef.current;
     const newItemIds = itemIds.filter((id) => !knownItemIds.includes(id));
 
-    setSelectedIds((current) => {
-      const keptIds = current.filter((id) => itemIds.includes(id));
-      return [...keptIds, ...newItemIds];
-    });
-
-    knownItemIdsRef.current = itemIds;
+    if (newItemIds.length > 0 || itemIds.length < knownItemIds.length) {
+      setSelectedIds((current) => {
+        const keptIds = current.filter((id) => itemIds.includes(id));
+        return [...keptIds, ...newItemIds];
+      });
+      knownItemIdsRef.current = itemIds;
+      try {
+        localStorage.setItem("cartKnownItemIds", JSON.stringify(itemIds));
+      } catch (e) {}
+    }
   }, [items]);
+
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      try {
+        localStorage.setItem("cartSelectedIds", JSON.stringify(selectedIds));
+      } catch (e) {}
+    }
+  }, [selectedIds]);
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.includes(item.id)),

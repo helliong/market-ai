@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { ADMIN_SELLER_URL } from "@/lib/admin";
 import { logout, setUser } from "@/store/authSlice";
 import { logoutClient, updateClientProfile } from "@/lib/auth-api";
@@ -41,8 +42,11 @@ export function ProfilePage() {
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
-  const favoritesCount = useAppSelector((state) => state.favorites.ids.length);
-  const compareCount = useAppSelector((state) => state.compare.ids.length);
+  const favoriteIds = useAppSelector((state) => state.favorites.ids);
+  const compareIds = useAppSelector((state) => state.compare.ids);
+  const products = useCatalogProducts();
+  const favoritesCount = products.filter(p => favoriteIds.includes(p.id)).length;
+  const compareCount = products.filter(p => compareIds.includes(p.id)).length;
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   const [activeOrders, setActiveOrders] = useState<ApiOrder[]>([]);
   const [completedOrders, setCompletedOrders] = useState<ApiOrder[]>([]);
