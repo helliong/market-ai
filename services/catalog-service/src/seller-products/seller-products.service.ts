@@ -29,6 +29,7 @@ export class SellerProductsService {
   async findSellerProducts(sellerId: string) {
     const products = await this.prisma.product.findMany({
       where: { sellerId },
+      include: productWithImages,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -96,7 +97,11 @@ export class SellerProductsService {
           price: new Prisma.Decimal(dto.price),
           stock: dto.stock,
           status: dto.status,
+          images: {
+            create: normalizeImages(dto.images),
+          },
         },
+        include: productWithImages,
       }),
     );
 
@@ -141,6 +146,13 @@ export class SellerProductsService {
       data.status = dto.status;
     }
 
+    if (dto.images !== undefined) {
+      data.images = {
+        deleteMany: {},
+        create: normalizeImages(dto.images),
+      };
+    }
+
     if (
       data.name === '' ||
       data.category === '' ||
@@ -154,6 +166,7 @@ export class SellerProductsService {
       this.prisma.product.update({
         where: { id: productId },
         data,
+        include: productWithImages,
       }),
     );
 
@@ -372,13 +385,55 @@ export class SellerProductsService {
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    images?: {
+      id: string;
+      url: string;
+      isMain: boolean;
+      sortOrder: number;
+      productId: number;
+    }[];
   }) {
     return {
       ...product,
       price: product.price.toNumber(),
       rating: product.rating.toNumber(),
+      images: product.images ?? [],
     };
   }
+}
+
+const productWithImages = {
+  images: {
+    orderBy: { sortOrder: 'asc' },
+  },
+} satisfies Prisma.ProductInclude;
+
+function normalizeImages(
+  images: { url: string; isMain: boolean; sortOrder: number }[] | undefined,
+) {
+  if (!images?.length) {
+    return [];
+  }
+
+  const normalizedImages = images
+    .map((image, index) => ({
+      url: image.url.trim(),
+      isMain: Boolean(image.isMain),
+      sortOrder: Number.isInteger(image.sortOrder) ? image.sortOrder : index,
+    }))
+    .filter((image) => image.url.length > 0);
+
+  const mainImagesCount = normalizedImages.filter((image) => image.isMain).length;
+
+  if (mainImagesCount > 1) {
+    throw new BadRequestException('Only one product image can be main');
+  }
+
+  if (normalizedImages.length > 0 && mainImagesCount === 0) {
+    normalizedImages[0].isMain = true;
+  }
+
+  return normalizedImages;
 }
 
 function normalizeSku(value: string) {

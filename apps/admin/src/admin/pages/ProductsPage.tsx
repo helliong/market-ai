@@ -263,6 +263,7 @@ export function ProductsPage({
         <table>
           <thead>
             <tr>
+              <th>Фото</th>
               <th>SKU</th>
               <th>{t("productListName")}</th>
               <th>{t("productListCategory")}</th>
@@ -275,6 +276,9 @@ export function ProductsPage({
           <tbody>
             {filteredProducts.map((product) => (
               <tr key={product.id}>
+                <td>
+                  <ProductThumbnail product={product} />
+                </td>
                 <td>{product.sku}</td>
                 <td>{product.name}</td>
                 <td>{product.category}</td>
@@ -304,7 +308,7 @@ export function ProductsPage({
 
             {filteredProducts.length === 0 && (
               <tr>
-                <td colSpan={7} className="empty-cell">
+                <td colSpan={8} className="empty-cell">
                   {products.length === 0 ? t("noProducts") : "Товары не найдены"}
                 </td>
               </tr>
@@ -359,6 +363,26 @@ function filterProducts(products: Product[], filters: ProductFilters) {
 
     return true;
   });
+}
+
+function ProductThumbnail({ product }: { product: Product }) {
+  const images = product.images ?? [];
+  const image =
+    images.find((productImage) => productImage.isMain) ??
+    images[0];
+
+  if (!image) {
+    return <span className="product-thumbnail-placeholder" aria-label="Нет фото" />;
+  }
+
+  return (
+    <img
+      className="product-thumbnail"
+      src={image.url}
+      alt=""
+      loading="lazy"
+    />
+  );
 }
 
 function normalizeSearch(value: string) {

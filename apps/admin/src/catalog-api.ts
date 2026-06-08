@@ -41,6 +41,11 @@ function productPayloadFromForm(form: ProductForm) {
     price: parseFormNumber(form.price),
     stock: parseFormNumber(form.stock),
     status: form.status,
+    images: form.images.map((image, index) => ({
+      url: image.url,
+      isMain: image.isMain,
+      sortOrder: index,
+    })),
   };
 }
 

@@ -1,5 +1,19 @@
 export type ProductStatus = "active" | "draft" | "archived";
 
+export type ProductImage = {
+  id: string;
+  url: string;
+  isMain: boolean;
+  sortOrder: number;
+  productId?: number;
+};
+
+export type ProductImageInput = {
+  url: string;
+  isMain: boolean;
+  sortOrder: number;
+};
+
 export type Product = {
   id: number;
   sku: string;
@@ -9,6 +23,7 @@ export type Product = {
   price: number;
   stock: number;
   status: ProductStatus;
+  images: ProductImage[];
 };
 
 export type OrderStatus = "processing" | "completed" | "cancelled";
@@ -53,4 +68,5 @@ export type ProductForm = {
   price: string;
   stock: string;
   status: ProductStatus;
+  images: ProductImageInput[];
 };

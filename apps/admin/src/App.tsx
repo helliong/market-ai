@@ -300,6 +300,11 @@ function App() {
       price: formatMaskedNumber(product.price),
       stock: formatMaskedNumber(product.stock),
       status: product.status,
+      images: (product.images ?? []).map((image, index) => ({
+        url: image.url,
+        isMain: image.isMain,
+        sortOrder: index,
+      })),
     });
     setIsProductModalOpen(true);
   }
@@ -335,6 +340,10 @@ function App() {
         price: String(price),
         stock: String(stock),
         status: productForm.status,
+        images: productForm.images.map((image, index) => ({
+          ...image,
+          sortOrder: index,
+        })),
       };
 
       if (editingProduct) {

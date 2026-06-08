@@ -23,6 +23,22 @@ services:
     networks:
       - market-ai-network
 
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: market-ai-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - market-ai-network
+
   auth-service:
     build: ./services/auth-service
     container_name: market-ai-auth
@@ -102,8 +118,31 @@ services:
     networks:
       - market-ai-network
 
+  storage-service:
+    build: ./services/storage-service
+    container_name: market-ai-storage
+    restart: always
+    ports:
+      - "4005:4005"
+    environment:
+      - STORAGE_SERVICE_PORT=4005
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_ENDPOINT=http://127.0.0.1:9000
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET:-market-ai-products}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL}
+      - CLIENT_URL=${CLIENT_URL}
+      - NODE_ENV=production
+    depends_on:
+      - minio
+    networks:
+      - market-ai-network
+
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   market-ai-network:

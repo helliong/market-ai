@@ -13,6 +13,7 @@ export class ProductsService {
         storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
       },
+      include: productWithImages,
     });
 
     return shuffleProducts(products).map((product) => this.toResponse(product));
@@ -26,6 +27,7 @@ export class ProductsService {
         storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
       },
+      include: productWithImages,
     });
 
     if (!product) {
@@ -43,6 +45,7 @@ export class ProductsService {
         storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
       },
+      include: productWithImages,
     });
 
     if (!product) {
@@ -68,11 +71,19 @@ export class ProductsService {
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    images?: {
+      id: string;
+      url: string;
+      isMain: boolean;
+      sortOrder: number;
+      productId: number;
+    }[];
   }) {
     return {
       ...product,
       price: product.price.toNumber(),
       rating: product.rating.toNumber(),
+      images: product.images ?? [],
     };
   }
 
@@ -98,6 +109,12 @@ export class ProductsService {
     );
   }
 }
+
+const productWithImages = {
+  images: {
+    orderBy: { sortOrder: 'asc' },
+  },
+} satisfies Prisma.ProductInclude;
 
 function shuffleProducts<T>(products: T[]) {
   const shuffled = [...products];

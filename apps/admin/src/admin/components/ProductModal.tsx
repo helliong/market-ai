@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import type { ProductForm, ProductStatus } from "../types";
 import { productCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
+import { ImageUploadZone } from "./ImageUploadZone";
 
 type ProductModalProps = {
   form: ProductForm;
@@ -74,6 +75,14 @@ export function ProductModal({
               placeholder="Короткое описание товара"
             />
           </label>
+
+          <div>
+            <span className="product-form-label">Фотографии</span>
+            <ImageUploadZone
+              images={form.images}
+              onChange={(images) => onChange({ ...form, images })}
+            />
+          </div>
 
           <label>
             {t("category")}

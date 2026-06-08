@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNumber,
@@ -10,11 +12,30 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export const productStatuses = ['active', 'draft', 'archived'] as const;
 export type ProductStatus = (typeof productStatuses)[number];
+
+export class ProductImageDto {
+  @ApiProperty({ example: 'https://cdn.example.com/products/sku-001/1.webp' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2048)
+  url: string;
+
+  @ApiProperty({ example: true, default: false })
+  @IsBoolean()
+  isMain: boolean;
+
+  @ApiProperty({ example: 0, minimum: 0 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  sortOrder: number;
+}
 
 export class CreateProductDto {
   @ApiProperty({
@@ -65,4 +86,11 @@ export class CreateProductDto {
   @ApiProperty({ example: 'active', enum: productStatuses })
   @IsIn(productStatuses)
   status: ProductStatus;
+
+  @ApiPropertyOptional({ type: [ProductImageDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductImageDto)
+  images?: ProductImageDto[];
 }

@@ -9,4 +9,5 @@ export const emptyProductForm: ProductForm = {
   price: "",
   stock: "",
   status: "active",
+  images: [],
 };
