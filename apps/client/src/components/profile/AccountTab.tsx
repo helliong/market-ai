@@ -1,8 +1,9 @@
 import { useState, useEffect, FormEvent } from "react";
-import { AtSign, Calendar, User2, Phone } from "lucide-react";
+import { MapPin, User2 } from "lucide-react";
 import { updateClientProfile } from "@/lib/auth-api";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/authSlice";
+import type { AuthUser } from "@/store/authSlice";
 
 function formatRussianPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -34,12 +35,17 @@ export function AccountTab() {
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AccountFormData>({
     displayName: "",
     birthDate: "",
     gender: "",
     phone: "",
-    email: ""
+    email: "",
+    deliveryCity: "",
+    deliveryStreet: "",
+    deliveryHouse: "",
+    deliveryFlat: "",
+    deliveryComment: "",
   });
 
   useEffect(() => {
@@ -50,6 +56,11 @@ export function AccountTab() {
         gender: user.gender ?? "",
         phone: formatRussianPhone(user.phone ?? ""),
         email: user.email ?? "",
+        deliveryCity: user.deliveryCity ?? "",
+        deliveryStreet: user.deliveryStreet ?? "",
+        deliveryHouse: user.deliveryHouse ?? "",
+        deliveryFlat: user.deliveryFlat ?? "",
+        deliveryComment: user.deliveryComment ?? "",
       });
     }
   }, [user, isEditing]);
@@ -90,6 +101,11 @@ export function AccountTab() {
         phone: normalizedPhone || undefined,
         birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
         gender: formData.gender || undefined,
+        deliveryCity: formData.deliveryCity,
+        deliveryStreet: formData.deliveryStreet,
+        deliveryHouse: formData.deliveryHouse,
+        deliveryFlat: formData.deliveryFlat,
+        deliveryComment: formData.deliveryComment,
       };
 
       const profile = await updateClientProfile(payload);
@@ -102,6 +118,12 @@ export function AccountTab() {
         phone: profile.phone,
         birthDate: profile.birthDate,
         gender: profile.gender,
+        avatar: profile.avatar,
+        deliveryCity: profile.deliveryCity,
+        deliveryStreet: profile.deliveryStreet,
+        deliveryHouse: profile.deliveryHouse,
+        deliveryFlat: profile.deliveryFlat,
+        deliveryComment: profile.deliveryComment,
       }));
       
       setIsEditing(false);
@@ -188,6 +210,7 @@ export function AccountTab() {
                   </p>
                 </div>
               </div>
+              <DeliveryAddressSummary user={user} />
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -250,6 +273,11 @@ export function AccountTab() {
                 </label>
               </div>
 
+              <DeliveryAddressFields
+                formData={formData}
+                setFormData={setFormData}
+              />
+
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                   type="submit"
@@ -269,6 +297,11 @@ export function AccountTab() {
                       gender: user.gender ?? "",
                       phone: formatRussianPhone(user.phone ?? ""),
                       email: user.email ?? "",
+                      deliveryCity: user.deliveryCity ?? "",
+                      deliveryStreet: user.deliveryStreet ?? "",
+                      deliveryHouse: user.deliveryHouse ?? "",
+                      deliveryFlat: user.deliveryFlat ?? "",
+                      deliveryComment: user.deliveryComment ?? "",
                     });
                   }}
                   className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#D6DAE1] bg-white px-5 text-sm font-bold text-[#111827] transition hover:border-[#6D4AFF] hover:text-[#6D4AFF]"
@@ -281,5 +314,142 @@ export function AccountTab() {
         </div>
       </div>
     </div>
+  );
+}
+
+function DeliveryAddressSummary({ user }: { user: AuthUser }) {
+  const hasAddress =
+    user.deliveryCity || user.deliveryStreet || user.deliveryHouse;
+
+  return (
+    <div className="rounded-2xl bg-white p-4">
+      <div className="mb-3 flex items-center gap-2 text-[#6D4AFF]">
+        <MapPin size={18} />
+        <p className="text-xs font-black uppercase tracking-[0.14em]">
+          Адрес доставки
+        </p>
+      </div>
+      {hasAddress ? (
+        <div className="space-y-1 text-sm font-bold text-[#111827]">
+          <p>
+            {[user.deliveryCity, user.deliveryStreet, user.deliveryHouse]
+              .filter(Boolean)
+              .join(", ")}
+            {user.deliveryFlat ? `, кв. ${user.deliveryFlat}` : ""}
+          </p>
+          {user.deliveryComment && (
+            <p className="font-medium text-[#6B7280]">
+              {user.deliveryComment}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm font-bold text-[#6B7280]">Не указан</p>
+      )}
+    </div>
+  );
+}
+
+type AccountFormData = {
+  displayName: string;
+  birthDate: string;
+  gender: string;
+  phone: string;
+  email: string;
+  deliveryCity: string;
+  deliveryStreet: string;
+  deliveryHouse: string;
+  deliveryFlat: string;
+  deliveryComment: string;
+};
+
+function DeliveryAddressFields({
+  formData,
+  setFormData,
+}: {
+  formData: AccountFormData;
+  setFormData: (value: AccountFormData) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+      <div className="mb-4 flex items-center gap-2 text-[#6D4AFF]">
+        <MapPin size={18} />
+        <span className="text-sm font-black">Адрес доставки</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <AddressInput
+          label="Город"
+          value={formData.deliveryCity}
+          placeholder="Екатеринбург"
+          onChange={(deliveryCity) => setFormData({ ...formData, deliveryCity })}
+        />
+        <AddressInput
+          label="Улица"
+          value={formData.deliveryStreet}
+          placeholder="Ленина"
+          onChange={(deliveryStreet) =>
+            setFormData({ ...formData, deliveryStreet })
+          }
+        />
+        <AddressInput
+          label="Дом"
+          value={formData.deliveryHouse}
+          placeholder="10"
+          onChange={(deliveryHouse) =>
+            setFormData({ ...formData, deliveryHouse })
+          }
+        />
+        <AddressInput
+          label="Квартира / офис"
+          value={formData.deliveryFlat}
+          placeholder="24"
+          onChange={(deliveryFlat) =>
+            setFormData({ ...formData, deliveryFlat })
+          }
+        />
+        <label className="block sm:col-span-2">
+          <span className="text-sm font-bold text-[#111827]">
+            Комментарий
+          </span>
+          <textarea
+            value={formData.deliveryComment}
+            onChange={(event) =>
+              setFormData({
+                ...formData,
+                deliveryComment: event.target.value,
+              })
+            }
+            placeholder="Подъезд, домофон или удобное время доставки"
+            rows={3}
+            className="mt-2 w-full resize-none rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function AddressInput({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-bold text-[#111827]">{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
+      />
+    </label>
   );
 }

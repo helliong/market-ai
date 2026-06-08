@@ -33,6 +33,11 @@ export function AuthSession() {
             phone: user.phone,
             isEmailVerified: user.isEmailVerified,
             avatar: user.avatar,
+            deliveryCity: user.deliveryCity,
+            deliveryStreet: user.deliveryStreet,
+            deliveryHouse: user.deliveryHouse,
+            deliveryFlat: user.deliveryFlat,
+            deliveryComment: user.deliveryComment,
           }),
         );
 

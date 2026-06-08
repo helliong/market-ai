@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  ChevronsRight,
   CircleX,
   Clock3,
   CreditCard,
@@ -87,7 +86,14 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
         statusFilter === "all" || order.status === statusFilter;
       const matchesQuery =
         normalizedQuery.length === 0 ||
-        [order.publicId, order.sku, order.productName, order.customer]
+        [
+          order.publicId,
+          order.sku,
+          order.productName,
+          order.customer,
+          order.customerPhone,
+          order.customerEmail,
+        ]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery);
@@ -301,17 +307,27 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
                       <DetailMini
                         icon={<Truck />}
                         title="Доставка"
-                        lines={["СДЭК до ПВЗ", "1-2 дня"]}
+                        lines={compactLines([
+                          getDeliveryMethodLabel(order.deliveryMethod),
+                          formatDeliveryAddress(order),
+                        ])}
                       />
                       <DetailMini
                         icon={<UserRound />}
                         title="Покупатель"
-                        lines={[order.customer, "+7 912 345-67-89"]}
+                        lines={compactLines([
+                          order.customer,
+                          order.customerPhone,
+                          order.customerEmail,
+                        ])}
                       />
                       <DetailMini
                         icon={<MapPin />}
-                        title="Пункт выдачи"
-                        lines={["СДЭК ПВЗ №1234", "г. Москва, ул. Ленина, 12"]}
+                        title="Адрес доставки"
+                        lines={compactLines([
+                          formatDeliveryAddress(order),
+                          order.deliveryComment,
+                        ])}
                       />
                       {order.status === "cancelled" && order.cancellationReason && (
                         <DetailMini
@@ -450,7 +466,11 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
             <InspectorSection
               icon={<UserRound />}
               title="Покупатель"
-              lines={[selectedOrder.customer, "+7 912 345-67-89", "ivan.petrov@example.com"]}
+              lines={compactLines([
+                selectedOrder.customer,
+                selectedOrder.customerPhone,
+                selectedOrder.customerEmail,
+              ])}
             />
             <InspectorSection
               icon={<CreditCard />}
@@ -460,12 +480,15 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
             <InspectorSection
               icon={<Truck />}
               title="Доставка"
-              lines={["СДЭК до ПВЗ", "ПВЗ №1234", "г. Москва, ул. Ленина, 12", "1-2 дня"]}
+              lines={compactLines([
+                getDeliveryMethodLabel(selectedOrder.deliveryMethod),
+                formatDeliveryAddress(selectedOrder),
+              ])}
             />
             <InspectorSection
               icon={<MessageCircle />}
               title="Комментарий покупателя"
-              lines={["—"]}
+              lines={[selectedOrder.deliveryComment || "—"]}
             />
             {selectedOrder.status === "cancelled" && selectedOrder.cancellationReason && (
               <InspectorSection
@@ -558,6 +581,42 @@ function OrderStat({
       </div>
     </div>
   );
+}
+
+function compactLines(lines: Array<string | null | undefined>) {
+  const compactedLines = lines
+    .map((line) => line?.trim())
+    .filter((line): line is string => Boolean(line));
+
+  return compactedLines.length > 0 ? compactedLines : ["—"];
+}
+
+function getDeliveryMethodLabel(method?: string | null) {
+  if (method === "pickup") {
+    return "Самовывоз";
+  }
+
+  if (method === "courier") {
+    return "Курьерская доставка";
+  }
+
+  return method || "Доставка";
+}
+
+function formatDeliveryAddress(order: Order) {
+  const address = [
+    order.deliveryCity,
+    order.deliveryStreet,
+    order.deliveryHouse,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  if (!address) {
+    return "";
+  }
+
+  return order.deliveryFlat ? `${address}, кв. ${order.deliveryFlat}` : address;
 }
 
 function DetailMini({

@@ -3185,6 +3185,108 @@ th {
   height: 17px;
 }
 
+.cookie-banner {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.cookie-banner-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto 36px;
+  align-items: center;
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text-main);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+}
+
+.dark .cookie-banner-card {
+  background: rgba(17, 24, 39, 0.94);
+}
+
+.cookie-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #facc15;
+  color: #111827;
+}
+
+.cookie-banner-icon svg,
+.cookie-banner-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cookie-banner-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.cookie-banner-copy strong {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.cookie-banner-copy p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cookie-banner-accept,
+.cookie-banner-close {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cookie-banner-accept {
+  min-width: 112px;
+  height: 42px;
+  border-radius: 12px;
+  background: #111827;
+  color: white;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dark .cookie-banner-accept {
+  background: #facc15;
+  color: #111827;
+}
+
+.cookie-banner-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.cookie-banner-close:hover {
+  background: var(--bg-soft);
+  color: var(--text-main);
+}
+
 @media (max-width: 1280px) {
   .orders-toolbar,
   .orders-board {
@@ -3236,6 +3338,23 @@ th {
 }
 
 @media (max-width: 560px) {
+  .cookie-banner {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+  }
+
+  .cookie-banner-card {
+    grid-template-columns: 40px minmax(0, 1fr) 34px;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .cookie-banner-accept {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
   .orders-page-header h2 {
     font-size: 28px;
   }
@@ -3276,3 +3395,5 @@ th {
   border: 1px dashed var(--border);
   background: var(--surface-muted);
 }
+
+

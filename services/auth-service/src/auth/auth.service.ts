@@ -371,6 +371,11 @@ export class AuthService {
       hasSellerProfile: Boolean(account.seller),
       sellerStatus: account.seller?.status ?? null,
       avatar: account.user?.avatar ?? null,
+      deliveryCity: account.user?.deliveryCity ?? null,
+      deliveryStreet: account.user?.deliveryStreet ?? null,
+      deliveryHouse: account.user?.deliveryHouse ?? null,
+      deliveryFlat: account.user?.deliveryFlat ?? null,
+      deliveryComment: account.user?.deliveryComment ?? null,
       createdAt: account.createdAt,
     };
   }
@@ -388,6 +393,11 @@ export class AuthService {
         birthDate: true,
         gender: true,
         avatar: true,
+        deliveryCity: true,
+        deliveryStreet: true,
+        deliveryHouse: true,
+        deliveryFlat: true,
+        deliveryComment: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -471,6 +481,26 @@ export class AuthService {
       userData.avatar = dto.avatar;
     }
 
+    if (dto.deliveryCity !== undefined) {
+      userData.deliveryCity = this.normalizeNullableText(dto.deliveryCity);
+    }
+
+    if (dto.deliveryStreet !== undefined) {
+      userData.deliveryStreet = this.normalizeNullableText(dto.deliveryStreet);
+    }
+
+    if (dto.deliveryHouse !== undefined) {
+      userData.deliveryHouse = this.normalizeNullableText(dto.deliveryHouse);
+    }
+
+    if (dto.deliveryFlat !== undefined) {
+      userData.deliveryFlat = this.normalizeNullableText(dto.deliveryFlat);
+    }
+
+    if (dto.deliveryComment !== undefined) {
+      userData.deliveryComment = this.normalizeNullableText(dto.deliveryComment);
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (Object.keys(accountData).length > 0) {
@@ -499,6 +529,11 @@ export class AuthService {
             birthDate: true,
             gender: true,
             avatar: true,
+            deliveryCity: true,
+            deliveryStreet: true,
+            deliveryHouse: true,
+            deliveryFlat: true,
+            deliveryComment: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -1131,6 +1166,11 @@ export class AuthService {
   }
 
   // Очищает и нормализует юридические данные продавца перед записью.
+  private normalizeNullableText(value: string | null | undefined) {
+    const trimmedValue = value?.trim();
+    return trimmedValue || null;
+  }
+
   private normalizeSellerLegalProfile(dto: SellerLegalProfileDto) {
     return {
       businessType: dto.businessType,

@@ -42,6 +42,11 @@ export type CurrentUser = {
   phone: string | null;
   isEmailVerified: boolean;
   avatar?: string | null;
+  deliveryCity?: string | null;
+  deliveryStreet?: string | null;
+  deliveryHouse?: string | null;
+  deliveryFlat?: string | null;
+  deliveryComment?: string | null;
   hasUserProfile?: boolean;
   hasSellerProfile?: boolean;
   sellerStatus?: string | null;
@@ -57,6 +62,11 @@ export type UpdateClientProfilePayload = {
   birthDate?: string | null;
   gender?: string | null;
   avatar?: string | null;
+  deliveryCity?: string | null;
+  deliveryStreet?: string | null;
+  deliveryHouse?: string | null;
+  deliveryFlat?: string | null;
+  deliveryComment?: string | null;
 };
 
 export type BuyerProfile = {
@@ -67,6 +77,12 @@ export type BuyerProfile = {
   phone: string | null;
   birthDate: string | null;
   gender: string | null;
+  avatar: string | null;
+  deliveryCity: string | null;
+  deliveryStreet: string | null;
+  deliveryHouse: string | null;
+  deliveryFlat: string | null;
+  deliveryComment: string | null;
   createdAt: string;
   updatedAt: string;
 };

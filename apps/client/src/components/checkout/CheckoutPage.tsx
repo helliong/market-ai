@@ -69,6 +69,8 @@ export function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [phone, setPhone] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState("courier");
+  const [paymentMethod, setPaymentMethod] = useState("card");
   const paymentReturn = searchParams.get("payment") === "return";
   const selectedIds = searchParams
     .get("items")
@@ -285,37 +287,6 @@ export function CheckoutPage() {
             </div>
           </CheckoutBlock>
           <CheckoutBlock
-            icon={<MapPin size={24} />}
-            title={t("address")}
-            description={t("addressDesc")}
-          >
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label={t("city")}
-                name="city"
-                defaultValue="Екатеринбург"
-              />
-              <TextField
-                label={t("street")}
-                name="street"
-                placeholder="Ленина"
-              />
-              <TextField label={t("house")} name="house" placeholder="10" />
-              <TextField label={t("apartment")} name="flat" placeholder="24" />
-              <label className="md:col-span-2">
-                <span className="text-sm font-bold text-[#111827]">
-                  {t("comment")}
-                </span>
-                <textarea
-                  name="comment"
-                  rows={4}
-                  placeholder={t("commentPlaceholder")}
-                  className="mt-2 w-full resize-none rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
-                />
-              </label>
-            </div>
-          </CheckoutBlock>
-          <CheckoutBlock
             icon={<Truck size={24} />}
             title={t("deliveryMethod")}
             description={t("deliveryMethodDesc")}
@@ -325,17 +296,64 @@ export function CheckoutPage() {
                 name="delivery"
                 value="courier"
                 title={t("courier")}
-                description={t("courierDesc")}
-                defaultChecked
+                description="Доставка завтра, бесплатно"
+                checked={deliveryMethod === "courier"}
+                onChange={() => setDeliveryMethod("courier")}
               />
               <RadioCard
                 name="delivery"
                 value="pickup"
                 title={t("pickup")}
                 description={t("pickupDesc")}
+                disabledReason="Самовывоз временно недоступен: подключаем пункты выдачи в вашем городе"
               />
             </div>
           </CheckoutBlock>
+          {deliveryMethod === "courier" && (
+            <CheckoutBlock
+              icon={<MapPin size={24} />}
+              title={t("address")}
+              description={t("addressDesc")}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextField
+                  label={t("city")}
+                  name="city"
+                  defaultValue={user?.deliveryCity || "Екатеринбург"}
+                />
+                <TextField
+                  label={t("street")}
+                  name="street"
+                  placeholder="Ленина"
+                  defaultValue={user?.deliveryStreet || ""}
+                />
+                <TextField
+                  label={t("house")}
+                  name="house"
+                  placeholder="10"
+                  defaultValue={user?.deliveryHouse || ""}
+                />
+                <TextField
+                  label={t("apartment")}
+                  name="flat"
+                  placeholder="24"
+                  defaultValue={user?.deliveryFlat || ""}
+                />
+                <label className="md:col-span-2">
+                  <span className="text-sm font-bold text-[#111827]">
+                    {t("comment")}
+                  </span>
+                  <textarea
+                    name="comment"
+                    rows={4}
+                    placeholder={t("commentPlaceholder")}
+                    defaultValue={user?.deliveryComment || ""}
+                    className="mt-2 w-full resize-none rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
+                  />
+                </label>
+              </div>
+            </CheckoutBlock>
+          )}
           <CheckoutBlock
             icon={<CreditCard size={24} />}
             title={t("payment")}
@@ -345,15 +363,17 @@ export function CheckoutPage() {
               <RadioCard
                 name="payment"
                 value="card"
-                title={t("cardOnDelivery")}
-                description={t("cardOnDeliveryDesc")}
-                defaultChecked
+                title="Картой онлайн"
+                description="Оплата через защищенную платежную страницу"
+                checked={paymentMethod === "card"}
+                onChange={() => setPaymentMethod("card")}
               />
               <RadioCard
                 name="payment"
                 value="cash"
-                title={t("cashOnDelivery")}
-                description={t("cashOnDeliveryDesc")}
+                title="Оплата при получении"
+                description="Картой или наличными курьеру"
+                disabledReason="Станет доступна после подключения касс у курьеров"
               />
             </div>
           </CheckoutBlock>
@@ -392,7 +412,7 @@ export function CheckoutPage() {
             </div>
             <div className="flex justify-between text-[#6B7280]">
               <span>{t("deliveryCost")}</span>
-              <span>{t("free")}</span>
+              <span>Завтра, бесплатно</span>
             </div>
             <div className="flex justify-between text-xl font-black">
               <span>{t("toPay")}</span>
@@ -550,26 +570,45 @@ function RadioCard({
   value,
   title,
   description,
-  defaultChecked,
+  checked,
+  onChange,
+  disabledReason,
 }: {
   name: string;
   value: string;
   title: string;
   description: string;
-  defaultChecked?: boolean;
+  checked?: boolean;
+  onChange?: () => void;
+  disabledReason?: string;
 }) {
+  const isDisabled = Boolean(disabledReason);
+
   return (
-    <label className="flex min-h-[92px] gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 transition hover:border-[#6D4AFF] hover:bg-white">
+    <label
+      className={`flex min-h-[108px] gap-3 rounded-2xl border p-4 transition ${
+        isDisabled
+          ? "cursor-not-allowed border-[#E5E7EB] bg-[#F3F4F6] text-[#9CA3AF]"
+          : "cursor-pointer border-[#E5E7EB] bg-[#F9FAFB] hover:border-[#6D4AFF] hover:bg-white"
+      }`}
+    >
       <input
         type="radio"
         name={name}
         value={value}
-        defaultChecked={defaultChecked}
+        checked={checked}
+        onChange={onChange}
+        disabled={isDisabled}
         className="mt-1 h-4 w-4 accent-[#6D4AFF]"
       />
       <span>
         <span className="block font-black">{title}</span>
         <span className="mt-1 block text-sm text-[#6B7280]">{description}</span>
+        {disabledReason && (
+          <span className="mt-2 block text-xs font-bold text-[#EF4444]">
+            {disabledReason}
+          </span>
+        )}
       </span>
     </label>
   );

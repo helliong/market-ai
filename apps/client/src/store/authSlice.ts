@@ -10,6 +10,11 @@ export type AuthUser = {
   gender?: string | null;
   displayName?: string | null;
   avatar?: string | null;
+  deliveryCity?: string | null;
+  deliveryStreet?: string | null;
+  deliveryHouse?: string | null;
+  deliveryFlat?: string | null;
+  deliveryComment?: string | null;
 };
 
 type AuthState = {

@@ -343,6 +343,12 @@ export class OrdersService {
       data: {
         status: newStatus,
         fulfillmentStatus: newFulfillmentStatus,
+        ...(targetStatus === 'completed'
+          ? { completedAt: new Date() }
+          : {}),
+        ...(targetStatus === 'cancelled'
+          ? { cancelledAt: new Date() }
+          : {}),
         ...(reason && targetStatus === 'cancelled'
           ? { cancellationReason: reason }
           : {}),

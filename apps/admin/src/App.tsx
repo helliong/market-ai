@@ -247,10 +247,21 @@ function App() {
               sku: skus,
               productName: titles,
               customer: ro.customerName || "Customer",
+              customerPhone: ro.customerPhone,
+              customerEmail: ro.customerEmail,
+              deliveryMethod: ro.deliveryMethod,
+              deliveryCity: ro.deliveryCity,
+              deliveryStreet: ro.deliveryStreet,
+              deliveryHouse: ro.deliveryHouse,
+              deliveryFlat: ro.deliveryFlat,
+              deliveryComment: ro.deliveryComment,
               total: sellerTotal,
               status: (fStatus as OrderStatus) || "processing",
               items: items,
               cancellationReason: ro.cancellationReason ?? undefined,
+              cancelledAt: ro.cancelledAt,
+              completedAt: ro.completedAt,
+              updatedAt: ro.updatedAt,
               createdAt: ro.createdAt,
             };
           });
@@ -439,10 +450,20 @@ function App() {
 
   async function updateOrderStatus(orderId: string, status: OrderStatus, reason?: string) {
     try {
-      await updateSellerOrderStatus(orderId, status, reason);
+      const updatedOrder = await updateSellerOrderStatus(orderId, status, reason);
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
-          order.id === orderId ? { ...order, status } : order,
+          order.id === orderId
+            ? {
+                ...order,
+                status,
+                cancellationReason:
+                  updatedOrder.cancellationReason ?? order.cancellationReason,
+                cancelledAt: updatedOrder.cancelledAt,
+                completedAt: updatedOrder.completedAt,
+                updatedAt: updatedOrder.updatedAt,
+              }
+            : order,
         ),
       );
     } catch (error) {
@@ -518,6 +539,15 @@ function App() {
   async function loginSeller() {
     await restoreSellerSession();
     navigateToPage("dashboard");
+  }
+
+  async function handleWelcomeLoginClick() {
+    try {
+      await restoreSellerSession();
+      navigateToPage("dashboard");
+    } catch {
+      navigateToPage("login");
+    }
   }
 
   async function logoutSeller() {
@@ -607,7 +637,7 @@ function App() {
   }
 
   if (page === "welcome") {
-    return <SellerWelcomePage />;
+    return <SellerWelcomePage onLoginClick={handleWelcomeLoginClick} />;
   }
   if (page === "login") {
     return <SellerLoginPage onSubmit={loginSeller} />;

@@ -14,8 +14,12 @@ const highlights = [
   { key: "highlightPulse", icon: <BarChart3 aria-hidden="true" /> },
 ];
 
+type SellerWelcomePageProps = {
+  onLoginClick: () => void;
+};
+
 // Приветственная страница продавца с переходами к регистрации и входу.
-export function SellerWelcomePage() {
+export function SellerWelcomePage({ onLoginClick }: SellerWelcomePageProps) {
   const { t } = useLanguage();
 
   return (
@@ -31,7 +35,16 @@ export function SellerWelcomePage() {
           <a className="seller-welcome-nav-secondary" href="/agreement">
             {t("agreementTitle")}
           </a>
-          <a className="seller-welcome-nav-secondary" href="/login">{t("loginButton")}</a>
+          <a
+            className="seller-welcome-nav-secondary"
+            href="/login"
+            onClick={(event) => {
+              event.preventDefault();
+              onLoginClick();
+            }}
+          >
+            {t("loginButton")}
+          </a>
           <a className="seller-welcome-nav-primary" href="/register">{t("createStore")}</a>
         </nav>
       </header>
@@ -46,7 +59,16 @@ export function SellerWelcomePage() {
               {t("createStore")}
               <ArrowRight size={18} aria-hidden="true" />
             </a>
-            <a className="seller-welcome-secondary-button" href="/login">{t("loginCabinet")}</a>
+            <a
+              className="seller-welcome-secondary-button"
+              href="/login"
+              onClick={(event) => {
+                event.preventDefault();
+                onLoginClick();
+              }}
+            >
+              {t("loginCabinet")}
+            </a>
           </div>
         </div>
 

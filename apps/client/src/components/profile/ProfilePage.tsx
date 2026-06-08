@@ -348,8 +348,23 @@ export function ProfilePage() {
                 <div className="mt-5 rounded-2xl bg-[#F6F7FB] p-5">
                   <p className="font-bold">{t("defaultAddress")}</p>
                   <p className="mt-2 text-sm text-[#6B7280]">
-                    ул. Примерная, д. 10
+                    {formatDeliveryAddress(user) ||
+                      "Адрес доставки не указан"}
                   </p>
+                  {user?.deliveryComment && (
+                    <p className="mt-2 text-sm text-[#6B7280]">
+                      {user.deliveryComment}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("account")}
+                    className="mt-4 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
+                  >
+                    {formatDeliveryAddress(user)
+                      ? "Изменить адрес"
+                      : "Добавить адрес"}
+                  </button>
                 </div>
               </div>
               
@@ -586,6 +601,29 @@ function normalizeRussianPhone(value: string) {
   }
 
   return null;
+}
+
+function formatDeliveryAddress(
+  user?: {
+    deliveryCity?: string | null;
+    deliveryStreet?: string | null;
+    deliveryHouse?: string | null;
+    deliveryFlat?: string | null;
+  } | null,
+) {
+  if (!user) {
+    return "";
+  }
+
+  const address = [
+    user.deliveryCity,
+    user.deliveryStreet,
+    user.deliveryHouse,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return user.deliveryFlat ? `${address}, кв. ${user.deliveryFlat}` : address;
 }
 
 function isActiveOrder(order: ApiOrder) {

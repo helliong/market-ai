@@ -61,35 +61,13 @@ export function DashboardPage({
     filteredOrdersCount,
     currentCancelledCount,
   } = useMemo(() => {
-    const now = new Date();
-    let currentStart = new Date();
-    let prevStart = new Date();
-    let prevEnd = new Date();
-
-    if (period === "today") {
-      currentStart.setHours(0, 0, 0, 0);
-      prevStart = new Date(currentStart);
-      prevStart.setDate(prevStart.getDate() - 1);
-      prevEnd = new Date(currentStart);
-      prevEnd.setMilliseconds(-1);
-    } else if (period === "7d") {
-      currentStart.setDate(now.getDate() - 7);
-      prevStart = new Date(currentStart);
-      prevStart.setDate(prevStart.getDate() - 7);
-      prevEnd = new Date(currentStart);
-      prevEnd.setMilliseconds(-1);
-    } else if (period === "30d") {
-      currentStart.setDate(now.getDate() - 30);
-      prevStart = new Date(currentStart);
-      prevStart.setDate(prevStart.getDate() - 30);
-      prevEnd = new Date(currentStart);
-      prevEnd.setMilliseconds(-1);
-    }
+    const { currentStart, currentEnd, prevStart, prevEnd } =
+      getPeriodRange(period);
 
     const currentOrders = orders.filter((o) => {
       if (o.status === "cancelled") return false;
       const d = new Date(o.createdAt);
-      return d >= currentStart && d <= now;
+      return d >= currentStart && d <= currentEnd;
     });
 
     const prevOrders = orders.filter((o) => {
@@ -110,8 +88,8 @@ export function DashboardPage({
     const currentCancelledCount = orders.filter((o) => {
       // Только отмены со стороны продавца имеют cancellationReason
       if (o.status !== "cancelled" || !o.cancellationReason) return false;
-      const d = new Date(o.createdAt);
-      return d >= currentStart && d <= now;
+      const d = getStatusEventDate(o, "cancelled");
+      return Boolean(d && d >= currentStart && d <= currentEnd);
     }).length;
 
     return {
@@ -134,6 +112,7 @@ export function DashboardPage({
   const processingOrders = orders.filter(
     (order) => order.status === "processing",
   );
+  const currentPeriodRange = useMemo(() => getPeriodRange(period), [period]);
   const statusStats = (["processing", "completed", "cancelled"] as OrderStatus[]).map(
     (status) => ({
       status,
@@ -142,7 +121,12 @@ export function DashboardPage({
         if (order.status !== status) return false;
         // Для 'cancelled' учитываем только отмены продавца (есть причина)
         if (status === "cancelled" && !order.cancellationReason) return false;
-        return true;
+        const eventDate = getStatusEventDate(order, status);
+        return Boolean(
+          eventDate &&
+            eventDate >= currentPeriodRange.currentStart &&
+            eventDate <= currentPeriodRange.currentEnd,
+        );
       }).length,
       tone: orderStatusTones[status],
     }),
@@ -505,6 +489,51 @@ function AttentionItem({
 
 function EmptyPanel({ text }: { text: string }) {
   return <p className="dashboard-list-empty">{text}</p>;
+}
+
+function getPeriodRange(period: "today" | "7d" | "30d") {
+  const currentEnd = new Date();
+  const currentStart = new Date(currentEnd);
+  let prevStart = new Date(currentEnd);
+  let prevEnd = new Date(currentEnd);
+
+  if (period === "today") {
+    currentStart.setHours(0, 0, 0, 0);
+    prevStart = new Date(currentStart);
+    prevStart.setDate(prevStart.getDate() - 1);
+    prevEnd = new Date(currentStart);
+    prevEnd.setMilliseconds(-1);
+  } else {
+    const days = period === "7d" ? 7 : 30;
+    currentStart.setDate(currentEnd.getDate() - days);
+    prevStart = new Date(currentStart);
+    prevStart.setDate(prevStart.getDate() - days);
+    prevEnd = new Date(currentStart);
+    prevEnd.setMilliseconds(-1);
+  }
+
+  return { currentStart, currentEnd, prevStart, prevEnd };
+}
+
+function getStatusEventDate(order: Order, status: OrderStatus) {
+  if (status === "completed") {
+    return parseOrderDate(order.completedAt ?? order.updatedAt);
+  }
+
+  if (status === "cancelled") {
+    return parseOrderDate(order.cancelledAt ?? order.updatedAt);
+  }
+
+  return parseOrderDate(order.createdAt);
+}
+
+function parseOrderDate(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function getTopProducts(orders: Order[], products: Product[]) {

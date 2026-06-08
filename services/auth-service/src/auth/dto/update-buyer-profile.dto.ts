@@ -56,4 +56,32 @@ export class UpdateBuyerProfileDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiPropertyOptional({ example: 'Екатеринбург', nullable: true })
+  @IsOptional()
+  @IsString()
+  deliveryCity?: string | null;
+
+  @ApiPropertyOptional({ example: 'Ленина', nullable: true })
+  @IsOptional()
+  @IsString()
+  deliveryStreet?: string | null;
+
+  @ApiPropertyOptional({ example: '10', nullable: true })
+  @IsOptional()
+  @IsString()
+  deliveryHouse?: string | null;
+
+  @ApiPropertyOptional({ example: '24', nullable: true })
+  @IsOptional()
+  @IsString()
+  deliveryFlat?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'Подъезд 2, домофон 24',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  deliveryComment?: string | null;
 }

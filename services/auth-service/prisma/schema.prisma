@@ -21,17 +21,17 @@ enum CredentialScope {
 }
 
 model Account {
-  id                      String      @id @default(cuid())
-  email                   String      @unique
-  isEmailVerified         Boolean     @default(false)
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  isEmailVerified         Boolean   @default(false)
   verificationCode        String?
   verificationCodeExpires DateTime?
-  createdAt               DateTime    @default(now())
-  updatedAt               DateTime    @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
-  user                    User?
-  seller                  UserSeller?
-  credentials             AccountCredential[]
+  user        User?
+  seller      UserSeller?
+  credentials AccountCredential[]
 }
 
 model AccountCredential {
@@ -50,17 +50,22 @@ model AccountCredential {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  accountId  String   @unique
-  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  email       String
-  displayName String
-  phone       String?
-  birthDate   DateTime?
-  gender      String?
-  avatar      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id @default(cuid())
+  accountId       String    @unique
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email           String
+  displayName     String
+  phone           String?
+  birthDate       DateTime?
+  gender          String?
+  avatar          String?
+  deliveryCity    String?
+  deliveryStreet  String?
+  deliveryHouse   String?
+  deliveryFlat    String?
+  deliveryComment String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model UserSeller {
@@ -84,7 +89,7 @@ model UserSeller {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
-  legalProfile        SellerLegalProfile?
+  legalProfile SellerLegalProfile?
 }
 
 model SellerLegalProfile {

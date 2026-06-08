@@ -21,6 +21,21 @@ export class AccountSummaryResponseDto {
   @ApiPropertyOptional({ example: '+79991234567', nullable: true })
   phone!: string | null;
 
+  @ApiPropertyOptional({ example: 'Екатеринбург', nullable: true })
+  deliveryCity!: string | null;
+
+  @ApiPropertyOptional({ example: 'Ленина', nullable: true })
+  deliveryStreet!: string | null;
+
+  @ApiPropertyOptional({ example: '10', nullable: true })
+  deliveryHouse!: string | null;
+
+  @ApiPropertyOptional({ example: '24', nullable: true })
+  deliveryFlat!: string | null;
+
+  @ApiPropertyOptional({ example: 'Подъезд 2', nullable: true })
+  deliveryComment!: string | null;
+
   @ApiProperty({ example: true })
   isEmailVerified!: boolean;
 
@@ -66,6 +81,21 @@ export class BuyerProfileResponseDto {
 
   @ApiPropertyOptional({ example: '+79991234567', nullable: true })
   phone!: string | null;
+
+  @ApiPropertyOptional({ example: 'Екатеринбург', nullable: true })
+  deliveryCity!: string | null;
+
+  @ApiPropertyOptional({ example: 'Ленина', nullable: true })
+  deliveryStreet!: string | null;
+
+  @ApiPropertyOptional({ example: '10', nullable: true })
+  deliveryHouse!: string | null;
+
+  @ApiPropertyOptional({ example: '24', nullable: true })
+  deliveryFlat!: string | null;
+
+  @ApiPropertyOptional({ example: 'Подъезд 2', nullable: true })
+  deliveryComment!: string | null;
 
   @ApiProperty({ example: '2026-05-26T17:05:08.200Z' })
   createdAt!: Date;

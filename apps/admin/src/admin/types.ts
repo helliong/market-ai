@@ -42,10 +42,21 @@ export type Order = {
   sku: string;
   productName: string;
   customer: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  deliveryMethod?: string | null;
+  deliveryCity?: string | null;
+  deliveryStreet?: string | null;
+  deliveryHouse?: string | null;
+  deliveryFlat?: string | null;
+  deliveryComment?: string | null;
   total: number;
   status: OrderStatus;
   items?: OrderItem[];
   cancellationReason?: string;
+  cancelledAt?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string;
   createdAt: string;
 };
 
