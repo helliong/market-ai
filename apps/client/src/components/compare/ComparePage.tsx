@@ -7,6 +7,7 @@ import { COMPARE_LIMIT, toggleCompare } from "@/store/compareSlice";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 // Экран сравнения выводит выбранные товары и их основные характеристики рядом.
 export function ComparePage() {
@@ -38,17 +39,21 @@ export function ComparePage() {
         <div className="overflow-x-auto rounded-[32px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <div className="grid min-w-[720px]" style={{ gridTemplateColumns: `180px repeat(${compareProducts.length}, minmax(170px, 1fr))` }}>
             <div className="border-b border-[#E5E7EB] bg-[#F6F7FB] p-5 font-bold">{t("product")}</div>
-            {compareProducts.map((product) => (
+            {compareProducts.map((product) => {
+              const imageUrl = getMainProductImageUrl(product.images);
+
+              return (
               <div key={product.id} className="border-b border-[#E5E7EB] p-5">
                 <Link href={`/products/${product.id}`} className="block h-36 rounded-[24px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] transition hover:opacity-85" aria-label={`Открыть ${product.title}`} />
                 <Link href={`/products/${product.id}`} className="mt-4 block min-h-[44px] text-sm font-black text-[#111827] transition hover:text-[#6D4AFF]">{product.title}</Link>
                 <p className="mt-3 text-2xl font-black">{product.price}</p>
                 <div className="mt-4 flex gap-2">
-                  <CompareCartAction product={product} quantity={cartItems.find((item) => item.id === product.id)?.quantity} onAdd={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price }))} onDecrease={() => dispatch(decreaseQuantity(product.id))} onIncrease={() => dispatch(increaseQuantity(product.id))} />
+                  <CompareCartAction product={product} quantity={cartItems.find((item) => item.id === product.id)?.quantity} onAdd={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price, imageUrl }))} onDecrease={() => dispatch(decreaseQuantity(product.id))} onIncrease={() => dispatch(increaseQuantity(product.id))} />
                   <button onClick={() => dispatch(toggleCompare(product.id))} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444]"><Trash2 size={16} /></button>
                 </div>
               </div>
-            ))}
+              );
+            })}
             <CompareRow label={t("rating")} values={compareProducts.map((p) => String(p.rating))} />
             <CompareRow label={t("reviewsCount")} values={compareProducts.map((p) => `${p.reviews} ${t("reviewsCount")}`)} />
             <CompareRow label={t("oldPrice")} values={compareProducts.map((p) => p.oldPrice || "—")} />

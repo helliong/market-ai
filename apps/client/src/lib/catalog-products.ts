@@ -11,6 +11,14 @@ export type ClientProduct = {
   storeName?: string;
   categoryIds: number[];
   category?: string;
+  images: ClientProductImage[];
+};
+
+export type ClientProductImage = {
+  id: string;
+  url: string;
+  isMain: boolean;
+  sortOrder: number;
 };
 
 type ApiProduct = {
@@ -25,6 +33,7 @@ type ApiProduct = {
   stock: number;
   status: string;
   storeName?: string;
+  images?: ClientProductImage[];
 };
 
 const CATALOG_API_URL =
@@ -133,6 +142,7 @@ function mapApiProduct(product: ApiProduct): ClientProduct {
     storeName: product.storeName ?? "MarketAI Store",
     categoryIds: inferCategoryIds(product.category),
     category: product.category,
+    images: product.images ?? [],
   };
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   CheckCircle2,
   Heart,
@@ -21,6 +22,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getStoreSlug } from "@/lib/store-slug";
 import { categories } from "@/data/categories";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 type Product = {
   id: number;
@@ -34,10 +36,18 @@ type Product = {
   storeName?: string;
   categoryIds?: number[];
   category?: string;
+  images?: ProductImage[];
 };
 
 type ProductPageProps = {
   product: Product;
+};
+
+type ProductImage = {
+  id: string;
+  url: string;
+  isMain: boolean;
+  sortOrder: number;
 };
 
 const specs = [
@@ -50,6 +60,15 @@ const specs = [
 export function ProductPage({ product }: ProductPageProps) {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
+  const galleryImages = product.images?.length ? product.images : [];
+  const mainImageIndex = Math.max(
+    galleryImages.findIndex((image) => image.isMain),
+    0,
+  );
+  const [selectedImageIndex, setSelectedImageIndex] = useState(mainImageIndex);
+  const selectedImage =
+    galleryImages[selectedImageIndex] ?? galleryImages[0] ?? null;
+  const cartImageUrl = getMainProductImageUrl(galleryImages);
   const cartItem = useAppSelector((state) => state.cart.items.find((item) => item.id === product.id));
   const isFavorite = useAppSelector((state) => state.favorites.ids.includes(product.id));
   const isCompared = useAppSelector((state) => state.compare.ids.includes(product.id));
@@ -87,10 +106,50 @@ export function ProductPage({ product }: ProductPageProps) {
         <span className="line-clamp-1 text-[var(--text-main)]">{product.title}</span>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">
-        <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <div className="relative flex min-h-[320px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] md:min-h-[520px]">
-            {product.badge && <span className="absolute left-6 top-6 rounded-full bg-white px-4 py-2 text-sm font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.08)]">{product.badge}</span>}
-            <div className="h-40 w-52 rounded-[34px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_28px_70px_rgba(79,50,217,0.26)] md:h-64 md:w-80 md:rounded-[42px]" />
+        <div className="rounded-[32px] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:p-4">
+          <div className="grid gap-3 md:grid-cols-[74px_minmax(0,1fr)]">
+            <div className="order-2 flex gap-2 overflow-x-auto pb-1 md:order-1 md:max-h-[640px] md:flex-col md:overflow-y-auto md:overflow-x-hidden md:pb-0">
+              {galleryImages.length > 0 ? (
+                galleryImages.map((image, index) => {
+                  const isSelected = index === selectedImageIndex;
+
+                  return (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(index)}
+                      aria-label={`Показать фото ${index + 1}`}
+                      className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-[#F6F7FB] transition md:h-[88px] md:w-[68px] ${
+                        isSelected
+                          ? "border-[#6D4AFF] shadow-[0_8px_20px_rgba(109,74,255,0.20)]"
+                          : "border-transparent hover:border-[#D8D0FF]"
+                      }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={`${product.title}, фото ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        loading={index === 0 ? "eager" : "lazy"}
+                      />
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="h-20 w-16 shrink-0 rounded-xl border-2 border-[#6D4AFF] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] md:h-[88px] md:w-[68px]" />
+              )}
+            </div>
+
+            <div className="order-1 flex aspect-[3/4] min-h-[360px] items-center justify-center overflow-hidden rounded-[28px] bg-[#F6F7FB] md:order-2 md:min-h-[640px]">
+              {selectedImage ? (
+                <img
+                  src={selectedImage.url}
+                  alt={product.title}
+                  className="h-full max-h-[720px] w-full object-contain"
+                />
+              ) : (
+                <div className="h-40 w-52 rounded-[34px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_28px_70px_rgba(79,50,217,0.26)] md:h-64 md:w-80 md:rounded-[42px]" />
+              )}
+            </div>
           </div>
         </div>
         <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
@@ -105,7 +164,7 @@ export function ProductPage({ product }: ProductPageProps) {
                 <button type="button" onClick={() => dispatch(increaseQuantity(product.id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("increaseQuantity")}><Plus size={19} /></button>
               </div>
             ) : (
-              <button type="button" onClick={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price }))} className="col-span-2 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"><ShoppingCart size={19} /> {t("addToCartShort")}</button>
+              <button type="button" onClick={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price, imageUrl: cartImageUrl }))} className="col-span-2 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"><ShoppingCart size={19} /> {t("addToCartShort")}</button>
             )}
             <button type="button" onClick={() => dispatch(toggleFavorite(product.id))} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isFavorite ? "bg-[#FEF2F2] text-[#EF4444]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#EF4444]"}`}><Heart size={18} className={isFavorite ? "fill-[#EF4444]" : undefined} /> {t("addToFavorites")}</button>
             <button type="button" onClick={() => dispatch(toggleCompare(product.id))} disabled={isCompareDisabled} title={isCompareDisabled ? "В сравнении может быть не больше 6 товаров" : "Добавить в сравнение"} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isCompared ? "bg-[#F1EDFF] text-[#6D4AFF]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#6D4AFF] disabled:opacity-50"}`}><Scale size={18} /> {t("addToCompare")}</button>
@@ -159,7 +218,6 @@ export function ProductPage({ product }: ProductPageProps) {
 
 // Небольшой бейдж преимущества товара, например доставка или гарантия.
 function ProductBenefit({ icon, label }: { icon: React.ReactNode; label: string }) {
-  const { t } = useLanguage();
   return (
     <div className="flex items-center gap-3 text-sm font-bold text-[#111827]"><span className="text-[#6D4AFF]">{icon}</span><span className="flex-1">{label}</span><CheckCircle2 size={18} className="text-[#22C55E]" /></div>
   );

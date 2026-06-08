@@ -1,4 +1,5 @@
 import { getCatalogProducts } from "@/lib/catalog-products";
+import { getMainProductImageUrl } from "@/lib/product-image";
 import {
   addServerCartItem,
   addServerCompare,
@@ -50,6 +51,7 @@ export async function hydrateShoppingState(dispatch: AppDispatch) {
             id: product.id,
             title: product.title,
             price: product.price,
+            imageUrl: getMainProductImageUrl(product.images),
             quantity: item.quantity,
           };
         })

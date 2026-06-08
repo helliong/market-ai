@@ -20,6 +20,7 @@ import { toggleFavorite } from "@/store/favoritesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { getStoreSlug } from "@/lib/store-slug";
 import { getProductPath } from "@/lib/product-url";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 type ProductCardProps = {
   id: number;
@@ -33,6 +34,11 @@ type ProductCardProps = {
   storeName?: string;
   categoryIds?: number[];
   category?: string;
+  images?: {
+    url: string;
+    isMain?: boolean;
+    sortOrder?: number;
+  }[];
   showTomorrowCartButton?: boolean;
 };
 
@@ -48,6 +54,7 @@ export function ProductCard({
   storeName,
   categoryIds,
   category,
+  images,
   showTomorrowCartButton = false,
 }: ProductCardProps) {
   const dispatch = useAppDispatch();
@@ -63,6 +70,7 @@ export function ProductCard({
   );
   const isCompareDisabled = !isCompared && isCompareLimitReached;
   const productHref = getProductHref(id, sku, title, category);
+  const imageUrl = getMainProductImageUrl(images);
 
   return (
     <article className="group relative rounded-[18px] bg-white p-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(109,74,255,0.14)] sm:rounded-[24px] sm:p-4">
@@ -100,9 +108,18 @@ export function ProductCard({
 
       <Link
         href={productHref}
-        className="flex aspect-[3/4] min-h-[168px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] sm:min-h-[250px] sm:rounded-[20px]"
+        className="flex aspect-[3/4] min-h-[168px] items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] sm:min-h-[250px] sm:rounded-[20px]"
       >
-        <div className="h-24 w-16 rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105 sm:h-36 sm:w-24 sm:rounded-[24px]" />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="h-full w-full object-contain p-3 transition group-hover:scale-105 sm:p-5"
+            loading="lazy"
+          />
+        ) : (
+          <div className="h-24 w-16 rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105 sm:h-36 sm:w-24 sm:rounded-[24px]" />
+        )}
       </Link>
 
       <div className="mt-3 sm:mt-4">
@@ -170,7 +187,7 @@ export function ProductCard({
           <button
             type="button"
             onClick={() => {
-              dispatch(addToCart({ id, title, price }));
+              dispatch(addToCart({ id, title, price, imageUrl }));
               if (isFavorite) {
                 dispatch(toggleFavorite(id));
               }

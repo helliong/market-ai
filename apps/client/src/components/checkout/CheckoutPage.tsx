@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -20,6 +20,8 @@ import { createCheckoutOrder } from "@/lib/order-api";
 import { removeServerCartItem } from "@/lib/shopping-api";
 import { addActiveOrder } from "@/store/ordersSlice";
 import type { CartItem } from "@/store/cartSlice";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 const PENDING_ORDER_STORAGE_KEY = "marketai-pending-order";
 
@@ -62,6 +64,7 @@ export function CheckoutPage() {
   const searchParams = useSearchParams();
   const items = useAppSelector((state) => state.cart.items);
   const user = useAppSelector((state) => state.auth.user);
+  const products = useCatalogProducts();
   const isSessionRestored = useAppSelector(
     (state) => state.auth.isSessionRestored,
   );
@@ -87,6 +90,16 @@ export function CheckoutPage() {
   const total = checkoutItems.reduce(
     (sum, item) => sum + parsePrice(item.price) * item.quantity,
     0,
+  );
+  const productImageById = useMemo(
+    () =>
+      new Map(
+        products.map((product) => [
+          product.id,
+          getMainProductImageUrl(product.images),
+        ]),
+      ),
+    [products],
   );
 
   useEffect(() => {
@@ -391,10 +404,22 @@ export function CheckoutPage() {
             </div>
           </div>
           <div className="mt-6 max-h-[300px] space-y-4 overflow-y-auto pr-1">
-            {checkoutItems.map((item) => (
+            {checkoutItems.map((item) => {
+              const imageUrl = item.imageUrl ?? productImageById.get(item.id);
+
+              return (
               <div key={item.id} className="flex gap-3">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
-                  <div className="h-8 w-10 rounded-xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9]" />
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={item.title}
+                      className="h-full w-full object-contain p-1.5"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-8 w-10 rounded-xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9]" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-sm font-bold">{item.title}</p>
@@ -403,7 +428,8 @@ export function CheckoutPage() {
                   </p>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div className="mt-6 space-y-4 border-t border-[#E5E7EB] pt-5 text-sm">
             <div className="flex justify-between text-[#6B7280]">

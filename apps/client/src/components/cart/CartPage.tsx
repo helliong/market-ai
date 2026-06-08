@@ -12,6 +12,8 @@ import {
 } from "@/store/cartSlice";
 import { toggleFavorite } from "@/store/favoritesSlice";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 // Преобразует строковую цену товара в число для расчета итогов корзины.
 function parsePrice(price: string) {
@@ -25,6 +27,7 @@ export function CartPage() {
   const items = useAppSelector((state) => state.cart.items);
   const user = useAppSelector((state) => state.auth.user);
   const favoriteIds = useAppSelector((state) => state.favorites.ids);
+  const products = useCatalogProducts();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const knownItemIdsRef = useRef<number[]>([]);
   const isInitializedRef = useRef(false);
@@ -105,6 +108,16 @@ export function CartPage() {
   const checkoutHref = user
     ? checkoutPath
     : `/register?redirect=${encodeURIComponent(checkoutPath)}`;
+  const productImageById = useMemo(
+    () =>
+      new Map(
+        products.map((product) => [
+          product.id,
+          getMainProductImageUrl(product.images),
+        ]),
+      ),
+    [products],
+  );
 
   function toggleItem(productId: number) {
     setSelectedIds((current) =>
@@ -167,6 +180,7 @@ export function CartPage() {
             {items.map((item) => {
               const isSelected = selectedIds.includes(item.id);
               const isFavorite = favoriteIds.includes(item.id);
+              const imageUrl = item.imageUrl ?? productImageById.get(item.id);
 
               return (
                 <article
@@ -194,7 +208,16 @@ export function CartPage() {
                     >
                       <SelectionBox checked={isSelected} />
                     </button>
-                    <div className="h-[88px] w-[52px] rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_16px_32px_rgba(79,50,217,0.20)] sm:h-[120px] sm:w-[72px] sm:rounded-[22px]" />
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-contain p-2"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-[88px] w-[52px] rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_16px_32px_rgba(79,50,217,0.20)] sm:h-[120px] sm:w-[72px] sm:rounded-[22px]" />
+                    )}
                   </Link>
 
                   <div className="min-w-0 self-center">
