@@ -144,7 +144,7 @@ export function ProductPage({ product }: ProductPageProps) {
                 <img
                   src={selectedImage.url}
                   alt={product.title}
-                  className="h-full max-h-[720px] w-full object-contain"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="h-40 w-52 rounded-[34px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_28px_70px_rgba(79,50,217,0.26)] md:h-64 md:w-80 md:rounded-[42px]" />
@@ -152,7 +152,7 @@ export function ProductPage({ product }: ProductPageProps) {
             </div>
           </div>
         </div>
-        <aside className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+        <aside className="h-fit self-start rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">{product.title}</h1>
           <div className="mt-4 flex items-center gap-2 text-sm"><Star size={18} className="fill-[#F59E0B] text-[#F59E0B]" /><span className="font-black">{product.rating}</span><span className="text-[#6B7280]">• {product.reviews} {t("reviewsCount")}</span></div>
           <div className="mt-6 flex items-end gap-3"><span className="text-3xl font-black tracking-[-0.04em] md:text-4xl">{product.price}</span>{product.oldPrice && <span className="mb-1 text-lg text-[#9CA3AF] line-through">{product.oldPrice}</span>}</div>
@@ -190,26 +190,27 @@ export function ProductPage({ product }: ProductPageProps) {
               </div>
             </Link>
           )}
+
+          <div className="mt-4 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
+            <h2 className="text-xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
+            <div className="mt-5 space-y-3">
+              {specs.map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between border-b border-[#E5E7EB] pb-3 text-sm last:border-b-0 last:pb-0">
+                  <span className="text-[#6B7280]">{t(key)}</span>
+                  <span className="font-bold text-[#111827]">{t(value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </aside>
       </div>
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px] lg:gap-8">
+      <div className="mt-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">{t("aboutProduct")}</h2>
           <p className="mt-4 max-w-[760px] leading-7 text-[#6B7280]">
             {product.description ||
               `${product.title} подойдет для повседневных задач, работы и покупок без лишней суеты.`}
           </p>
-        </div>
-        <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <h2 className="text-2xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
-          <div className="mt-5 space-y-3">
-            {specs.map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between border-b border-[#E5E7EB] pb-3 text-sm last:border-b-0 last:pb-0">
-                <span className="text-[#6B7280]">{t(key)}</span>
-                <span className="font-bold text-[#111827]">{t(value)}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>

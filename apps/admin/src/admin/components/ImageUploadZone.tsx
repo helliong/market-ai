@@ -42,7 +42,42 @@ export function ImageUploadZone({ images, onChange }: ImageUploadZoneProps) {
       setError(null);
 
       try {
-        const uploadedUrls = await Promise.all(files.map(uploadProductImage));
+        const validFiles: File[] = [];
+        let hasInvalidRatio = false;
+
+        for (const file of files) {
+          const isValid = await new Promise<boolean>((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              const ratio = img.width / img.height;
+              // 16:9 is roughly 1.77
+              const is16by9 = ratio > 1.7 && ratio < 1.8;
+              resolve(!is16by9);
+              URL.revokeObjectURL(img.src);
+            };
+            img.onerror = () => {
+              resolve(false);
+              URL.revokeObjectURL(img.src);
+            };
+            img.src = URL.createObjectURL(file);
+          });
+
+          if (isValid) {
+            validFiles.push(file);
+          } else {
+            hasInvalidRatio = true;
+          }
+        }
+
+        if (hasInvalidRatio) {
+          setError("Некоторые фото имеют формат 16:9 и не были загружены.");
+        }
+
+        if (validFiles.length === 0) {
+          return;
+        }
+
+        const uploadedUrls = await Promise.all(validFiles.map(uploadProductImage));
         onChange(
           normalizeImages([
             ...images,

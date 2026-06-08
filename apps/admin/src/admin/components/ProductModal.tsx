@@ -1,4 +1,5 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { Info } from "lucide-react";
 import type { ProductForm, ProductStatus } from "../types";
 import { productCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -77,7 +78,10 @@ export function ProductModal({
           </label>
 
           <div>
-            <span className="product-form-label">Фотографии</span>
+            <span className="product-form-label" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              Фотографии
+              <InlineTooltip text="Поддерживаются любые форматы кроме горизонтальных (16:9). Рекомендуются квадратные или вертикальные фото." />
+            </span>
             <ImageUploadZone
               images={form.images}
               onChange={(images) => onChange({ ...form, images })}
@@ -154,4 +158,48 @@ export function ProductModal({
 function formatIntegerInput(value: string) {
   const digits = value.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
   return digits ? new Intl.NumberFormat("ru-RU").format(Number(digits)) : "";
+}
+
+function InlineTooltip({ text, tone = "gray" }: { text: string; tone?: "gray" | "red" }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const color = tone === "red" ? "#ef4444" : "currentColor";
+
+  return (
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", transform: "translateY(-1px)" }}>
+      <Info
+        size={14}
+        style={{ cursor: "pointer", opacity: tone === "red" ? 1 : 0.5, transition: "opacity 0.2s", color }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowTooltip(!showTooltip);
+        }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      />
+      {showTooltip && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            marginBottom: "8px",
+            backgroundColor: "#1f2937",
+            color: "#ffffff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            fontSize: "13px",
+            width: "240px",
+            zIndex: 20,
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+            lineHeight: 1.4,
+            fontWeight: "normal",
+            pointerEvents: "none",
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </span>
+  );
 }

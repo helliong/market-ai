@@ -114,11 +114,11 @@ export function ProductCard({
           <img
             src={imageUrl}
             alt={title}
-            className="h-full w-full object-contain p-3 transition group-hover:scale-105 sm:p-5"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
         ) : (
-          <div className="h-24 w-16 rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] transition group-hover:scale-105 sm:h-36 sm:w-24 sm:rounded-[24px]" />
+          <div className="h-24 w-16 rounded-[18px] bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-[0_18px_40px_rgba(79,50,217,0.22)] sm:h-36 sm:w-24 sm:rounded-[24px]" />
         )}
       </Link>
 

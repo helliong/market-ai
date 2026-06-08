@@ -212,7 +212,7 @@ export function CartPage() {
                       <img
                         src={imageUrl}
                         alt={item.title}
-                        className="h-full w-full object-contain p-2"
+                        className="h-full w-full object-cover"
                         loading="lazy"
                       />
                     ) : (
