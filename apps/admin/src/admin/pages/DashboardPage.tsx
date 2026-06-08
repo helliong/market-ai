@@ -13,7 +13,7 @@ import {
   XCircle,
   Info,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatCurrency } from "../formatters";
 import type { Order, OrderStatus, Product, User } from "../types";
 
@@ -406,19 +406,32 @@ function MetricCard({
 
 function InlineTooltip({ text, tone = "gray" }: { text: string; tone?: "gray" | "red" }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const color = tone === "red" ? "#ef4444" : "currentColor";
 
+  useEffect(() => {
+    if (showTooltip && !isHovered) {
+      const timer = setTimeout(() => setShowTooltip(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showTooltip, isHovered]);
+
   return (
-    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", transform: "translateY(-1px)" }}>
+    <span 
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", transform: "translateY(-1px)" }}
+      onMouseEnter={() => {
+        setShowTooltip(true);
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <Info
         size={14}
         style={{ cursor: "pointer", opacity: tone === "red" ? 1 : 0.5, transition: "opacity 0.2s", color }}
         onClick={(e) => {
           e.stopPropagation();
-          setShowTooltip(!showTooltip);
+          setShowTooltip((prev) => !prev);
         }}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
       />
       {showTooltip && (
         <div
