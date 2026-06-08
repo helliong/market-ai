@@ -13,6 +13,9 @@ MarketAI - маркетплейс с клиентской витриной, ка
 | Панель модерации | `apps/moderation` | `5174` | Отдельная панель ручной модерации |
 | Auth service | `services/auth-service` | `4001` | Авторизация, регистрация продавца, Legal data, moderation API |
 | Cart service | `services/cart-service` | `4002` | Сервис корзины / ранняя реализация |
+| Catalog service | `services/catalog-service` | `4003` | Каталог товаров, управление продуктами и категориями |
+| Order service | `services/order-service` | `4004` | Обработка заказов |
+| Storage service | `services/storage-service` | `4005` | Хранилище (MinIO), выдача presigned URL, управление файлами |
 
 Локальные ссылки:
 
@@ -23,6 +26,9 @@ Moderation:  http://127.0.0.1:5174
 Auth API:    http://127.0.0.1:4001
 Swagger:     http://127.0.0.1:4001/docs
 Cart API:    http://127.0.0.1:4002
+Catalog API: http://127.0.0.1:4003
+Order API:   http://127.0.0.1:4004
+Storage API: http://127.0.0.1:4005
 ```
 
 ## Технологический стек
@@ -32,6 +38,7 @@ Frontend:
 - Vite для кабинета продавца и панели модерации
 - Redux Toolkit в клиентской витрине
 - Lucide React icons
+- `browser-image-compression` (сжатие изображений в WebP на клиенте)
 
 Backend:
 - NestJS
@@ -41,11 +48,13 @@ Backend:
 - Swagger / OpenAPI
 - Nodemailer для email verification
 - Class Validator / Class Transformer
+- `@aws-sdk/client-s3` (интеграция с MinIO)
 
 Infrastructure:
 - Docker Compose
 - PostgreSQL 16
 - Redis 7
+- MinIO (S3-совместимое объектное хранилище)
 
 ## Структура проекта
 
@@ -69,7 +78,10 @@ marketplace-ai/
 |   |       |-- email/
 |   |       `-- prisma/
 |   |
-|   `-- cart-service/           # Cart API service
+|   |-- cart-service/           # Cart API service
+|   |-- catalog-service/        # Catalog API (товары, категории)
+|   |-- order-service/          # Order API (заказы)
+|   `-- storage-service/        # Storage API (MinIO, presigned urls)
 |
 |-- scripts/
 |   `-- print-dev-links.cjs     # Печатает локальные dev-ссылки
@@ -94,6 +106,7 @@ marketplace-ai/
   - команда и доступы;
   - danger zone.
 - Название магазина и email владельца подтягиваются из данных регистрации / профиля.
+- Главный дашборд (dashboard metrics) получает реальные данные о выручке и заказах из базы данных.
 - Добавлены маски:
   - телефон;
   - ИНН / БИН;
@@ -146,6 +159,15 @@ apps/moderation
 - approve продавца;
 - reject продавца с комментарием;
 - toast notifications для успешных и ошибочных действий.
+
+### Управление товарами и Хранилище (Catalog & Storage)
+
+- Реализован микросервис `catalog-service` для создания, редактирования и удаления товаров.
+- Подключена загрузка фотографий товаров через **MinIO** (S3-совместимое хранилище) через `storage-service`.
+- Загрузка картинок происходит напрямую из браузера продавца с использованием **Presigned URLs**, минуя нагрузку на бэкенд.
+- Внедрено клиентское сжатие изображений в формат **WebP** (вес фото ужимается до ~200 КБ).
+- Картинки структурированно сохраняются по пути `stores/{storeName}/{sku}/`.
+- Настроено автоматическое удаление неиспользуемых старых фото из MinIO.
 
 ### Клиентская часть
 
@@ -228,9 +250,20 @@ MODERATION_CLIENT_URL=http://127.0.0.1:5174
 
 NEXT_PUBLIC_AUTH_API_URL=http://127.0.0.1:4001
 NEXT_PUBLIC_SHOPPING_API_URL=http://127.0.0.1:4002
+NEXT_PUBLIC_CATALOG_API_URL=http://127.0.0.1:4003
 
 PORT=4001
 CART_SERVICE_PORT=4002
+CATALOG_SERVICE_PORT=4003
+ORDER_SERVICE_PORT=4004
+STORAGE_SERVICE_PORT=4005
+
+VITE_STORAGE_API_URL=http://127.0.0.1:4005
+
+S3_ENDPOINT=http://127.0.0.1:9000
+S3_BUCKET=market-ai-products
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
 ```
 
 ## Установка и запуск
@@ -249,12 +282,15 @@ npm install --prefix apps/admin
 npm install --prefix apps/moderation
 npm install --prefix services/auth-service
 npm install --prefix services/cart-service
+npm install --prefix services/catalog-service
+npm install --prefix services/order-service
+npm install --prefix services/storage-service
 ```
 
 Поднять инфраструктуру:
 
 ```bash
-docker compose up -d postgres redis
+docker compose up -d postgres redis minio
 ```
 
 Применить Prisma migrations:
@@ -315,8 +351,6 @@ npm run build --prefix services/auth-service
   - роли;
   - permissions;
   - email flow для invite.
-- Подключить создание, редактирование и удаление товаров к backend.
-- Добавить backend-правило: продавец не может создать товар, если магазин не `ACTIVATED`.
 - Добавить историю модерации / audit log.
 - Улучшить auth для модерации:
   - заменить статический `MODERATION_ADMIN_KEY` на реальные admin accounts;
@@ -329,32 +363,52 @@ npm run build --prefix services/auth-service
 
 ### Среднесрочные задачи
 
-- Доделать catalog service.
-- Доделать cart service.
-- Доделать order service.
-- Добавить оплату.
+- Доделать catalog service:
+  - Текстовый поиск по названию и описанию.
+  - Фильтрация (по категории, диапазону цен, продавцу).
+  - Пагинация (skip/take) вместо загрузки всей базы товаров разом.
+  - Сортировка (сначала дешевые, дорогие, новые, по рейтингу).
+- Доделать cart service:
+  - Валидация цен и остатков перед оформлением (проверка через catalog-service).
+  - Логика резервирования товаров.
+- Доделать order service:
+  - Сплитование (разделение) заказа клиента на суб-заказы для разных продавцов.
+  - Списание остатков в каталоге при оформлении.
+  - Полноценная статусная модель (Создан -> Оплачен -> В сборке -> В доставке -> Доставлен).
+- Добавить оплату (ЮKassa):
+  - Генерация ссылок на оплату.
+  - Обработка Webhooks (безопасная смена статуса заказа).
+  - Сплитование платежей (распределение денег между продавцами за вычетом комиссии платформы).
+  - Механизм возвратов (Refunds).
 - Добавить доставку.
 - Добавить уведомления.
-- Добавить загрузку изображений товаров.
-- Добавить историю заказов.
-- Добавить seller analytics.
-- Добавить реальные dashboard metrics.
-- Добавить API gateway.
-- Добавить CI/CD.
+- Добавить историю заказов:
+  - Для покупателя: личный кабинет с историей покупок, статусами и чеками.
+  - Для продавца: интерфейс обработки саб-заказов (перевод статусов, печать этикеток).
+- Добавить seller analytics (Аналитика продавца):
+  - Графики продаж (выручка по дням/месяцам).
+  - Аналитика конверсии (воронка продаж) и топы продаж.
+  - Аналитика рейтингов и отзывов.
+- Добавить API gateway:
+  - Единая точка входа и маршрутизация (Routing) для всех микросервисов.
+  - Централизованная проверка авторизации и CORS.
+  - Rate Limiting (защита от спама и DDoS).
+- Настроить полноценный CI/CD пайплайн (GitHub Actions / GitLab CI):
+  - CI: автоматический прогон линтеров, проверки типов и тестов при пуше.
+  - Сборка: автоматическая генерация Docker-образов и отправка их в реестр.
+  - CD: автоматический деплой (обновление контейнеров) на боевом сервере.
 
 ### Долгосрочные задачи
 
-- Добавить AI-поиск товаров.
-- Добавить AI-рекомендации.
-- Добавить AI-ассистента для сравнения товаров.
-- Добавить production Dockerfile для всех apps/services.
-- Добавить Nginx reverse proxy.
-- Подготовить Kubernetes / k3s deployment.
-- Добавить monitoring и logging.
+- **Умные функции (AI):**
+  - AI-поиск товаров (векторный/семантический поиск по смыслу запроса, а не только по точным совпадениям).
+  - AI-рекомендации (персонализированные блоки "С этим часто покупают" на основе истории пользователя).
+  - AI-ассистент (LLM-чат-бот, который человеческим языком объяснит разницу между похожими товарами).
+- **Инфраструктура и DevOps:**
+  - Production Dockerfile для Frontend-приложений (сборка оптимизированной статики для client, admin, moderation).
+  - Nginx reverse proxy (единый вход для трафика, настройка SSL/HTTPS шифрования).
+  - Kubernetes / k3s deployment (кластеризация, 100% отказоустойчивость и авто-масштабирование при высоких нагрузках).
+  - Monitoring и logging:
+    - **Prometheus + Grafana:** дашборды с графиками здоровья системы и алертами.
+    - **ELK Stack:** централизованный сбор логов со всех микросервисов для удобного поиска багов.
 
-## Последние feature-коммиты
-
-```txt
-24c170b feat: add seller legal moderation flow
-62578d7 feat: use toast notifications in seller admin
-```
