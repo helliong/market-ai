@@ -13,7 +13,7 @@ export class CreatePresignedUploadDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(80)
+  @MaxLength(255)
   folder?: string;
 }
 

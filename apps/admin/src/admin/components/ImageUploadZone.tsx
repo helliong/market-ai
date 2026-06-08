@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Star, Trash2, UploadCloud } from "lucide-react";
+import imageCompression from "browser-image-compression";
 import type { ProductImageInput } from "../types";
 import { uploadProductImage } from "../../storage-api";
 
@@ -80,7 +81,25 @@ export function ImageUploadZone({ images, onChange, folder, disabled, disabledMe
           return;
         }
 
-        const uploadedUrls = await Promise.all(validFiles.map(file => uploadProductImage(file, folder)));
+        const compressedFiles = await Promise.all(
+          validFiles.map(async (file) => {
+            const options = {
+              maxSizeMB: 0.2,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+              fileType: "image/webp",
+            };
+            const compressedBlob = await imageCompression(file, options);
+            const newFileName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+            return new File([compressedBlob], newFileName, {
+              type: "image/webp",
+            });
+          }),
+        );
+
+        const uploadedUrls = await Promise.all(
+          compressedFiles.map((file) => uploadProductImage(file, folder)),
+        );
         onChange(
           normalizeImages([
             ...images,
