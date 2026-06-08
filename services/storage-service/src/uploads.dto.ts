@@ -16,3 +16,8 @@ export class CreatePresignedUploadDto {
   @MaxLength(80)
   folder?: string;
 }
+
+export class DeleteObjectsDto {
+  @IsString({ each: true })
+  keys: string[];
+}

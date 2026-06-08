@@ -5,12 +5,13 @@ import {
   PutBucketCorsCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
+  DeleteObjectsCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { CreatePresignedUploadDto } from './uploads.dto';
+import { CreatePresignedUploadDto, DeleteObjectsDto } from './uploads.dto';
 
 @Injectable()
 export class AppService {
@@ -54,6 +55,23 @@ export class AppService {
       uploadUrl,
       publicUrl: buildPublicUrl(this.publicEndpoint, this.bucket, key),
     };
+  }
+
+  async deleteObjects(dto: DeleteObjectsDto) {
+    if (!dto.keys.length) return { deleted: 0 };
+    await this.ensureBucketReady();
+
+    await this.s3.send(
+      new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: {
+          Objects: dto.keys.map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      }),
+    );
+
+    return { deleted: dto.keys.length };
   }
 
   private ensureBucketReady() {

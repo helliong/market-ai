@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreatePresignedUploadDto } from './uploads.dto';
+import { CreatePresignedUploadDto, DeleteObjectsDto } from './uploads.dto';
 
 @Controller()
 export class AppController {
@@ -14,5 +14,10 @@ export class AppController {
   @Post('uploads/presigned-url')
   createPresignedUpload(@Body() dto: CreatePresignedUploadDto) {
     return this.appService.createPresignedUpload(dto);
+  }
+
+  @Delete('uploads')
+  deleteObjects(@Body() dto: DeleteObjectsDto) {
+    return this.appService.deleteObjects(dto);
   }
 }

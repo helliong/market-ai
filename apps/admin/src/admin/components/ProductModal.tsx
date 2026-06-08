@@ -8,6 +8,7 @@ import { ImageUploadZone } from "./ImageUploadZone";
 type ProductModalProps = {
   form: ProductForm;
   isEditing: boolean;
+  storeName: string;
   onClose: () => void;
   onChange: (form: ProductForm) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -16,6 +17,7 @@ type ProductModalProps = {
 export function ProductModal({
   form,
   isEditing,
+  storeName,
   onClose,
   onChange,
   onSubmit,
@@ -85,6 +87,9 @@ export function ProductModal({
             <ImageUploadZone
               images={form.images}
               onChange={(images) => onChange({ ...form, images })}
+              folder={`stores/${storeName.replace(/[^a-zA-Z0-9-]/g, "_")}/${form.sku.replace(/[^a-zA-Z0-9-]/g, "_")}`}
+              disabled={!form.sku.trim()}
+              disabledMessage="Введите артикул (SKU) для загрузки фото"
             />
           </div>
 

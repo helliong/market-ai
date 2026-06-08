@@ -887,6 +887,7 @@ function App() {
         <ProductModal
           form={productForm}
           isEditing={Boolean(editingProduct)}
+          storeName={storeName}
           onClose={closeProductModal}
           onChange={setProductForm}
           onSubmit={handleProductSubmit}

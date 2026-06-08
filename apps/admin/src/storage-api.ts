@@ -8,7 +8,7 @@ type PresignedUploadResponse = {
 const STORAGE_API_URL =
   import.meta.env.VITE_STORAGE_API_URL ?? "http://127.0.0.1:4005";
 
-export async function uploadProductImage(file: File) {
+export async function uploadProductImage(file: File, folder?: string) {
   const response = await fetch(`${STORAGE_API_URL}/uploads/presigned-url`, {
     method: "POST",
     credentials: "include",
@@ -16,7 +16,7 @@ export async function uploadProductImage(file: File) {
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type || "application/octet-stream",
-      folder: "products",
+      folder: folder || "products",
     }),
   });
 

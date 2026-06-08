@@ -113,7 +113,7 @@ export class SellerProductsService {
     productId: number,
     dto: UpdateProductDto,
   ) {
-    await this.assertOwnsProduct(sellerId, productId);
+    const existingProduct = await this.assertOwnsProduct(sellerId, productId);
 
     const data: Prisma.ProductUpdateInput = {};
 
@@ -151,6 +151,15 @@ export class SellerProductsService {
         deleteMany: {},
         create: normalizeImages(dto.images),
       };
+
+      const newUrls = new Set(normalizeImages(dto.images).map((img) => img.url));
+      const urlsToDelete = existingProduct.images
+        .map((img) => img.url)
+        .filter((url) => !newUrls.has(url));
+
+      if (urlsToDelete.length > 0) {
+        this.deleteImagesFromStorage(urlsToDelete);
+      }
     }
 
     if (
@@ -253,6 +262,7 @@ export class SellerProductsService {
 
     const existingProducts = await this.prisma.product.findMany({
       where: { sku: { in: [...rowsBySku.keys()] } },
+      include: { images: true },
     });
 
     for (const product of existingProducts) {
@@ -274,6 +284,7 @@ export class SellerProductsService {
     let created = 0;
     let updated = 0;
     let deleted = 0;
+    const urlsToDeleteFromStorage: string[] = [];
 
     await this.prisma.$transaction(
       [...rowsBySku.values()].map((row) => {
@@ -285,6 +296,9 @@ export class SellerProductsService {
           }
 
           deleted += 1;
+          if (existingProduct.images?.length) {
+            urlsToDeleteFromStorage.push(...existingProduct.images.map((img) => img.url));
+          }
           return this.prisma.product.delete({
             where: { id: existingProduct.id },
           });
@@ -316,6 +330,10 @@ export class SellerProductsService {
       }),
     );
 
+    if (urlsToDeleteFromStorage.length > 0) {
+      this.deleteImagesFromStorage(urlsToDeleteFromStorage);
+    }
+
     return {
       created,
       updated,
@@ -325,11 +343,15 @@ export class SellerProductsService {
   }
 
   async deleteSellerProduct(sellerId: string, productId: number) {
-    await this.assertOwnsProduct(sellerId, productId);
+    const existingProduct = await this.assertOwnsProduct(sellerId, productId);
 
     await this.prisma.product.delete({
       where: { id: productId },
     });
+
+    if (existingProduct.images?.length) {
+      this.deleteImagesFromStorage(existingProduct.images.map((img) => img.url));
+    }
 
     return { message: 'Product deleted' };
   }
@@ -337,11 +359,14 @@ export class SellerProductsService {
   private async assertOwnsProduct(sellerId: string, productId: number) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, sellerId },
+      include: { images: true },
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
+
+    return product;
   }
 
   private assertValidCategory(category: string) {
@@ -399,6 +424,41 @@ export class SellerProductsService {
       rating: product.rating.toNumber(),
       images: product.images ?? [],
     };
+  }
+  private async deleteImagesFromStorage(urls: string[]) {
+    if (!urls.length) return;
+
+    try {
+      const keys = urls
+        .map((url) => {
+          try {
+            const parsed = new URL(url);
+            const parts = parsed.pathname.split('/').filter(Boolean);
+            if (parts.length > 1) {
+              return parts.slice(1).join('/');
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        })
+        .filter((key): key is string => Boolean(key));
+
+      if (!keys.length) return;
+
+      const storageUrl = process.env.STORAGE_SERVICE_URL ?? 'http://127.0.0.1:4005';
+      const response = await fetch(`${storageUrl}/uploads`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to delete images from storage', await response.text());
+      }
+    } catch (error) {
+      console.error('Error deleting images from storage:', error);
+    }
   }
 }
 

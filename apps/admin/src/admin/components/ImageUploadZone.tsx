@@ -22,9 +22,12 @@ import { uploadProductImage } from "../../storage-api";
 type ImageUploadZoneProps = {
   images: ProductImageInput[];
   onChange: (images: ProductImageInput[]) => void;
+  folder?: string;
+  disabled?: boolean;
+  disabledMessage?: string;
 };
 
-export function ImageUploadZone({ images, onChange }: ImageUploadZoneProps) {
+export function ImageUploadZone({ images, onChange, folder, disabled, disabledMessage }: ImageUploadZoneProps) {
   const sensors = useSensors(useSensor(PointerSensor));
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +35,7 @@ export function ImageUploadZone({ images, onChange }: ImageUploadZoneProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "image/*": [] },
     multiple: true,
-    disabled: isUploading,
+    disabled: isUploading || disabled,
     onDrop: async (files) => {
       if (!files.length) {
         return;
@@ -77,7 +80,7 @@ export function ImageUploadZone({ images, onChange }: ImageUploadZoneProps) {
           return;
         }
 
-        const uploadedUrls = await Promise.all(validFiles.map(uploadProductImage));
+        const uploadedUrls = await Promise.all(validFiles.map(file => uploadProductImage(file, folder)));
         onChange(
           normalizeImages([
             ...images,
@@ -140,8 +143,14 @@ export function ImageUploadZone({ images, onChange }: ImageUploadZoneProps) {
         })}
       >
         <input {...getInputProps()} />
-        <UploadCloud aria-hidden="true" />
-        <span>{isUploading ? "Загрузка..." : "Перетащите фото или выберите файлы"}</span>
+        <UploadCloud aria-hidden="true" style={{ opacity: disabled ? 0.5 : 1 }} />
+        <span>
+          {disabled
+            ? disabledMessage || "Загрузка недоступна"
+            : isUploading
+              ? "Загрузка..."
+              : "Перетащите фото или выберите файлы"}
+        </span>
       </div>
 
       {error && <p className="image-upload-error">{error}</p>}
