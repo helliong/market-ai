@@ -158,13 +158,13 @@ export function ProductPage({ product }: ProductPageProps) {
           <div className="mt-6 flex items-end gap-3"><span className="text-3xl font-black tracking-[-0.04em] md:text-4xl">{product.price}</span>{product.oldPrice && <span className="mb-1 text-lg text-[#9CA3AF] line-through">{product.oldPrice}</span>}</div>
           <div className="product-actions mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {cartItem ? (
-              <div className="col-span-2 grid h-13 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
+              <div className="col-span-full grid h-13 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl bg-[#6D4AFF] text-white">
                 <button type="button" onClick={() => dispatch(decreaseQuantity(product.id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("decreaseQuantity")}><Minus size={19} /></button>
                 <div className="flex items-center justify-center text-sm font-black">{cartItem.quantity} {t("inCart")}</div>
                 <button type="button" onClick={() => dispatch(increaseQuantity(product.id))} className="flex items-center justify-center transition hover:bg-[#4F32D9]" aria-label={t("increaseQuantity")}><Plus size={19} /></button>
               </div>
             ) : (
-              <button type="button" onClick={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price, imageUrl: cartImageUrl }))} className="col-span-2 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"><ShoppingCart size={19} /> {t("addToCartShort")}</button>
+              <button type="button" onClick={() => dispatch(addToCart({ id: product.id, title: product.title, price: product.price, imageUrl: cartImageUrl }))} className="col-span-full flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#6D4AFF] text-sm font-bold text-white transition hover:bg-[#4F32D9]"><ShoppingCart size={19} /> {t("addToCartShort")}</button>
             )}
             <button type="button" onClick={() => dispatch(toggleFavorite(product.id))} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isFavorite ? "bg-[#FEF2F2] text-[#EF4444]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#EF4444]"}`}><Heart size={18} className={isFavorite ? "fill-[#EF4444]" : undefined} /> {t("addToFavorites")}</button>
             <button type="button" onClick={() => dispatch(toggleCompare(product.id))} disabled={isCompareDisabled} title={isCompareDisabled ? "В сравнении может быть не больше 6 товаров" : "Добавить в сравнение"} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isCompared ? "bg-[#F1EDFF] text-[#6D4AFF]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#6D4AFF] disabled:opacity-50"}`}><Scale size={18} /> {t("addToCompare")}</button>
