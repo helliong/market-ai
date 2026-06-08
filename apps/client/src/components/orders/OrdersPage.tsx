@@ -19,6 +19,8 @@ import {
   type ApiOrder,
   type ApiOrderItem,
 } from "@/lib/order-api";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { getMainProductImageUrl } from "@/lib/product-image";
 
 type OrderView = {
   id: string;
@@ -37,6 +39,7 @@ type OrderView = {
     quantity: number;
     price: string;
     total: string;
+    imageUrl?: string;
   }>;
   isServerOrder: boolean;
   cancellationReason?: string | null;
@@ -52,6 +55,17 @@ export function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
   const [cancellingOrderId, setCancellingOrderId] = useState<string>();
+  const products = useCatalogProducts();
+  const productImageById = useMemo(
+    () =>
+      new Map(
+        products.map((product) => [
+          product.id,
+          getMainProductImageUrl(product.images),
+        ]),
+      ),
+    [products],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -86,8 +100,8 @@ export function OrdersPage() {
   }, []);
 
   const mappedServerOrders = useMemo(
-    () => serverOrders.map(mapApiOrderToView),
-    [serverOrders],
+    () => serverOrders.map((order) => mapApiOrderToView(order, productImageById)),
+    [productImageById, serverOrders],
   );
   const activeServerOrders = mappedServerOrders.filter(
     (order) => !isCompletedOrder(order),
@@ -210,13 +224,14 @@ function OrdersEmptyState({ type }: { type: "active" | "completed" }) {
 function OrderCard({ order }: { order: OrderView }) {
   const isCancelled = order.status === "cancelled";
   const isCompleted = isCompletedOrder(order);
+  const coverImageUrl = order.items.find((item) => item.imageUrl)?.imageUrl;
 
   return (
     <article className="rounded-[28px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 gap-4">
           <div
-            className={`order-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
+            className={`order-icon flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl ${
               isCancelled
                 ? "bg-[#FEF2F2] text-[#EF4444] dark:bg-[#3F1D25] dark:text-[#FCA5A5]"
                 : isCompleted
@@ -224,7 +239,14 @@ function OrderCard({ order }: { order: OrderView }) {
                   : "bg-[#F1EDFF] text-[#6D4AFF] dark:bg-[#201A3F] dark:text-[#C4B5FD]"
             }`}
           >
-            {isCancelled ? (
+            {coverImageUrl ? (
+              <img
+                src={coverImageUrl}
+                alt={order.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : isCancelled ? (
               <XCircle size={24} />
             ) : isCompleted ? (
               <CheckCircle2 size={24} />
@@ -305,8 +327,11 @@ function buildFallbackItems(order: OrderView) {
   return items;
 }
 
-function mapApiOrderToView(order: ApiOrder): OrderView {
-  const items = order.items.map(mapApiItemToView);
+function mapApiOrderToView(
+  order: ApiOrder,
+  productImageById: Map<number, string | undefined>,
+): OrderView {
+  const items = order.items.map((item) => mapApiItemToView(item, productImageById));
   const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
   const status = normalizeOrderStatus(order.status, order.fulfillmentStatus);
 
@@ -326,13 +351,17 @@ function mapApiOrderToView(order: ApiOrder): OrderView {
   };
 }
 
-function mapApiItemToView(item: ApiOrderItem) {
+function mapApiItemToView(
+  item: ApiOrderItem,
+  productImageById: Map<number, string | undefined>,
+) {
   return {
     id: item.id,
     title: item.productTitleSnapshot,
     quantity: item.quantity,
     price: formatMoney(item.productPriceSnapshot, "RUB"),
     total: formatMoney(item.lineTotal, "RUB"),
+    imageUrl: productImageById.get(item.productId),
   };
 }
 

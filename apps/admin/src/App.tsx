@@ -226,13 +226,15 @@ function App() {
             const titles = ro.items.map((item) => item.productTitleSnapshot).join(", ");
             
             const items = ro.items.map((item) => {
-              const sku = sellerProducts.find((p) => p.id === item.productId)?.sku || "N/A";
+              const product = sellerProducts.find((p) => p.id === item.productId);
+              const sku = product?.sku || "N/A";
               return {
                 id: item.id,
                 sku: sku,
                 productName: item.productTitleSnapshot,
                 quantity: item.quantity,
                 price: Number(item.productPriceSnapshot),
+                imageUrl: getMainProductImageUrl(product),
               };
             });
 
@@ -929,6 +931,17 @@ function formatStocksFileName(storeName: string) {
     .replace(/^_+|_+$/g, "");
 
   return `${name || "store"}-stocks`;
+}
+
+function getMainProductImageUrl(product?: Product) {
+  if (!product?.images?.length) {
+    return undefined;
+  }
+
+  return (
+    product.images.find((image) => image.isMain)?.url ??
+    [...product.images].sort((left, right) => left.sortOrder - right.sortOrder)[0]?.url
+  );
 }
 
 export default App;

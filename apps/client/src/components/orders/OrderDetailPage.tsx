@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { fetchOrder, cancelOrder, type ApiOrder } from "@/lib/order-api";
 import { getCatalogProducts, type ClientProduct } from "@/lib/catalog-products";
+import { getMainProductImageUrl } from "@/lib/product-image";
 import { getStoreSlug } from "@/lib/store-slug";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -108,6 +109,9 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
           id: item.productId,
           title: item.productTitleSnapshot,
           price: item.productPriceSnapshot,
+          imageUrl: getMainProductImageUrl(
+            products.find((product) => product.id === item.productId)?.images,
+          ),
         }),
       );
     });
@@ -225,11 +229,21 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 const catalogProduct = products.find(
                   (p) => p.id === item.productId,
                 );
+                const imageUrl = getMainProductImageUrl(catalogProduct?.images);
                 const cartItem = cartItems.find((c) => c.id === item.productId);
                 const storeName = catalogProduct?.storeName || "МАГАЗИН";
                 return (
                   <div key={item.id} className="flex gap-4">
-                    <div className="h-20 w-20 shrink-0 rounded-2xl bg-gradient-to-br from-[#6D4AFF] to-[#4F32D9] shadow-inner sm:h-24 sm:w-24"></div>
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] shadow-inner sm:h-24 sm:w-24">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={item.productTitleSnapshot}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : null}
+                    </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <Link 
                         href={`/stores/${getStoreSlug(storeName)}`}
@@ -281,6 +295,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                                     id: item.productId,
                                     title: item.productTitleSnapshot,
                                     price: item.productPriceSnapshot,
+                                    imageUrl,
                                   }),
                                 );
                               }}

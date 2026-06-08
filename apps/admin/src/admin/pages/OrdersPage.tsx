@@ -273,7 +273,15 @@ export function OrdersPage({ orders, onStatusChange }: OrdersPageProps) {
                           <div key={item.id} className="order-item-row">
                             <span className="order-product-cell">
                               <span className="order-product-thumb">
-                                <PackageCheck aria-hidden="true" />
+                                {item.imageUrl ? (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.productName}
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <PackageCheck aria-hidden="true" />
+                                )}
                               </span>
                               <span>
                                 <strong>{item.productName}</strong>
