@@ -77,12 +77,19 @@ export function deleteSellerProduct(productId: number) {
   });
 }
 
-export async function downloadSellerProductsTemplate() {
+export async function downloadSellerProductsTemplate(
+  retryOnUnauthorized = true,
+) {
   const response = await fetch(`${CATALOG_API_URL}/seller/products/template`, {
     credentials: "include",
   });
 
   if (!response.ok) {
+    if (response.status === 401 && retryOnUnauthorized) {
+      await refreshSellerSession();
+      return downloadSellerProductsTemplate(false);
+    }
+
     const data = await response.json().catch(() => null);
     throw new Error(formatCatalogError(data));
   }
@@ -90,7 +97,10 @@ export async function downloadSellerProductsTemplate() {
   return response.blob();
 }
 
-export async function importSellerProductsTemplate(file: File) {
+export async function importSellerProductsTemplate(
+  file: File,
+  retryOnUnauthorized = true,
+) {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -103,6 +113,11 @@ export async function importSellerProductsTemplate(file: File) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401 && retryOnUnauthorized) {
+      await refreshSellerSession();
+      return importSellerProductsTemplate(file, false);
+    }
+
     throw new Error(formatCatalogError(data));
   }
 

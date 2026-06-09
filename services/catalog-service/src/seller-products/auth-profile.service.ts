@@ -17,7 +17,9 @@ export class AuthProfileService {
 
   constructor(configService: ConfigService) {
     this.authApiUrl =
-      configService.get<string>('AUTH_API_URL') ?? 'http://127.0.0.1:4001';
+      configService.get<string>('AUTH_SERVICE_URL') ??
+      configService.get<string>('AUTH_API_URL') ??
+      'http://127.0.0.1:4001';
   }
 
   async getCurrentSeller(cookieHeader?: string) {
