@@ -1232,6 +1232,34 @@ export class AuthService {
     return seller;
   }
 
+  // Удаляет магазин и все его товары через API каталога
+  async deleteSellerProfile(accountId: string) {
+    const seller = await this.prisma.userSeller.findUnique({
+      where: { accountId },
+    });
+
+    if (!seller) {
+      throw new NotFoundException('Seller profile not found');
+    }
+
+    try {
+      const catalogUrl = process.env.CATALOG_SERVICE_URL ?? 'http://127.0.0.1:4003';
+      const response = await fetch(`${catalogUrl}/internal/sellers/${accountId}/products`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to delete seller products from catalog: ${response.status} ${await response.text()}`);
+      }
+    } catch (error) {
+      console.error('Error deleting seller products from catalog:', error);
+    }
+
+    return this.prisma.userSeller.delete({
+      where: { id: seller.id },
+    });
+  }
+
   private async syncCatalogSellerProfile(accountId: string, data: { storeName?: string; storeStatus?: string }) {
     if (!data.storeName && !data.storeStatus) return;
 

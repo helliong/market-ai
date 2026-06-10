@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Param } from '@nestjs/common';
+import { Body, Controller, Patch, Param, Delete } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SellerProductsService } from './seller-products.service';
 
@@ -17,5 +17,14 @@ export class InternalController {
     @Body() dto: { storeName?: string; storeStatus?: string },
   ) {
     return this.sellerProductsService.updateSellerProfile(sellerId, dto);
+  }
+
+  @Delete(':sellerId/products')
+  @ApiOperation({
+    summary: 'Delete all seller products',
+    description: 'Internal endpoint called by auth-service when a seller is deleted.',
+  })
+  async deleteSellerProducts(@Param('sellerId') sellerId: string) {
+    return this.sellerProductsService.deleteAllSellerProducts(sellerId);
   }
 }

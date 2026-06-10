@@ -481,6 +481,27 @@ export class SellerProductsService {
 
     return { updatedCount: result.count };
   }
+
+  async deleteAllSellerProducts(sellerId: string) {
+    const existingProducts = await this.prisma.product.findMany({
+      where: { sellerId },
+      include: { images: true },
+    });
+
+    const urlsToDelete = existingProducts
+      .flatMap((p) => p.images?.map((img) => img.url) ?? [])
+      .filter(Boolean);
+
+    await this.prisma.product.deleteMany({
+      where: { sellerId },
+    });
+
+    if (urlsToDelete.length > 0) {
+      this.deleteImagesFromStorage(urlsToDelete);
+    }
+
+    return { deletedCount: existingProducts.length };
+  }
 }
 
 const productWithImages = {
