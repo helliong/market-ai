@@ -311,16 +311,16 @@ export function ProfilePage() {
           ) : (
             <>
               {user && !user.phone && (
-                <div className="rounded-[32px] border border-[#D9CCFF] bg-gradient-to-r from-[#F6F2FF] to-[#EEF4FF] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                <div className="rounded-[32px] border border-[#D9CCFF] bg-gradient-to-r from-[#F6F2FF] to-[#EEF4FF] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-[#3B2D7A] dark:from-[#1E1644] dark:to-[#161B2E]">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="max-w-[560px]">
-                      <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6D4AFF]">
+                      <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6D4AFF] dark:text-[#A78BFA]">
                         Контакты
                       </p>
-                      <h3 className="mt-2 text-2xl font-black text-[#111827]">
+                      <h3 className="mt-2 text-2xl font-black text-[#111827] dark:text-white">
                         Добавьте телефон, чтобы быстрее оформлять заказы
                       </h3>
-                      <p className="mt-2 text-sm leading-6 text-[#4B5563]">
+                      <p className="mt-2 text-sm leading-6 text-[#4B5563] dark:text-[#9CA3AF]">
                         Заполните телефон во вкладке учетных данных, чтобы не вводить его заново при каждом заказе.
                       </p>
                     </div>

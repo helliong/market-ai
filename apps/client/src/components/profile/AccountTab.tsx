@@ -6,12 +6,72 @@ import { setUser } from "@/store/authSlice";
 import type { AuthUser } from "@/store/authSlice";
 
 function formatRussianPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
+  let digits = phone.replace(/\D/g, "");
   if (!digits) return "";
-  if (digits.startsWith("7")) {
-    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+
+  // Normalize: strip leading 8 or 7, we always display +7
+  if (digits.startsWith("8") && digits.length > 1) {
+    digits = "7" + digits.slice(1);
   }
-  return phone;
+  if (!digits.startsWith("7")) {
+    digits = "7" + digits;
+  }
+
+  // Limit to 11 digits (7 + 10 local)
+  digits = digits.slice(0, 11);
+
+  const local = digits.slice(1); // up to 10 digits after "7"
+  let result = "+7";
+
+  if (local.length === 0) return result;
+  result += " (" + local.slice(0, 3);
+  if (local.length >= 3) result += ")";
+  if (local.length > 3) result += " " + local.slice(3, 6);
+  if (local.length > 6) result += "-" + local.slice(6, 8);
+  if (local.length > 8) result += "-" + local.slice(8, 10);
+
+  return result;
+}
+
+function handlePhoneInput(rawValue: string, prevValue: string): string {
+  // If user is deleting, let them
+  if (rawValue.length < prevValue.length) {
+    const digits = rawValue.replace(/\D/g, "");
+    if (!digits) return "";
+    return formatRussianPhone(digits);
+  }
+  return formatRussianPhone(rawValue);
+}
+
+function formatBirthDateMask(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (!digits) return "";
+  let result = digits.slice(0, 2);
+  if (digits.length > 2) result += "." + digits.slice(2, 4);
+  if (digits.length > 4) result += "." + digits.slice(4, 8);
+  return result;
+}
+
+function isoToBirthDateMask(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+function parseBirthDateToISO(masked: string): string | undefined {
+  const digits = masked.replace(/\D/g, "");
+  if (digits.length !== 8) return undefined;
+  const dd = parseInt(digits.slice(0, 2), 10);
+  const mm = parseInt(digits.slice(2, 4), 10);
+  const yyyy = parseInt(digits.slice(4, 8), 10);
+  if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yyyy < 1900 || yyyy > 2025) return undefined;
+  const d = new Date(yyyy, mm - 1, dd);
+  if (d.getDate() !== dd || d.getMonth() !== mm - 1) return undefined;
+  return d.toISOString();
 }
 
 function normalizeRussianPhone(phone: string): string {
@@ -52,7 +112,7 @@ export function AccountTab() {
     if (user && !isEditing) {
       setFormData({
         displayName: user.displayName ?? user.name ?? "",
-        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : "",
+        birthDate: isoToBirthDateMask(user.birthDate ?? ""),
         gender: user.gender ?? "",
         phone: formatRussianPhone(user.phone ?? ""),
         email: user.email ?? "",
@@ -99,7 +159,7 @@ export function AccountTab() {
         displayName: trimmedName,
         email: trimmedEmail,
         phone: normalizedPhone || undefined,
-        birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
+        birthDate: parseBirthDateToISO(formData.birthDate),
         gender: formData.gender || undefined,
         deliveryCity: formData.deliveryCity,
         deliveryStreet: formData.deliveryStreet,
@@ -229,9 +289,12 @@ export function AccountTab() {
                 <label className="block">
                   <span className="text-sm font-bold text-[#111827]">Дата рождения</span>
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.birthDate}
-                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, birthDate: formatBirthDateMask(e.target.value) })}
+                    placeholder="ДД.ММ.ГГГГ"
+                    maxLength={10}
                     className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF]"
                   />
                 </label>
@@ -265,7 +328,7 @@ export function AccountTab() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: formatRussianPhone(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, phone: handlePhoneInput(e.target.value, formData.phone) })}
                     placeholder="+7 (900) 000-00-00"
                     maxLength={18}
                     className="mt-2 h-12 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm outline-none transition focus:border-[#6D4AFF]"
@@ -293,7 +356,7 @@ export function AccountTab() {
                     setError(undefined);
                     setFormData({
                       displayName: user.displayName ?? user.name ?? "",
-                      birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : "",
+                      birthDate: isoToBirthDateMask(user.birthDate ?? ""),
                       gender: user.gender ?? "",
                       phone: formatRussianPhone(user.phone ?? ""),
                       email: user.email ?? "",
