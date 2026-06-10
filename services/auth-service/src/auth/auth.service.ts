@@ -597,7 +597,7 @@ export class AuthService {
       throw new ForbiddenException('Seller profile is suspended');
     }
 
-    return this.prisma.userSeller.update({
+    const updatedSeller = await this.prisma.userSeller.update({
       where: { id: seller.id },
       data: {
         ...(dto.storeName !== undefined && { storeName: dto.storeName }),
@@ -628,6 +628,12 @@ export class AuthService {
         updatedAt: true,
       },
     });
+
+    if (dto.storeName !== undefined && dto.storeName !== seller.storeName) {
+      this.syncCatalogSellerProfile(accountId, { storeName: dto.storeName });
+    }
+
+    return updatedSeller;
   }
 
   async pauseSellerStore(accountId: string) {
@@ -851,7 +857,7 @@ export class AuthService {
       throw new BadRequestException(invalidStatusMessage);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedSeller = await tx.userSeller.update({
         where: { id: seller.id },
         data: { status: nextStatus },
@@ -882,6 +888,10 @@ export class AuthService {
 
       return updatedSeller;
     });
+
+    this.syncCatalogSellerProfile(accountId, { storeStatus: nextStatus });
+
+    return result;
   }
 
   // Создает reset-код для buyer или seller credentials и отправляет письмо нужного назначения.
@@ -1220,5 +1230,24 @@ export class AuthService {
     }
 
     return seller;
+  }
+
+  private async syncCatalogSellerProfile(accountId: string, data: { storeName?: string; storeStatus?: string }) {
+    if (!data.storeName && !data.storeStatus) return;
+
+    try {
+      const catalogUrl = process.env.CATALOG_SERVICE_URL ?? 'http://127.0.0.1:4003';
+      const response = await fetch(`${catalogUrl}/internal/sellers/${accountId}/store-profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to sync seller profile with catalog: ${response.status} ${await response.text()}`);
+      }
+    } catch (error) {
+      console.error('Error syncing seller profile with catalog:', error);
+    }
   }
 }

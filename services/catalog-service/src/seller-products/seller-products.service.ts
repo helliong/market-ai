@@ -460,6 +460,27 @@ export class SellerProductsService {
       console.error('Error deleting images from storage:', error);
     }
   }
+
+  async updateSellerProfile(sellerId: string, dto: { storeName?: string; storeStatus?: string }) {
+    if (!dto.storeName && !dto.storeStatus) {
+      return { updatedCount: 0 };
+    }
+
+    const data: Prisma.ProductUpdateManyMutationInput = {};
+    if (dto.storeName !== undefined) {
+      data.storeName = dto.storeName;
+    }
+    if (dto.storeStatus !== undefined) {
+      data.storeStatus = dto.storeStatus;
+    }
+
+    const result = await this.prisma.product.updateMany({
+      where: { sellerId },
+      data,
+    });
+
+    return { updatedCount: result.count };
+  }
 }
 
 const productWithImages = {
