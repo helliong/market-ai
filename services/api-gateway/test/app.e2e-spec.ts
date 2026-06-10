@@ -4,10 +4,13 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('ApiGateway (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.JWT_ACCESS_SECRET = 'test-secret';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -16,11 +19,13 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('rejects protected routes without an access token', () => {
     return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .get('/api/cart')
+      .expect(401)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Missing access token');
+      });
   });
 
   afterEach(async () => {

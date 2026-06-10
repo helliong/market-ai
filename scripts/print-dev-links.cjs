@@ -6,6 +6,7 @@ setTimeout(() => {
   console.log("  Site:        http://127.0.0.1:3000");
   console.log("  Admin:       http://127.0.0.1:5173");
   console.log("  Moderation:  http://127.0.0.1:5174");
+  console.log("  API Gateway: http://127.0.0.1:4000");
   console.log("  Auth API:    http://127.0.0.1:4001");
   console.log("  Cart API:    http://127.0.0.1:4002");
   console.log("  Catalog API: http://127.0.0.1:4003");
