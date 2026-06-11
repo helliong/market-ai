@@ -8,6 +8,7 @@ export type ProductTemplateRow = {
   description: string;
   category: string;
   price: number;
+  oldPrice?: number;
   stock: number;
   status: ProductStatus;
   action?: ProductTemplateAction | '';
@@ -113,10 +114,11 @@ export function parseProductWorkbook(buffer: Buffer) {
     const name = stringValue(row.B).trim();
     const category = stringValue(row.C).trim();
     const price = parseNumber(row.D);
-    const stock = parseNumber(row.E);
-    const status = stringValue(row.F).trim() || 'active';
-    const description = stringValue(row.G).trim();
-    const action = stringValue(row.H).trim().toLowerCase();
+    const oldPrice = parseNumber(row.E);
+    const stock = parseNumber(row.F);
+    const status = stringValue(row.G).trim() || 'active';
+    const description = stringValue(row.H).trim();
+    const action = stringValue(row.I).trim().toLowerCase();
 
     if (!sku && !name && !category && price === 0 && stock === 0 && !action) {
       return [];
@@ -129,6 +131,7 @@ export function parseProductWorkbook(buffer: Buffer) {
         name,
         category,
         price,
+        oldPrice: oldPrice === 0 ? undefined : oldPrice,
         stock,
         status,
         description,
@@ -144,6 +147,7 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     'Название',
     'Категория',
     'Цена',
+    'Старая цена',
     'Остаток',
     'Статус',
     'Описание',
@@ -163,26 +167,28 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
         inlineCell(`B${row}`, product.name, 2),
         inlineCell(`C${row}`, product.category, 2),
         numberCell(`D${row}`, product.price, 2),
-        numberCell(`E${row}`, product.stock, 2),
-        inlineCell(`F${row}`, product.status, 2),
-        inlineCell(`G${row}`, product.description, 2),
-        inlineCell(`H${row}`, product.action ?? '', 2),
+        product.oldPrice ? numberCell(`E${row}`, product.oldPrice, 2) : inlineCell(`E${row}`, '', 2),
+        numberCell(`F${row}`, product.stock, 2),
+        inlineCell(`G${row}`, product.status, 2),
+        inlineCell(`H${row}`, product.description, 2),
+        inlineCell(`I${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:H500"/>
+  <dimension ref="A1:I500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="5" width="14" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="44" customWidth="1"/><col min="8" max="8" width="16" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="5" width="14" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="44" customWidth="1"/><col min="9" max="9" width="16" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
-  <dataValidations count="5">
+  <dataValidations count="6">
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$16</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>1</formula1></dataValidation>
-    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="E2:E500"><formula1>0</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="F2:F500"><formula1>"active,draft,archived"</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="H2:H500"><formula1>"delete"</formula1></dataValidation>
+    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="E2:E500"><formula1>1</formula1></dataValidation>
+    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="F2:F500"><formula1>0</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>"active,draft,archived"</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="I2:I500"><formula1>"delete"</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }

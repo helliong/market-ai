@@ -59,6 +59,7 @@ export class SellerProductsService {
           description: product.description,
           category: product.category,
           price: product.price.toNumber(),
+          oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,
           stock: product.stock,
           status: product.status as ProductTemplateRow['status'],
         })),
@@ -250,6 +251,10 @@ export class SellerProductsService {
         errors.push(`Строка ${row.rowNumber}: цена должна быть больше 0`);
       }
 
+      if (!shouldDelete && row.oldPrice !== undefined && row.oldPrice <= 0) {
+        errors.push(`Строка ${row.rowNumber}: старая цена должна быть больше 0`);
+      }
+
       if (!shouldDelete && (!Number.isInteger(row.stock) || row.stock < 0)) {
         errors.push(
           `Строка ${row.rowNumber}: остаток должен быть целым числом от 0`,
@@ -318,6 +323,7 @@ export class SellerProductsService {
           description: row.description,
           category: row.category,
           price: new Prisma.Decimal(row.price),
+          oldPrice: row.oldPrice ? new Prisma.Decimal(row.oldPrice) : null,
           stock: row.stock,
           status: row.status,
         };
