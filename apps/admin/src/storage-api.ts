@@ -48,6 +48,40 @@ export async function uploadProductImage(file: File, folder?: string) {
   return publicUrl;
 }
 
+export async function deleteStorageUrls(urls: string[]) {
+  const keys = urls
+    .map(extractStorageObjectKey)
+    .filter((key): key is string => Boolean(key));
+
+  if (!keys.length) return;
+
+  const response = await fetch(`${STORAGE_API_URL}/uploads`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keys }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(formatStorageError(data) ?? "Failed to delete image");
+  }
+}
+
+export function extractStorageObjectKey(url: string) {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length > 1) {
+      return parts.slice(1).join("/");
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function formatStorageError(data: unknown) {
   if (!data || typeof data !== "object") {
     return null;

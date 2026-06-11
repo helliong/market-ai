@@ -162,7 +162,7 @@ export class AppService {
 function buildObjectKey(folder: string | undefined, fileName: string) {
   const safeFolder = (folder ?? 'uploads')
     .trim()
-    .replace(/[^a-zA-Z0-9/_-]+/g, '-')
+    .replace(/[^\p{L}\p{N}/_-]+/gu, '-')
     .replace(/^\/+|\/+$/g, '');
   const extension = extname(fileName).toLowerCase().replace(/[^a-z0-9.]/g, '');
 

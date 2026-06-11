@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   Heart,
@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   ShoppingCart,
   Star,
-  Store,
   Truck,
 } from "lucide-react";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
@@ -23,6 +22,8 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { getStoreSlug } from "@/lib/store-slug";
 import { categories } from "@/data/categories";
 import { getMainProductImageUrl } from "@/lib/product-image";
+import { getPublicStoreProfile } from "@/lib/auth-api";
+import type { PublicStoreProfile } from "@/lib/auth-api";
 
 type Product = {
   id: number;
@@ -66,6 +67,9 @@ export function ProductPage({ product }: ProductPageProps) {
     0,
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(mainImageIndex);
+  const [storeProfile, setStoreProfile] = useState<PublicStoreProfile | null>(
+    null,
+  );
   const selectedImage =
     galleryImages[selectedImageIndex] ?? galleryImages[0] ?? null;
   const cartImageUrl = getMainProductImageUrl(galleryImages);
@@ -77,6 +81,31 @@ export function ProductPage({ product }: ProductPageProps) {
   const productCategory = product.categoryIds
     ? categories.find((category) => product.categoryIds?.includes(category.id))
     : undefined;
+
+  useEffect(() => {
+    if (!product.storeName) {
+      setStoreProfile(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    getPublicStoreProfile(product.storeName)
+      .then((profile) => {
+        if (isMounted) {
+          setStoreProfile(profile);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setStoreProfile(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product.storeName]);
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 md:px-8 md:py-10">
@@ -177,8 +206,16 @@ export function ProductPage({ product }: ProductPageProps) {
 
           {product.storeName && (
             <Link href={`/stores/${getStoreSlug(product.storeName)}`} className="mt-4 flex items-center gap-3 rounded-[24px] border border-[#E5E7EB] bg-white p-5 transition hover:border-[#6D4AFF] hover:bg-[#F8F7FF]">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1EDFF] text-[#6D4AFF]">
-                <Store size={21} />
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#111827] text-base font-black text-[#6D4AFF]">
+                {storeProfile?.avatarUrl ? (
+                  <img
+                    src={storeProfile.avatarUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  product.storeName.charAt(0).toUpperCase()
+                )}
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6B7280]">

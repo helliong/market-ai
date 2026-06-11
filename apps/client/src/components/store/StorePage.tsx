@@ -105,15 +105,15 @@ export function StorePage({ storeName, storeProfile }: StorePageProps) {
 
       <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
         <div
-          className="relative min-h-[180px] p-5 text-white md:min-h-[240px] md:p-8"
+          className="relative min-h-[220px] overflow-hidden p-5 text-white md:aspect-[6/1] md:min-h-0 md:p-8"
           style={{ background: heroBackground }}
         >
           {storeProfile?.coverUrl && (
-            <img src={storeProfile.coverUrl} className="absolute inset-0 w-full h-full object-cover" alt={storeName} />
+            <img src={storeProfile.coverUrl} className="absolute inset-0 h-full w-full object-cover object-center" alt={storeName} />
           )}
           <div className="absolute inset-0 bg-black/38" />
           <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="relative z-10 flex h-full min-h-[140px] flex-col justify-between gap-8 md:min-h-[188px]">
+          <div className="relative z-10 flex h-full min-h-[180px] flex-col justify-between gap-8 md:min-h-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/16 px-3 py-1.5 text-xs font-black backdrop-blur">
                 <ShieldCheck size={15} />

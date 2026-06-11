@@ -22,7 +22,13 @@ import type {
   SellerLegalProfilePayload,
   SellerProfile,
 } from "../../auth-api";
-import { uploadProductImage } from "../../storage-api";
+import {
+  deleteStorageUrls,
+  extractStorageObjectKey,
+  uploadProductImage,
+} from "../../storage-api";
+import { compressImageToWebp } from "../../image-utils";
+import { buildStoreStorageFolder, isStoreStorageKey } from "../../storage-paths";
 
 type TeamMemberRole = "owner" | "manager" | "operator" | "viewer";
 type TeamMemberStatus = "active" | "invited";
@@ -216,11 +222,19 @@ export function SettingsPage({
 
   async function handleCoverChange(file: File | undefined) {
     if (!file) return;
+    const previousCoverUrl = shop.coverUrl;
     setIsUploadingCover(true);
     try {
-      const publicUrl = await uploadProductImage(file, "stores");
+      const compressedFile = await compressImageToWebp(file, {
+        maxWidthOrHeight: 1920,
+      });
+      const publicUrl = await uploadProductImage(
+        compressedFile,
+        buildStoreStorageFolder(shop.name || storeName, "covers"),
+      );
       setShop((current) => ({ ...current, coverUrl: publicUrl }));
-      showToast(t("settingsSaved") || "Cover uploaded", "success");
+      await deleteUnsavedCover(previousCoverUrl);
+      showToast(t("settingsCoverUploaded"), "success");
     } catch (err) {
       showToast(getErrorMessage(err), "error");
     } finally {
@@ -230,15 +244,61 @@ export function SettingsPage({
 
   async function handleAvatarChange(file: File | undefined) {
     if (!file) return;
+    const previousAvatarUrl = shop.avatarUrl;
     setIsUploadingAvatar(true);
     try {
-      const publicUrl = await uploadProductImage(file, "stores");
+      const compressedFile = await compressImageToWebp(file, {
+        maxWidthOrHeight: 512,
+      });
+      const publicUrl = await uploadProductImage(
+        compressedFile,
+        buildStoreStorageFolder(shop.name || storeName, "avatars"),
+      );
       setShop((current) => ({ ...current, avatarUrl: publicUrl }));
-      showToast(t("settingsSaved") || "Avatar uploaded", "success");
+      await deleteUnsavedAvatar(previousAvatarUrl);
+      showToast(t("settingsAvatarUploaded"), "success");
     } catch (err) {
       showToast(getErrorMessage(err), "error");
     } finally {
       setIsUploadingAvatar(false);
+    }
+  }
+
+  async function clearCover() {
+    const previousCoverUrl = shop.coverUrl;
+    setShop((current) => ({ ...current, coverUrl: "" }));
+    await deleteUnsavedCover(previousCoverUrl);
+  }
+
+  async function clearAvatar() {
+    const previousAvatarUrl = shop.avatarUrl;
+    setShop((current) => ({ ...current, avatarUrl: "" }));
+    await deleteUnsavedAvatar(previousAvatarUrl);
+  }
+
+  async function deleteUnsavedCover(url: string) {
+    if (!url || url === (sellerProfile?.coverUrl ?? "")) return;
+
+    const key = extractStorageObjectKey(url);
+    if (!isStoreStorageKey(key, "covers")) return;
+
+    try {
+      await deleteStorageUrls([url]);
+    } catch (error) {
+      console.error("Failed to delete unsaved cover from storage", error);
+    }
+  }
+
+  async function deleteUnsavedAvatar(url: string) {
+    if (!url || url === (sellerProfile?.avatarUrl ?? "")) return;
+
+    const key = extractStorageObjectKey(url);
+    if (!isStoreStorageKey(key, "avatars")) return;
+
+    try {
+      await deleteStorageUrls([url]);
+    } catch (error) {
+      console.error("Failed to delete unsaved avatar from storage", error);
     }
   }
 
@@ -320,7 +380,7 @@ export function SettingsPage({
             description={t("settingsStoreDescription")}
           />
 
-          <div className="settings-cover-preview">
+          <div className="settings-cover-preview settings-cover-preview-banner">
             {shop.coverUrl ? (
               <img src={shop.coverUrl} alt="" />
             ) : (
@@ -332,7 +392,7 @@ export function SettingsPage({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="settings-media-actions">
             <label className="settings-upload-button">
               <Upload aria-hidden="true" />
               {isUploadingCover ? t("loading") : t("settingsCoverUpload")}
@@ -347,7 +407,7 @@ export function SettingsPage({
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => setShop((current) => ({ ...current, coverUrl: "" }))}
+                onClick={() => void clearCover()}
                 title={t("delete")}
               >
                 <Trash2 aria-hidden="true" />
@@ -355,39 +415,37 @@ export function SettingsPage({
             )}
           </div>
 
-          <div style={{ marginTop: '2rem' }}></div>
+          <div className="settings-avatar-block">
+            <div className="settings-store-avatar-preview">
+              {shop.avatarUrl ? (
+                <img src={shop.avatarUrl} alt="" />
+              ) : (
+                <span>{(shop.name.trim() || storeName || "S").charAt(0).toUpperCase()}</span>
+              )}
+            </div>
 
-          <div className="settings-cover-preview" style={{ height: '100px', width: '100px', borderRadius: '50%', overflow: 'hidden' }}>
-            {shop.avatarUrl ? (
-              <img src={shop.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: 'var(--bg-muted)' }}>
-                <Upload aria-hidden="true" style={{ width: '20px', height: '20px', marginBottom: '4px' }} />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2" style={{ marginTop: '1rem' }}>
-            <label className="settings-upload-button" style={{ width: 'fit-content', margin: 0 }}>
-              <Upload aria-hidden="true" />
-              {isUploadingAvatar ? t("loading") : "Add avatar"}
-              <input
-                type="file"
-                accept="image/*"
-                disabled={isUploadingAvatar}
-                onChange={(event) => handleAvatarChange(event.target.files?.[0])}
-              />
-            </label>
-            {shop.avatarUrl && (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setShop((current) => ({ ...current, avatarUrl: "" }))}
-                title={t("delete")}
-              >
-                <Trash2 aria-hidden="true" />
-              </button>
-            )}
+            <div className="settings-media-actions">
+              <label className="settings-upload-button">
+                <Upload aria-hidden="true" />
+                {isUploadingAvatar ? t("loading") : "Add avatar"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={isUploadingAvatar}
+                  onChange={(event) => handleAvatarChange(event.target.files?.[0])}
+                />
+              </label>
+              {shop.avatarUrl && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void clearAvatar()}
+                  title={t("delete")}
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="settings-form-grid">

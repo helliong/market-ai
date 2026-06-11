@@ -4,6 +4,7 @@ import type { ProductForm, ProductStatus } from "../types";
 import { productCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
 import { ImageUploadZone } from "./ImageUploadZone";
+import { buildStoreStorageFolder } from "../../storage-paths";
 
 type ProductModalProps = {
   form: ProductForm;
@@ -87,7 +88,7 @@ export function ProductModal({
             <ImageUploadZone
               images={form.images}
               onChange={(images) => onChange({ ...form, images })}
-              folder={`stores/${storeName.replace(/[^a-zA-Z0-9-]/g, "_")}/${form.sku.replace(/[^a-zA-Z0-9-]/g, "_")}`}
+              folder={buildStoreStorageFolder(storeName, "products", form.sku)}
               disabled={!form.sku.trim()}
               disabledMessage="Введите артикул (SKU) для загрузки фото"
             />

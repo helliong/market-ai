@@ -21,6 +21,7 @@ import {
   SellerRegisterDto,
   SellerLegalProfileDto,
   UpdateBuyerProfileDto,
+  UpdateSellerProfileDto,
   VerifyEmailDto,
 } from './dto';
 
@@ -567,6 +568,7 @@ export class AuthService {
         inn: true,
         phone: true,
         coverUrl: true,
+        avatarUrl: true,
         legalProfile: true,
         createdAt: true,
         updatedAt: true,
@@ -585,7 +587,7 @@ export class AuthService {
   }
 
   // Обновляет базовый профиль продавца (магазина)
-  async updateSellerMe(accountId: string, dto: any) {
+  async updateSellerMe(accountId: string, dto: UpdateSellerProfileDto) {
     const seller = await this.prisma.userSeller.findUnique({
       where: { accountId },
     });
@@ -607,6 +609,7 @@ export class AuthService {
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.coverUrl !== undefined && { coverUrl: dto.coverUrl }),
+        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
       },
       select: {
         id: true,
@@ -626,6 +629,7 @@ export class AuthService {
         inn: true,
         phone: true,
         coverUrl: true,
+        avatarUrl: true,
         legalProfile: true,
         createdAt: true,
         updatedAt: true,
@@ -634,6 +638,14 @@ export class AuthService {
 
     if (dto.storeName !== undefined && dto.storeName !== seller.storeName) {
       this.syncCatalogSellerProfile(accountId, { storeName: dto.storeName });
+    }
+
+    if (dto.coverUrl !== undefined && dto.coverUrl !== seller.coverUrl) {
+      await this.deleteStoreMediaFromStorage([seller.coverUrl], 'covers');
+    }
+
+    if (dto.avatarUrl !== undefined && dto.avatarUrl !== seller.avatarUrl) {
+      await this.deleteStoreMediaFromStorage([seller.avatarUrl], 'avatars');
     }
 
     return updatedSeller;
@@ -1225,6 +1237,7 @@ export class AuthService {
         description: true,
         city: true,
         coverUrl: true,
+        avatarUrl: true,
         createdAt: true,
       },
     });
@@ -1259,9 +1272,63 @@ export class AuthService {
       console.error('Error deleting seller products from catalog:', error);
     }
 
+    await this.deleteStoreMediaFromStorage([seller.coverUrl], 'covers');
+    await this.deleteStoreMediaFromStorage([seller.avatarUrl], 'avatars');
+
     return this.prisma.userSeller.delete({
       where: { id: seller.id },
     });
+  }
+
+  private async deleteStoreMediaFromStorage(
+    urls: Array<string | null | undefined>,
+    section: 'covers' | 'avatars',
+  ) {
+    const keys = urls
+      .map((url) => this.extractStorageObjectKey(url))
+      .filter((key): key is string => this.isStoreMediaKey(key, section));
+
+    if (!keys.length) return;
+
+    try {
+      const storageUrl = process.env.STORAGE_SERVICE_URL ?? 'http://127.0.0.1:4005';
+      const response = await fetch(`${storageUrl}/uploads`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to delete store media from storage', await response.text());
+      }
+    } catch (error) {
+      console.error('Error deleting store media from storage:', error);
+    }
+  }
+
+  private extractStorageObjectKey(url: string | null | undefined) {
+    if (!url) return null;
+
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts.length > 1) {
+        return parts.slice(1).join('/');
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private isStoreMediaKey(key: string | null, section: 'covers' | 'avatars') {
+    if (!key) return false;
+
+    return (
+      key.startsWith(`stores/${section}/`) ||
+      new RegExp(`^stores/[^/]+/${section}/`).test(key)
+    );
   }
 
   private async syncCatalogSellerProfile(accountId: string, data: { storeName?: string; storeStatus?: string }) {
