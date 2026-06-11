@@ -77,6 +77,13 @@ export class CreateProductDto {
   @Min(1)
   price: number;
 
+  @ApiPropertyOptional({ example: 2999.99, minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(1)
+  oldPrice?: number;
+
   @ApiProperty({ example: 25, minimum: 0, maximum: 999999 })
   @Type(() => Number)
   @IsInt()

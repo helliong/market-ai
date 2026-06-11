@@ -39,6 +39,7 @@ function productPayloadFromForm(form: ProductForm) {
     description: form.description,
     category: form.category,
     price: parseFormNumber(form.price),
+    oldPrice: form.oldPrice ? parseFormNumber(form.oldPrice) : undefined,
     stock: parseFormNumber(form.stock),
     status: form.status,
     images: form.images.map((image, index) => ({

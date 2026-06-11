@@ -95,6 +95,7 @@ export class SellerProductsService {
           description: dto.description?.trim() ?? '',
           category: dto.category.trim(),
           price: new Prisma.Decimal(dto.price),
+          oldPrice: dto.oldPrice ? new Prisma.Decimal(dto.oldPrice) : null,
           stock: dto.stock,
           status: dto.status,
           images: {
@@ -136,6 +137,10 @@ export class SellerProductsService {
 
     if (dto.price !== undefined) {
       data.price = new Prisma.Decimal(dto.price);
+    }
+
+    if (dto.oldPrice !== undefined) {
+      data.oldPrice = dto.oldPrice ? new Prisma.Decimal(dto.oldPrice) : null;
     }
 
     if (dto.stock !== undefined) {
@@ -404,6 +409,7 @@ export class SellerProductsService {
     description: string;
     category: string;
     price: Prisma.Decimal;
+    oldPrice: Prisma.Decimal | null;
     rating: Prisma.Decimal;
     reviews: number;
     stock: number;
@@ -421,6 +427,7 @@ export class SellerProductsService {
     return {
       ...product,
       price: product.price.toNumber(),
+      oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,
       rating: product.rating.toNumber(),
       images: product.images ?? [],
     };

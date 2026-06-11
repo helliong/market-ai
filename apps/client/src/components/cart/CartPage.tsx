@@ -256,9 +256,16 @@ export function CartPage() {
                   </div>
 
                   <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[#E5E7EB] pt-3 sm:col-span-1 sm:flex-col sm:items-stretch sm:justify-center sm:border-t-0 sm:pt-0">
-                    <p className="text-lg font-black text-[#111827] sm:text-xl">
-                      {item.price}
-                    </p>
+                    <div className="flex flex-col sm:items-end">
+                      <p className="text-lg font-black text-[#111827] sm:text-xl sm:text-right">
+                        {item.price}
+                      </p>
+                      {item.oldPrice && (
+                        <p className="text-sm font-medium text-[#9CA3AF] line-through sm:text-right">
+                          {item.oldPrice}
+                        </p>
+                      )}
+                    </div>
                     <div className="grid h-10 w-[132px] grid-cols-[40px_1fr_40px] overflow-hidden rounded-2xl bg-[#F6F7FB] text-[#111827] sm:w-full">
                       <button
                         type="button"

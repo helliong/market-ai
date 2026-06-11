@@ -268,6 +268,7 @@ export function ProductsPage({
               <th>{t("productListName")}</th>
               <th>{t("productListCategory")}</th>
               <th>{t("productListPrice")}</th>
+              <th>Старая цена</th>
               <th>{t("productListStock")}</th>
               <th>{t("productListStatus")}</th>
               <th>{t("actions")}</th>
@@ -283,6 +284,15 @@ export function ProductsPage({
                 <td>{product.name}</td>
                 <td>{product.category}</td>
                 <td>{formatCurrency(product.price)}</td>
+                <td>
+                  {product.oldPrice ? (
+                    <span style={{ textDecoration: "line-through", color: "var(--text-secondary, #9ca3af)" }}>
+                      {formatCurrency(product.oldPrice)}
+                    </span>
+                  ) : (
+                    <span style={{ opacity: 0.5 }}>—</span>
+                  )}
+                </td>
                 <td>{product.stock}</td>
                 <td>
                   <StatusBadge label={productStatusLabel(product.status)} />

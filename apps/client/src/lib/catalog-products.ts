@@ -28,6 +28,7 @@ type ApiProduct = {
   description: string;
   category: string;
   price: number;
+  oldPrice?: number | string;
   rating?: number;
   reviews?: number;
   stock: number;
@@ -135,6 +136,7 @@ function mapApiProduct(product: ApiProduct): ClientProduct {
     sku: product.sku,
     title: product.name,
     price: formatPrice(product.price),
+    oldPrice: product.oldPrice ? formatPrice(Number(product.oldPrice)) : undefined,
     rating: product.rating ?? 0,
     reviews: product.reviews ?? 0,
     badge: "New",
