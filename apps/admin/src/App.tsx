@@ -344,6 +344,15 @@ function App() {
       return;
     }
 
+    if (sku.length > 20 || name.length > 60 || description.length > 2000) {
+      setDialog({
+        title: t("checkFields"),
+        message:
+          "SKU должен быть не длиннее 20 символов, название - до 60 символов, описание - до 2000 символов.",
+      });
+      return;
+    }
+
     try {
       const normalizedForm = {
         sku,

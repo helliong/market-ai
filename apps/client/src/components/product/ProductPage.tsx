@@ -132,7 +132,9 @@ export function ProductPage({ product }: ProductPageProps) {
             <span>/</span>
           </>
         )}
-        <span className="line-clamp-1 text-[var(--text-main)]">{product.title}</span>
+        <span className="min-w-0 break-words text-[var(--text-main)] [overflow-wrap:anywhere]">
+          {product.title}
+        </span>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">
         <div className="rounded-[32px] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:p-4">
@@ -181,8 +183,8 @@ export function ProductPage({ product }: ProductPageProps) {
             </div>
           </div>
         </div>
-        <aside className="h-fit self-start rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-          <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">{product.title}</h1>
+        <aside className="min-w-0 h-fit self-start rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <h1 className="break-words text-2xl font-black leading-tight tracking-[-0.03em] [overflow-wrap:anywhere] md:text-3xl">{product.title}</h1>
           <div className="mt-4 flex items-center gap-2 text-sm"><Star size={18} className="fill-[#F59E0B] text-[#F59E0B]" /><span className="font-black">{product.rating}</span><span className="text-[#6B7280]">• {product.reviews} {t("reviewsCount")}</span></div>
           <div className="mt-6 flex items-end gap-3"><span className="text-3xl font-black tracking-[-0.04em] md:text-4xl">{product.price}</span>{product.oldPrice && <span className="mb-1 text-lg text-[#9CA3AF] line-through">{product.oldPrice}</span>}</div>
           <div className="product-actions mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -244,7 +246,7 @@ export function ProductPage({ product }: ProductPageProps) {
       <div className="mt-8">
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">{t("aboutProduct")}</h2>
-          <p className="mt-4 max-w-[760px] leading-7 text-[#6B7280]">
+          <p className="mt-4 max-w-none whitespace-pre-wrap break-words leading-7 text-[#6B7280] [overflow-wrap:break-word]">
             {product.description ||
               `${product.title} подойдет для повседневных задач, работы и покупок без лишней суеты.`}
           </p>

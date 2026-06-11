@@ -125,7 +125,7 @@ export function ProductCard({
       <div className="mt-3 sm:mt-4">
         <Link
           href={productHref}
-          className="line-clamp-2 min-h-[36px] text-[12px] font-bold leading-[1.35] text-[#111827] transition hover:text-[#6D4AFF] sm:min-h-[44px] sm:text-[15px] sm:leading-[1.45]"
+          className="line-clamp-2 min-h-[36px] break-words text-[12px] font-bold leading-[1.35] text-[#111827] transition [overflow-wrap:anywhere] hover:text-[#6D4AFF] sm:min-h-[44px] sm:text-[15px] sm:leading-[1.45]"
         >
           {title}
         </Link>

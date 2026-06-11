@@ -25,6 +25,14 @@ export function ProductModal({
 }: ProductModalProps) {
   const { t } = useLanguage();
 
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, []);
+
   function updatePrice(value: string) {
     onChange({ ...form, price: formatIntegerInput(value) });
   }
@@ -54,6 +62,7 @@ export function ProductModal({
               onChange={(event) =>
                 onChange({ ...form, sku: event.target.value })
               }
+              maxLength={20}
               placeholder="SKU-001"
             />
           </label>
@@ -65,6 +74,7 @@ export function ProductModal({
               onChange={(event) =>
                 onChange({ ...form, name: event.target.value })
               }
+              maxLength={60}
               placeholder="Например, iPhone 15"
             />
           </label>
@@ -76,6 +86,7 @@ export function ProductModal({
               onChange={(event) =>
                 onChange({ ...form, description: event.target.value })
               }
+              maxLength={2000}
               placeholder="Короткое описание товара"
             />
           </label>

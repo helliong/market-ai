@@ -20,6 +20,8 @@ import imageCompression from "browser-image-compression";
 import type { ProductImageInput } from "../types";
 import { uploadProductImage } from "../../storage-api";
 
+const MAX_PRODUCT_IMAGES = 12;
+
 type ImageUploadZoneProps = {
   images: ProductImageInput[];
   onChange: (images: ProductImageInput[]) => void;
@@ -32,13 +34,21 @@ export function ImageUploadZone({ images, onChange, folder, disabled, disabledMe
   const sensors = useSensors(useSensor(PointerSensor));
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const remainingSlots = Math.max(MAX_PRODUCT_IMAGES - images.length, 0);
+  const isLimitReached = remainingSlots === 0;
+  const isDisabled = isUploading || disabled || isLimitReached;
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "image/*": [] },
     multiple: true,
-    disabled: isUploading || disabled,
+    disabled: isDisabled,
     onDrop: async (files) => {
       if (!files.length) {
+        return;
+      }
+
+      if (isLimitReached) {
+        setError(`Можно загрузить не больше ${MAX_PRODUCT_IMAGES} фото.`);
         return;
       }
 
@@ -48,8 +58,9 @@ export function ImageUploadZone({ images, onChange, folder, disabled, disabledMe
       try {
         const validFiles: File[] = [];
         let hasInvalidRatio = false;
+        const hasOverflow = files.length > remainingSlots;
 
-        for (const file of files) {
+        for (const file of files.slice(0, remainingSlots)) {
           const isValid = await new Promise<boolean>((resolve) => {
             const img = new Image();
             img.onload = () => {
@@ -73,8 +84,20 @@ export function ImageUploadZone({ images, onChange, folder, disabled, disabledMe
           }
         }
 
+        const notices: string[] = [];
+
+        if (hasOverflow) {
+          notices.push(
+            `Можно загрузить не больше ${MAX_PRODUCT_IMAGES} фото. Лишние файлы не были добавлены.`,
+          );
+        }
+
         if (hasInvalidRatio) {
-          setError("Некоторые фото имеют формат 16:9 и не были загружены.");
+          notices.push("Некоторые фото имеют формат 16:9 и не были загружены.");
+        }
+
+        if (notices.length > 0) {
+          setError(notices.join(" "));
         }
 
         if (validFiles.length === 0) {
@@ -162,13 +185,15 @@ export function ImageUploadZone({ images, onChange, folder, disabled, disabledMe
         })}
       >
         <input {...getInputProps()} />
-        <UploadCloud aria-hidden="true" style={{ opacity: disabled ? 0.5 : 1 }} />
+        <UploadCloud aria-hidden="true" style={{ opacity: isDisabled ? 0.5 : 1 }} />
         <span>
           {disabled
             ? disabledMessage || "Загрузка недоступна"
+            : isLimitReached
+              ? `Достигнут лимит: ${MAX_PRODUCT_IMAGES} фото`
             : isUploading
               ? "Загрузка..."
-              : "Перетащите фото или выберите файлы"}
+              : `Перетащите фото или выберите файлы. Осталось: ${remainingSlots}`}
         </span>
       </div>
 
@@ -255,11 +280,13 @@ function SortableImage({
 }
 
 function normalizeImages(images: ProductImageInput[]) {
-  const normalizedImages = images.map((image, index) => ({
-    ...image,
-    isMain: image.isMain,
-    sortOrder: index,
-  }));
+  const normalizedImages = images
+    .slice(0, MAX_PRODUCT_IMAGES)
+    .map((image, index) => ({
+      ...image,
+      isMain: image.isMain,
+      sortOrder: index,
+    }));
 
   if (
     normalizedImages.length > 0 &&

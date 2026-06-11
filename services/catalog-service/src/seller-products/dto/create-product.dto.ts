@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -43,18 +44,18 @@ export class CreateProductDto {
     description:
       'Unique seller SKU. Letters, digits, dots, underscores and hyphens are allowed.',
     minLength: 2,
-    maxLength: 64,
+    maxLength: 20,
   })
   @IsString()
   @MinLength(2)
-  @MaxLength(64)
+  @MaxLength(20)
   @Matches(/^[A-Za-zА-Яа-яЁё0-9._-]+$/)
   sku: string;
 
-  @ApiProperty({ example: 'Wireless keyboard', minLength: 2, maxLength: 160 })
+  @ApiProperty({ example: 'Wireless keyboard', minLength: 2, maxLength: 60 })
   @IsString()
   @MinLength(2)
-  @MaxLength(160)
+  @MaxLength(60)
   name: string;
 
   @ApiPropertyOptional({
@@ -90,6 +91,7 @@ export class CreateProductDto {
   @ApiPropertyOptional({ type: [ProductImageDto] })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(12)
   @ValidateNested({ each: true })
   @Type(() => ProductImageDto)
   images?: ProductImageDto[];
