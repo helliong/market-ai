@@ -132,6 +132,16 @@ export function ProductModal({
           </label>
 
           <label>
+            Старая цена
+            <input
+              inputMode="numeric"
+              value={form.oldPrice}
+              onChange={(event) => onChange({ ...form, oldPrice: formatIntegerInput(event.target.value) })}
+              placeholder="149 990"
+            />
+          </label>
+
+          <label>
             {t("stock")}
             <input
               inputMode="numeric"
