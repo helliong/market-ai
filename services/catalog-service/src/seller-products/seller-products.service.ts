@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthProfileService } from './auth-profile.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { productCategories } from './product-categories';
+import { productCategories, getMainCategoryBySubcategory } from './product-categories';
 import {
   buildProductTemplateWorkbook,
   isTemplateAction,
@@ -57,6 +57,7 @@ export class SellerProductsService {
           sku: product.sku,
           name: product.name,
           description: product.description,
+          mainCategory: getMainCategoryBySubcategory(product.category),
           category: product.category,
           price: product.price.toNumber(),
           oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,

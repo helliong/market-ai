@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { CheckCircle2, Download, FileUp, Plus, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
-import { productCategories } from "../product-categories";
+import { productCategoriesTree, productMainCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
 import type { Product, ProductStatus } from "../types";
 
@@ -187,10 +187,14 @@ export function ProductsPage({
             onChange={(event) => updateFilter("category", event.target.value)}
           >
             <option value="">Все категории</option>
-            {productCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
+            {productMainCategories.map((mainCat) => (
+              <optgroup key={mainCat} label={mainCat}>
+                {productCategoriesTree[mainCat].map((subCat) => (
+                  <option key={subCat} value={subCat}>
+                    {subCat}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

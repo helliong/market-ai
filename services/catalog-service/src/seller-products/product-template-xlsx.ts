@@ -1,11 +1,16 @@
 import { inflateRawSync } from 'node:zlib';
-import { productCategories } from './product-categories';
+import {
+  productCategories,
+  productMainCategories,
+  productCategoriesTree,
+} from './product-categories';
 import { productStatuses, type ProductStatus } from './dto/create-product.dto';
 
 export type ProductTemplateRow = {
   sku: string;
   name: string;
   description: string;
+  mainCategory?: string;
   category: string;
   price: number;
   oldPrice?: number;
@@ -68,6 +73,16 @@ export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
     <sheet name="Products" sheetId="1" r:id="rId1"/>
     <sheet name="Categories" sheetId="2" r:id="rId2"/>
   </sheets>
+  <definedNames>
+${productMainCategories
+  .map((mainCat, idx) => {
+    const subcats = productCategoriesTree[mainCat];
+    const colName = String.fromCharCode(66 + idx);
+    const rangeName = mainCat.replace(/[\s\-]/g, '_').replace(/^[0-9]/, '_$&');
+    return `    <definedName name="${rangeName}">Categories!$${colName}$2:$${colName}$${subcats.length + 1}</definedName>`;
+  })
+  .join('\n')}
+  </definedNames>
 </workbook>`),
   );
   files.set(
@@ -112,13 +127,14 @@ export function parseProductWorkbook(buffer: Buffer) {
     const rowNumber = index + 2;
     const sku = stringValue(row.A).trim();
     const name = stringValue(row.B).trim();
-    const category = stringValue(row.C).trim();
-    const price = parseNumber(row.D);
-    const oldPrice = parseNumber(row.E);
-    const stock = parseNumber(row.F);
-    const status = stringValue(row.G).trim() || 'active';
-    const description = stringValue(row.H).trim();
-    const action = stringValue(row.I).trim().toLowerCase();
+    const mainCategory = stringValue(row.C).trim();
+    const category = stringValue(row.D).trim();
+    const price = parseNumber(row.E);
+    const oldPrice = parseNumber(row.F);
+    const stock = parseNumber(row.G);
+    const status = stringValue(row.H).trim() || 'active';
+    const description = stringValue(row.I).trim();
+    const action = stringValue(row.J).trim().toLowerCase();
 
     if (!sku && !name && !category && price === 0 && stock === 0 && !action) {
       return [];
@@ -145,7 +161,8 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
   const headers = [
     'SKU',
     'Название',
-    'Категория',
+    'Основная категория',
+    'Подкатегория',
     'Цена',
     'Старая цена',
     'Остаток',
@@ -165,49 +182,85 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
       return `<row r="${row}">${[
         inlineCell(`A${row}`, product.sku, 2),
         inlineCell(`B${row}`, product.name, 2),
-        inlineCell(`C${row}`, product.category, 2),
-        numberCell(`D${row}`, product.price, 2),
-        product.oldPrice ? numberCell(`E${row}`, product.oldPrice, 2) : inlineCell(`E${row}`, '', 2),
-        numberCell(`F${row}`, product.stock, 2),
-formulaStrCell(`G${row}`, `IF(F${row}=0,"draft","active")`, product.status, 2),
-        inlineCell(`H${row}`, product.description, 2),
-        inlineCell(`I${row}`, product.action ?? '', 2),
+        inlineCell(`C${row}`, product.mainCategory ?? '', 2),
+        inlineCell(`D${row}`, product.category, 2),
+        numberCell(`E${row}`, product.price, 2),
+        product.oldPrice
+          ? numberCell(`F${row}`, product.oldPrice, 2)
+          : inlineCell(`F${row}`, '', 2),
+        numberCell(`G${row}`, product.stock, 2),
+        formulaStrCell(
+          `H${row}`,
+          `IF(G${row}=0,"draft","active")`,
+          product.status,
+          2,
+        ),
+        inlineCell(`I${row}`, product.description, 2),
+        inlineCell(`J${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:I500"/>
+  <dimension ref="A1:J500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="26" customWidth="1"/><col min="4" max="5" width="14" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="44" customWidth="1"/><col min="9" max="9" width="16" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="10" width="16" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
-  <dataValidations count="6">
-    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$${productCategories.length + 1}</formula1></dataValidation>
-    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>1</formula1></dataValidation>
-    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="E2:E500"><formula1>1</formula1></dataValidation>
-    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="F2:F500"><formula1>0</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>"active,draft,archived"</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="I2:I500"><formula1>"delete"</formula1></dataValidation>
+  <dataValidations count="7">
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$${productMainCategories.length + 1}</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>INDIRECT(SUBSTITUTE(SUBSTITUTE($C2, " ", "_"), "-", "_"))</formula1></dataValidation>
+    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="E2:E500"><formula1>1</formula1></dataValidation>
+    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="F2:F500"><formula1>1</formula1></dataValidation>
+    <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>0</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="H2:H500"><formula1>"active,draft,archived"</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="J2:J500"><formula1>"delete"</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }
 
 function buildCategoriesSheet() {
-  const rows = [
-    `<row r="1">${inlineCell('A1', 'Категория', 1)}${inlineCell('B1', 'Используйте одно из этих значений в колонке Категория', 1)}</row>`,
-    ...productCategories.map((category, index) => {
-      const row = index + 2;
-      return `<row r="${row}">${inlineCell(`A${row}`, category, 2)}</row>`;
-    }),
-  ].join('');
+  const rowsXml: string[] = [];
+  
+  let headerRow = `<row r="1">${inlineCell('A1', 'Основная категория', 1)}`;
+  productMainCategories.forEach((mainCat, idx) => {
+    headerRow += inlineCell(`${String.fromCharCode(66 + idx)}1`, mainCat, 1);
+  });
+  headerRow += '</row>';
+  rowsXml.push(headerRow);
+
+  let maxRows = productMainCategories.length;
+  for (const mainCat of productMainCategories) {
+    if (productCategoriesTree[mainCat].length > maxRows) {
+      maxRows = productCategoriesTree[mainCat].length;
+    }
+  }
+
+  for (let i = 0; i < maxRows; i++) {
+    const rowNum = i + 2;
+    let rowContent = `<row r="${rowNum}">`;
+    
+    if (i < productMainCategories.length) {
+      rowContent += inlineCell(`A${rowNum}`, productMainCategories[i], 2);
+    }
+    
+    productMainCategories.forEach((mainCat, idx) => {
+      const subcats = productCategoriesTree[mainCat];
+      if (i < subcats.length) {
+         const colName = String.fromCharCode(66 + idx);
+         rowContent += inlineCell(`${colName}${rowNum}`, subcats[i], 2);
+      }
+    });
+    rowContent += '</row>';
+    rowsXml.push(rowContent);
+  }
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:B${productCategories.length + 1}"/>
+  <dimension ref="A1:${String.fromCharCode(65 + productMainCategories.length)}${maxRows + 1}"/>
   <sheetViews><sheetView workbookViewId="0"/></sheetViews>
-  <cols><col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="58" customWidth="1"/></cols>
-  <sheetData>${rows}</sheetData>
+  <cols><col min="1" max="1" width="30" customWidth="1"/></cols>
+  <sheetData>${rowsXml.join('')}</sheetData>
 </worksheet>`;
 }
 
@@ -437,13 +490,17 @@ function crc32(data: Buffer) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function formulaStrCell(cell: string, formula: string, fallbackValue: string, style = 0) {
+function formulaStrCell(
+  cell: string,
+  formula: string,
+  fallbackValue: string,
+  style = 0,
+) {
   const styleAttr = style ? ` s="${style}"` : '';
   // t="str" означает, что ячейка содержит формулу, возвращающую строку.
   // <f> - сама формула, <v> - кэшированное значение для парсера (до открытия файла в Excel).
   return `<c r="${cell}" t="str"${styleAttr}><f>${encodeXml(formula)}</f><v>${encodeXml(fallbackValue)}</v></c>`;
 }
-
 
 export function isTemplateStatus(value: string): value is ProductStatus {
   return productStatuses.includes(value as ProductStatus);
