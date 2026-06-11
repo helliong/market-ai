@@ -340,11 +340,8 @@ npm run build --prefix services/auth-service
 ### Ближайшие задачи
 
 - Сохранять store settings на backend:
-  - обложка;
-  - описание;
-  - город;
-  - телефон;
-  - публичная почта.
+  -INN
+  -LegalName
 - Добавить реальную загрузку обложки магазина вместо локального preview.
 - Перенести Team and access из локального UI state в backend:
   - приглашения;
