@@ -74,7 +74,8 @@ export function CatalogPage({
         !normalizedQuery ||
         product.title.toLowerCase().includes(normalizedQuery) ||
         product.storeName?.toLowerCase().includes(normalizedQuery) ||
-        product.badge?.toLowerCase().includes(normalizedQuery);
+        product.badge?.toLowerCase().includes(normalizedQuery) ||
+        product.category?.toLowerCase().includes(normalizedQuery);
       const matchesDiscount = !onlyDiscounts || Boolean(product.oldPrice);
       const matchesDelivery = !fastDelivery || product.rating >= 4.7;
 

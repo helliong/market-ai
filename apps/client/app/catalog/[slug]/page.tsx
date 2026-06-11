@@ -1,7 +1,6 @@
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { Header } from "@/components/layout/Header";
 import {
-  getCatalogSearchQuery,
   getCatalogTitleFromSlug,
 } from "@/lib/catalog-slug";
 import { getCatalogProducts } from "@/lib/catalog-products";
@@ -12,7 +11,7 @@ type CatalogSubcategoryRouteProps = {
   }>;
 };
 
-// Маршрут подкатегории превращает slug из URL в поисковый запрос для каталога.
+// Маршрут подкатегории отображает товары выбранной подкатегории.
 export default async function CatalogSubcategoryRoute({
   params,
 }: CatalogSubcategoryRouteProps) {
@@ -25,7 +24,7 @@ export default async function CatalogSubcategoryRoute({
       <Header />
       <CatalogPage
         initialCategory={1}
-        initialQuery={getCatalogSearchQuery(subcategoryTitle)}
+        initialQuery=""
         initialSubcategory={subcategoryTitle}
         initialProducts={products}
       />
