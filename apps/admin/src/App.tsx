@@ -362,7 +362,7 @@ function App() {
         description,
         category,
         price: String(price),
-        oldPrice: oldPrice ? String(oldPrice) : undefined,
+        oldPrice: oldPrice ? String(oldPrice) : "",
         stock: String(stock),
         status: productForm.status,
         images: productForm.images.map((image, index) => ({

@@ -58,6 +58,18 @@ export function getSellerProducts() {
   return catalogRequest<Product[]>("/seller/products");
 }
 
+export function searchSellerProducts(query: string) {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return getSellerProducts();
+  }
+
+  return catalogRequest<Product[]>(
+    `/seller/products/search?q=${encodeURIComponent(normalizedQuery)}`,
+  );
+}
+
 export function createSellerProduct(form: ProductForm) {
   return catalogRequest<Product>("/seller/products", {
     method: "POST",
