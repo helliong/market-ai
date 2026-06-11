@@ -169,7 +169,7 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
         numberCell(`D${row}`, product.price, 2),
         product.oldPrice ? numberCell(`E${row}`, product.oldPrice, 2) : inlineCell(`E${row}`, '', 2),
         numberCell(`F${row}`, product.stock, 2),
-        inlineCell(`G${row}`, product.status, 2),
+formulaStrCell(`G${row}`, `IF(F${row}=0,"draft","active")`, product.status, 2),
         inlineCell(`H${row}`, product.description, 2),
         inlineCell(`I${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
@@ -436,6 +436,14 @@ function crc32(data: Buffer) {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
+
+function formulaStrCell(cell: string, formula: string, fallbackValue: string, style = 0) {
+  const styleAttr = style ? ` s="${style}"` : '';
+  // t="str" означает, что ячейка содержит формулу, возвращающую строку.
+  // <f> - сама формула, <v> - кэшированное значение для парсера (до открытия файла в Excel).
+  return `<c r="${cell}" t="str"${styleAttr}><f>${encodeXml(formula)}</f><v>${encodeXml(fallbackValue)}</v></c>`;
+}
+
 
 export function isTemplateStatus(value: string): value is ProductStatus {
   return productStatuses.includes(value as ProductStatus);
