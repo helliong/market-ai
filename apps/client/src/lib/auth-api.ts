@@ -159,6 +159,8 @@ export type PublicStoreProfile = {
   storeName: string;
   description: string | null;
   city: string | null;
+  coverUrl: string | null;
+  avatarUrl: string | null;
   createdAt: string;
 };
 

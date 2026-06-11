@@ -566,6 +566,7 @@ export class AuthService {
         legalName: true,
         inn: true,
         phone: true,
+        coverUrl: true,
         legalProfile: true,
         createdAt: true,
         updatedAt: true,
@@ -605,6 +606,7 @@ export class AuthService {
         ...(dto.city !== undefined && { city: dto.city }),
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.email !== undefined && { email: dto.email }),
+        ...(dto.coverUrl !== undefined && { coverUrl: dto.coverUrl }),
       },
       select: {
         id: true,
@@ -623,6 +625,7 @@ export class AuthService {
         legalName: true,
         inn: true,
         phone: true,
+        coverUrl: true,
         legalProfile: true,
         createdAt: true,
         updatedAt: true,
@@ -1221,6 +1224,7 @@ export class AuthService {
         storeName: true,
         description: true,
         city: true,
+        coverUrl: true,
         createdAt: true,
       },
     });

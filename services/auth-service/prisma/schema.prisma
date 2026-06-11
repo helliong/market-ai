@@ -86,6 +86,8 @@ model UserSeller {
   phone               String?
   description         String?
   city                String?
+  coverUrl            String?
+  avatarUrl           String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 

@@ -22,6 +22,7 @@ import type {
   SellerLegalProfilePayload,
   SellerProfile,
 } from "../../auth-api";
+import { uploadProductImage } from "../../storage-api";
 
 type TeamMemberRole = "owner" | "manager" | "operator" | "viewer";
 type TeamMemberStatus = "active" | "invited";
@@ -44,7 +45,7 @@ type SettingsPageProps = {
   storeName: string;
   sellerProfile: SellerProfile | null;
   onStoreNameChange: (storeName: string) => void;
-  onSaveProfile: (payload: { storeName: string; description: string; city: string; phone: string; email: string }) => Promise<void>;
+  onSaveProfile: (payload: { storeName: string; description: string; city: string; phone: string; email: string; coverUrl?: string; avatarUrl?: string }) => Promise<void>;
   onSaveLegalProfile: (payload: SellerLegalProfilePayload) => Promise<void>;
   onSubmitLegalProfile: () => Promise<void>;
   onDeactivateStore: () => void;
@@ -79,6 +80,8 @@ export function SettingsPage({
     city: sellerProfile?.city ?? "",
     phone: sellerProfile?.phone ?? "",
     email: sellerProfile?.ownerEmail ?? "",
+    coverUrl: sellerProfile?.coverUrl ?? "",
+    avatarUrl: sellerProfile?.avatarUrl ?? "",
   });
   const [legal, setLegal] = useState({
     businessType: sellerProfile?.legalProfile?.businessType ?? "individual",
@@ -89,7 +92,7 @@ export function SettingsPage({
     iban: sellerProfile?.legalProfile?.iban ?? "",
   });
   const [team, setTeam] = useState<TeamMember[]>(initialTeam);
-  const [coverPreview, setCoverPreview] = useState("");
+
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     name: "",
@@ -123,8 +126,10 @@ export function SettingsPage({
       city: sellerProfile?.city ?? current.city,
       email: sellerProfile?.ownerEmail ?? current.email,
       phone: formatPhone(sellerProfile?.phone ?? current.phone),
+      coverUrl: sellerProfile?.coverUrl ?? current.coverUrl,
+      avatarUrl: sellerProfile?.avatarUrl ?? current.avatarUrl,
     }));
-  }, [sellerProfile?.ownerEmail, sellerProfile?.phone, sellerProfile?.description, sellerProfile?.city, storeName]);
+  }, [sellerProfile?.ownerEmail, sellerProfile?.phone, sellerProfile?.description, sellerProfile?.city, sellerProfile?.coverUrl, sellerProfile?.avatarUrl, storeName]);
 
   useEffect(() => {
     setLegal((current) => ({
@@ -177,6 +182,8 @@ export function SettingsPage({
         city: shop.city,
         phone: shop.phone,
         email: shop.email,
+        coverUrl: shop.coverUrl,
+        avatarUrl: shop.avatarUrl,
       });
       onStoreNameChange(nextStoreName);
       showToast(t("settingsSaved"), "success");
@@ -204,9 +211,35 @@ export function SettingsPage({
     }
   }
 
-  function handleCoverChange(file: File | undefined) {
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  async function handleCoverChange(file: File | undefined) {
     if (!file) return;
-    setCoverPreview(URL.createObjectURL(file));
+    setIsUploadingCover(true);
+    try {
+      const publicUrl = await uploadProductImage(file, "stores");
+      setShop((current) => ({ ...current, coverUrl: publicUrl }));
+      showToast(t("settingsSaved") || "Cover uploaded", "success");
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    } finally {
+      setIsUploadingCover(false);
+    }
+  }
+
+  async function handleAvatarChange(file: File | undefined) {
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const publicUrl = await uploadProductImage(file, "stores");
+      setShop((current) => ({ ...current, avatarUrl: publicUrl }));
+      showToast(t("settingsSaved") || "Avatar uploaded", "success");
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   }
 
   function closeInviteModal() {
@@ -288,8 +321,8 @@ export function SettingsPage({
           />
 
           <div className="settings-cover-preview">
-            {coverPreview ? (
-              <img src={coverPreview} alt="" />
+            {shop.coverUrl ? (
+              <img src={shop.coverUrl} alt="" />
             ) : (
               <div>
                 <Upload aria-hidden="true" />
@@ -299,15 +332,63 @@ export function SettingsPage({
             )}
           </div>
 
-          <label className="settings-upload-button">
-            <Upload aria-hidden="true" />
-            {t("settingsCoverUpload")}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => handleCoverChange(event.target.files?.[0])}
-            />
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="settings-upload-button">
+              <Upload aria-hidden="true" />
+              {isUploadingCover ? t("loading") : t("settingsCoverUpload")}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isUploadingCover}
+                onChange={(event) => handleCoverChange(event.target.files?.[0])}
+              />
+            </label>
+            {shop.coverUrl && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setShop((current) => ({ ...current, coverUrl: "" }))}
+                title={t("delete")}
+              >
+                <Trash2 aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          <div style={{ marginTop: '2rem' }}></div>
+
+          <div className="settings-cover-preview" style={{ height: '100px', width: '100px', borderRadius: '50%', overflow: 'hidden' }}>
+            {shop.avatarUrl ? (
+              <img src={shop.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: 'var(--bg-muted)' }}>
+                <Upload aria-hidden="true" style={{ width: '20px', height: '20px', marginBottom: '4px' }} />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2" style={{ marginTop: '1rem' }}>
+            <label className="settings-upload-button" style={{ width: 'fit-content', margin: 0 }}>
+              <Upload aria-hidden="true" />
+              {isUploadingAvatar ? t("loading") : "Add avatar"}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isUploadingAvatar}
+                onChange={(event) => handleAvatarChange(event.target.files?.[0])}
+              />
+            </label>
+            {shop.avatarUrl && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setShop((current) => ({ ...current, avatarUrl: "" }))}
+                title={t("delete")}
+              >
+                <Trash2 aria-hidden="true" />
+              </button>
+            )}
+          </div>
 
           <div className="settings-form-grid">
             <label>

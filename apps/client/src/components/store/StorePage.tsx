@@ -108,6 +108,9 @@ export function StorePage({ storeName, storeProfile }: StorePageProps) {
           className="relative min-h-[180px] p-5 text-white md:min-h-[240px] md:p-8"
           style={{ background: heroBackground }}
         >
+          {storeProfile?.coverUrl && (
+            <img src={storeProfile.coverUrl} className="absolute inset-0 w-full h-full object-cover" alt={storeName} />
+          )}
           <div className="absolute inset-0 bg-black/38" />
           <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="relative z-10 flex h-full min-h-[140px] flex-col justify-between gap-8 md:min-h-[188px]">
@@ -124,8 +127,12 @@ export function StorePage({ storeName, storeProfile }: StorePageProps) {
 
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div className="flex items-end gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] border border-white/35 bg-white text-3xl font-black text-[#6D4AFF] shadow-[0_18px_45px_rgba(15,23,42,0.18)] md:h-24 md:w-24">
-                  {storeName.charAt(0).toUpperCase()}
+                <div className="relative overflow-hidden flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] border border-white/35 bg-white text-3xl font-black text-[#6D4AFF] shadow-[0_18px_45px_rgba(15,23,42,0.18)] md:h-24 md:w-24">
+                  {storeProfile?.avatarUrl ? (
+                    <img src={storeProfile.avatarUrl} className="absolute inset-0 w-full h-full object-cover" alt={storeName} />
+                  ) : (
+                    storeName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="rounded-[24px] bg-black/28 p-4 backdrop-blur-sm md:bg-black/20">
                   <h1 className="text-3xl font-black tracking-[-0.04em] text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.55)] md:text-5xl">

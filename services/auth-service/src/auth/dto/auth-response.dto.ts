@@ -209,6 +209,12 @@ export class SellerProfileResponseDto {
   @ApiPropertyOptional({ example: '+79991234567', nullable: true })
   phone!: string | null;
 
+  @ApiPropertyOptional({ example: 'https://storage/cover.jpg', nullable: true })
+  coverUrl!: string | null;
+
+  @ApiPropertyOptional({ example: 'https://storage/avatar.jpg', nullable: true })
+  avatarUrl!: string | null;
+
   @ApiPropertyOptional({
     type: SellerLegalProfileResponseDto,
     nullable: true,

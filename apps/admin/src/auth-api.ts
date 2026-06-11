@@ -74,6 +74,8 @@ export type SellerProfile = {
   legalName: string | null;
   inn: string | null;
   phone: string | null;
+  coverUrl: string | null;
+  avatarUrl: string | null;
   legalProfile: SellerLegalProfile | null;
   createdAt: string;
   updatedAt: string;
@@ -175,6 +177,8 @@ export type UpdateSellerProfilePayload = {
   city?: string;
   phone?: string;
   email?: string;
+  coverUrl?: string;
+  avatarUrl?: string;
 };
 
 // Обновляет базовые данные профиля продавца

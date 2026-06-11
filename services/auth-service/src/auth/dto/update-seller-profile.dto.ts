@@ -31,4 +31,14 @@ export class UpdateSellerProfileDto {
   @IsOptional()
   @MaxLength(100)
   email?: string;
+
+  @ApiProperty({ required: false, example: 'https://storage/cover.jpg' })
+  @IsString()
+  @IsOptional()
+  coverUrl?: string;
+
+  @ApiProperty({ required: false, example: 'https://storage/avatar.jpg' })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }
