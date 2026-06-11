@@ -48,6 +48,7 @@ export type ApiOrderItem = {
   id: string;
   productId: number;
   sellerId: string;
+  storeNameSnapshot?: string | null;
   productTitleSnapshot: string;
   productPriceSnapshot: string;
   quantity: number;

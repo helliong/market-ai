@@ -110,6 +110,7 @@ model OrderItem {
   orderId              String  @map("order_id") @db.Uuid
   productId            Int     @map("product_id")
   sellerId             String  @map("seller_id")
+  storeNameSnapshot    String? @map("store_name_snapshot")
   productTitleSnapshot String  @map("product_title_snapshot")
   productPriceSnapshot Decimal @map("product_price_snapshot") @db.Decimal(12, 2)
   quantity             Int

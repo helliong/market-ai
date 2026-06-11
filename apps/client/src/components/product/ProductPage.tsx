@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  CheckCircle2,
   Heart,
   Minus,
   Plus,
-  RotateCcw,
   Scale,
   ShieldCheck,
   ShoppingCart,
   Star,
-  Truck,
 } from "lucide-react";
 import { addToCart, decreaseQuantity, increaseQuantity } from "@/store/cartSlice";
 import { toggleCompare } from "@/store/compareSlice";
@@ -200,12 +197,6 @@ export function ProductPage({ product }: ProductPageProps) {
             <button type="button" onClick={() => dispatch(toggleFavorite(product.id))} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isFavorite ? "bg-[#FEF2F2] text-[#EF4444]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#EF4444]"}`}><Heart size={18} className={isFavorite ? "fill-[#EF4444]" : undefined} /> {t("addToFavorites")}</button>
             <button type="button" onClick={() => dispatch(toggleCompare(product.id))} disabled={isCompareDisabled} title={isCompareDisabled ? "В сравнении может быть не больше 6 товаров" : "Добавить в сравнение"} className={`flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-bold transition ${isCompared ? "bg-[#F1EDFF] text-[#6D4AFF]" : "bg-[#F6F7FB] text-[#111827] hover:text-[#6D4AFF] disabled:opacity-50"}`}><Scale size={18} /> {t("addToCompare")}</button>
           </div>
-          <div className="mt-6 space-y-3 rounded-[24px] bg-[#F6F7FB] p-5">
-            <ProductBenefit icon={<Truck size={20} />} label={t("fastDelivery")} />
-            <ProductBenefit icon={<ShieldCheck size={20} />} label={t("officialWarranty")} />
-            <ProductBenefit icon={<RotateCcw size={20} />} label={t("easyReturn")} />
-          </div>
-
           {product.storeName && (
             <Link href={`/stores/${getStoreSlug(product.storeName)}`} className="mt-4 flex items-center gap-3 rounded-[24px] border border-[#E5E7EB] bg-white p-5 transition hover:border-[#6D4AFF] hover:bg-[#F8F7FF]">
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#111827] text-base font-black text-[#6D4AFF]">
@@ -256,9 +247,3 @@ export function ProductPage({ product }: ProductPageProps) {
   );
 }
 
-// Небольшой бейдж преимущества товара, например доставка или гарантия.
-function ProductBenefit({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm font-bold text-[#111827]"><span className="text-[#6D4AFF]">{icon}</span><span className="flex-1">{label}</span><CheckCircle2 size={18} className="text-[#22C55E]" /></div>
-  );
-}

@@ -78,6 +78,7 @@ type StatusTransitionOrder = {
 type CatalogProductResponse = {
   id: number;
   sellerId: string;
+  storeName: string;
   name: string;
   price: number | string;
 };
@@ -85,6 +86,7 @@ type CatalogProductResponse = {
 type ResolvedCheckoutItem = {
   productId: number;
   sellerId: string;
+  storeName: string;
   title: string;
   price: Prisma.Decimal;
   quantity: number;
@@ -209,6 +211,7 @@ export class OrdersService {
             create: input.resolvedItems.map((item) => ({
               productId: item.productId,
               sellerId: item.sellerId,
+              storeNameSnapshot: item.storeName,
               productTitleSnapshot: item.title,
               productPriceSnapshot: item.price,
               quantity: item.quantity,
@@ -698,6 +701,7 @@ export class OrdersService {
         return {
           productId: product.id,
           sellerId: product.sellerId,
+          storeName: product.storeName,
           title: product.name,
           price,
           quantity,
@@ -1004,6 +1008,8 @@ function isCatalogProduct(
     typeof (product as CatalogProductResponse).id === 'number' &&
     typeof (product as CatalogProductResponse).sellerId === 'string' &&
     (product as CatalogProductResponse).sellerId.trim() &&
+    typeof (product as CatalogProductResponse).storeName === 'string' &&
+    (product as CatalogProductResponse).storeName.trim() &&
     typeof (product as CatalogProductResponse).name === 'string' &&
     (typeof (product as CatalogProductResponse).price === 'number' ||
       typeof (product as CatalogProductResponse).price === 'string'),

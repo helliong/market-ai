@@ -231,7 +231,10 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 );
                 const imageUrl = getMainProductImageUrl(catalogProduct?.images);
                 const cartItem = cartItems.find((c) => c.id === item.productId);
-                const storeName = catalogProduct?.storeName || "МАГАЗИН";
+                const storeName =
+                  item.storeNameSnapshot?.trim() ||
+                  catalogProduct?.storeName ||
+                  "МАГАЗИН";
                 return (
                   <div key={item.id} className="flex gap-4">
                     <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF] shadow-inner sm:h-24 sm:w-24">
