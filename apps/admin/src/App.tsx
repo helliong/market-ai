@@ -311,6 +311,7 @@ function App() {
       description: product.description,
       category: product.category,
       price: formatMaskedNumber(product.price),
+      oldPrice: product.oldPrice ? formatMaskedNumber(product.oldPrice) : "",
       stock: formatMaskedNumber(product.stock),
       status: product.status,
       images: (product.images ?? []).map((image, index) => ({
@@ -335,6 +336,7 @@ function App() {
     const description = productForm.description.trim();
     const category = productForm.category.trim();
     const price = parseMaskedNumber(productForm.price);
+    const oldPrice = productForm.oldPrice ? parseMaskedNumber(productForm.oldPrice) : undefined;
     const stock = parseMaskedNumber(productForm.stock);
     if (!sku || !name || !category || price <= 0 || stock < 0) {
       setDialog({
@@ -360,6 +362,7 @@ function App() {
         description,
         category,
         price: String(price),
+        oldPrice: oldPrice ? String(oldPrice) : "",
         stock: String(stock),
         status: productForm.status,
         images: productForm.images.map((image, index) => ({

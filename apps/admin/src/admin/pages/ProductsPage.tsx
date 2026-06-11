@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Download, FileUp, Plus, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatCurrency, productStatusLabel } from "../formatters";
-import { productCategories } from "../product-categories";
+import { productCategoriesTree, productMainCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
+import { searchSellerProducts } from "../../catalog-api";
 import type { Product, ProductStatus } from "../types";
 
 type ProductsPageProps = {
@@ -57,11 +58,64 @@ export function ProductsPage({
     message: string;
     variant: "success" | "error";
   } | null>(null);
+  const [serverSearchProducts, setServerSearchProducts] =
+    useState<Product[]>(products);
+  const [isSearching, setIsSearching] = useState(false);
+  const textSearchQuery = [filters.sku, filters.name]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+  const usesServerSearch = Boolean(textSearchQuery);
+  const productsForFilters = usesServerSearch ? serverSearchProducts : products;
   const filteredProducts = useMemo(
-    () => filterProducts(products, filters),
-    [filters, products],
+    () =>
+      filterProducts(productsForFilters, filters, {
+        skipTextFilters: usesServerSearch,
+      }),
+    [filters, productsForFilters, usesServerSearch],
   );
   const hasActiveFilters = Object.values(filters).some(Boolean);
+
+  useEffect(() => {
+    if (!textSearchQuery) {
+      setServerSearchProducts(products);
+      setIsSearching(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearching(true);
+
+    const timeoutId = window.setTimeout(() => {
+      searchSellerProducts(textSearchQuery)
+        .then((results) => {
+          if (isMounted) {
+            setServerSearchProducts(results);
+          }
+        })
+        .catch((error) => {
+          if (isMounted) {
+            showToast(
+              error instanceof Error
+                ? error.message
+                : "Не удалось выполнить поиск",
+              "error",
+            );
+            setServerSearchProducts([]);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSearching(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [products, textSearchQuery]);
 
   function showToast(message: string, variant: "success" | "error") {
     const id = Date.now();
@@ -187,10 +241,14 @@ export function ProductsPage({
             onChange={(event) => updateFilter("category", event.target.value)}
           >
             <option value="">Все категории</option>
-            {productCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
+            {productMainCategories.map((mainCat) => (
+              <optgroup key={mainCat} label={mainCat}>
+                {productCategoriesTree[mainCat].map((subCat) => (
+                  <option key={subCat} value={subCat}>
+                    {subCat}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
@@ -246,7 +304,9 @@ export function ProductsPage({
         </label>
         <div className="product-filter-summary">
           <span>
-            Найдено {filteredProducts.length} из {products.length}
+            {isSearching
+              ? "Ищем товары..."
+              : `Найдено ${filteredProducts.length} из ${products.length}`}
           </span>
           <button
             type="button"
@@ -268,6 +328,7 @@ export function ProductsPage({
               <th>{t("productListName")}</th>
               <th>{t("productListCategory")}</th>
               <th>{t("productListPrice")}</th>
+              <th>Старая цена</th>
               <th>{t("productListStock")}</th>
               <th>{t("productListStatus")}</th>
               <th>{t("actions")}</th>
@@ -283,6 +344,15 @@ export function ProductsPage({
                 <td>{product.name}</td>
                 <td>{product.category}</td>
                 <td>{formatCurrency(product.price)}</td>
+                <td>
+                  {product.oldPrice ? (
+                    <span style={{ textDecoration: "line-through", color: "var(--text-secondary, #9ca3af)" }}>
+                      {formatCurrency(product.oldPrice)}
+                    </span>
+                  ) : (
+                    <span style={{ opacity: 0.5 }}>—</span>
+                  )}
+                </td>
                 <td>{product.stock}</td>
                 <td>
                   <StatusBadge label={productStatusLabel(product.status)} />
@@ -320,7 +390,11 @@ export function ProductsPage({
   );
 }
 
-function filterProducts(products: Product[], filters: ProductFilters) {
+function filterProducts(
+  products: Product[],
+  filters: ProductFilters,
+  options: { skipTextFilters?: boolean } = {},
+) {
   const sku = normalizeSearch(filters.sku);
   const name = normalizeSearch(filters.name);
   const minPrice = parseFilterNumber(filters.minPrice);
@@ -329,11 +403,11 @@ function filterProducts(products: Product[], filters: ProductFilters) {
   const maxStock = parseFilterNumber(filters.maxStock);
 
   return products.filter((product) => {
-    if (sku && !normalizeSearch(product.sku).includes(sku)) {
+    if (!options.skipTextFilters && sku && !normalizeSearch(product.sku).includes(sku)) {
       return false;
     }
 
-    if (name && !normalizeSearch(product.name).includes(name)) {
+    if (!options.skipTextFilters && name && !normalizeSearch(product.name).includes(name)) {
       return false;
     }
 

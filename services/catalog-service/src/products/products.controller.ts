@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -10,13 +10,18 @@ export class ProductsController {
     return this.productsService.findProducts();
   }
 
-  @Get(':productId')
-  findProduct(@Param('productId', ParseIntPipe) productId: number) {
-    return this.productsService.findProduct(productId);
+  @Get('search')
+  searchProducts(@Query('q') query = '') {
+    return this.productsService.searchProducts(query);
   }
 
   @Get('sku/:sku')
   findProductBySku(@Param('sku') sku: string) {
     return this.productsService.findProductBySku(sku);
+  }
+
+  @Get(':productId')
+  findProduct(@Param('productId', ParseIntPipe) productId: number) {
+    return this.productsService.findProduct(productId);
   }
 }

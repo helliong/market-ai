@@ -10,7 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthProfileService } from './auth-profile.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { productCategories } from './product-categories';
+import { productCategories, getMainCategoryBySubcategory } from './product-categories';
 import {
   buildProductTemplateWorkbook,
   isTemplateAction,
@@ -36,6 +36,59 @@ export class SellerProductsService {
     return products.map((product) => this.toResponse(product));
   }
 
+  async searchSellerProducts(sellerId: string, query: string) {
+    const normalizedQuery = query.trim();
+
+    if (!normalizedQuery) {
+      return this.findSellerProducts(sellerId);
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<{ id: number }>>`
+      SELECT
+        id,
+        GREATEST(
+          similarity("sku", ${normalizedQuery}) * 3.0,
+          similarity("name", ${normalizedQuery}) * 2.8,
+          similarity("category", ${normalizedQuery}) * 1.8,
+          similarity("description", ${normalizedQuery})
+        ) AS score
+      FROM "Product"
+      WHERE "sellerId" = ${sellerId}
+        AND (
+          "sku" % ${normalizedQuery}
+          OR "name" % ${normalizedQuery}
+          OR "category" % ${normalizedQuery}
+          OR "description" % ${normalizedQuery}
+          OR "sku" ILIKE ${`%${normalizedQuery}%`}
+          OR "name" ILIKE ${`%${normalizedQuery}%`}
+          OR "category" ILIKE ${`%${normalizedQuery}%`}
+        )
+      ORDER BY score DESC, "createdAt" DESC
+      LIMIT 120
+    `;
+
+    if (!rows.length) {
+      return [];
+    }
+
+    const orderById = new Map(rows.map((row, index) => [row.id, index]));
+    const products = await this.prisma.product.findMany({
+      where: {
+        sellerId,
+        id: {
+          in: rows.map((row) => row.id),
+        },
+      },
+      include: productWithImages,
+    });
+
+    return products
+      .sort((left, right) => {
+        return (orderById.get(left.id) ?? 0) - (orderById.get(right.id) ?? 0);
+      })
+      .map((product) => this.toResponse(product));
+  }
+
   async buildSellerProductsTemplate(
     sellerId: string,
     cookieHeader: string | undefined,
@@ -57,8 +110,10 @@ export class SellerProductsService {
           sku: product.sku,
           name: product.name,
           description: product.description,
+          mainCategory: getMainCategoryBySubcategory(product.category),
           category: product.category,
           price: product.price.toNumber(),
+          oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,
           stock: product.stock,
           status: product.status as ProductTemplateRow['status'],
         })),
@@ -95,6 +150,7 @@ export class SellerProductsService {
           description: dto.description?.trim() ?? '',
           category: dto.category.trim(),
           price: new Prisma.Decimal(dto.price),
+          oldPrice: dto.oldPrice ? new Prisma.Decimal(dto.oldPrice) : null,
           stock: dto.stock,
           status: dto.status,
           images: {
@@ -136,6 +192,10 @@ export class SellerProductsService {
 
     if (dto.price !== undefined) {
       data.price = new Prisma.Decimal(dto.price);
+    }
+
+    if (dto.oldPrice !== undefined) {
+      data.oldPrice = dto.oldPrice ? new Prisma.Decimal(dto.oldPrice) : null;
     }
 
     if (dto.stock !== undefined) {
@@ -245,6 +305,10 @@ export class SellerProductsService {
         errors.push(`Строка ${row.rowNumber}: цена должна быть больше 0`);
       }
 
+      if (!shouldDelete && row.oldPrice !== undefined && row.oldPrice <= 0) {
+        errors.push(`Строка ${row.rowNumber}: старая цена должна быть больше 0`);
+      }
+
       if (!shouldDelete && (!Number.isInteger(row.stock) || row.stock < 0)) {
         errors.push(
           `Строка ${row.rowNumber}: остаток должен быть целым числом от 0`,
@@ -313,6 +377,7 @@ export class SellerProductsService {
           description: row.description,
           category: row.category,
           price: new Prisma.Decimal(row.price),
+          oldPrice: row.oldPrice ? new Prisma.Decimal(row.oldPrice) : null,
           stock: row.stock,
           status: row.status,
         };
@@ -404,6 +469,7 @@ export class SellerProductsService {
     description: string;
     category: string;
     price: Prisma.Decimal;
+    oldPrice: Prisma.Decimal | null;
     rating: Prisma.Decimal;
     reviews: number;
     stock: number;
@@ -421,6 +487,7 @@ export class SellerProductsService {
     return {
       ...product,
       price: product.price.toNumber(),
+      oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,
       rating: product.rating.toNumber(),
       images: product.images ?? [],
     };

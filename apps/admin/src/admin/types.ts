@@ -21,6 +21,7 @@ export type Product = {
   description: string;
   category: string;
   price: number;
+  oldPrice?: number;
   stock: number;
   status: ProductStatus;
   images: ProductImage[];
@@ -78,6 +79,7 @@ export type ProductForm = {
   description: string;
   category: string;
   price: string;
+  oldPrice: string;
   stock: string;
   status: ProductStatus;
   images: ProductImageInput[];

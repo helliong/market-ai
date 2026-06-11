@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -62,6 +63,23 @@ export class SellerProductsController {
   @ApiOkResponse({ description: 'Current seller products.' })
   findSellerProducts(@Req() req: AuthenticatedRequest) {
     return this.sellerProductsService.findSellerProducts(this.getSellerId(req));
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search current seller products',
+    description:
+      'Returns current seller products matched by SKU, name, category or description with typo tolerance.',
+  })
+  @ApiOkResponse({ description: 'Matched current seller products.' })
+  searchSellerProducts(
+    @Req() req: AuthenticatedRequest,
+    @Query('q') query = '',
+  ) {
+    return this.sellerProductsService.searchSellerProducts(
+      this.getSellerId(req),
+      query,
+    );
   }
 
   @Get('template')

@@ -7,6 +7,7 @@ export const emptyProductForm: ProductForm = {
   description: "",
   category: defaultProductCategory,
   price: "",
+  oldPrice: "",
   stock: "",
   status: "active",
   images: [],

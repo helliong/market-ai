@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { Info } from "lucide-react";
 import type { ProductForm, ProductStatus } from "../types";
-import { productCategories } from "../product-categories";
+import { productCategoriesTree, productMainCategories, getMainCategoryBySubcategory } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
 import { ImageUploadZone } from "./ImageUploadZone";
 import { buildStoreStorageFolder } from "../../storage-paths";
@@ -24,6 +24,16 @@ export function ProductModal({
   onSubmit,
 }: ProductModalProps) {
   const { t } = useLanguage();
+  const [mainCategory, setMainCategory] = useState(() => getMainCategoryBySubcategory(form.category || ""));
+
+  useEffect(() => {
+    if (form.category) {
+      const computedMain = getMainCategoryBySubcategory(form.category);
+      if (computedMain !== mainCategory) {
+        setMainCategory(computedMain);
+      }
+    }
+  }, [form.category, mainCategory]);
 
   useEffect(() => {
     document.body.classList.add("modal-open");
@@ -106,14 +116,32 @@ export function ProductModal({
           </div>
 
           <label>
-            {t("category")}
+            Основная категория
+            <select
+              value={mainCategory}
+              onChange={(event) => {
+                const newMain = event.target.value;
+                setMainCategory(newMain);
+                onChange({ ...form, category: productCategoriesTree[newMain]?.[0] || "" });
+              }}
+            >
+              {productMainCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Подкатегория
             <select
               value={form.category}
               onChange={(event) =>
                 onChange({ ...form, category: event.target.value })
               }
             >
-              {productCategories.map((category) => (
+              {(productCategoriesTree[mainCategory] || []).map((category) => (
                 <option key={category} value={category}>
                   {category}
                 </option>
@@ -128,6 +156,16 @@ export function ProductModal({
               value={form.price}
               onChange={(event) => updatePrice(event.target.value)}
               placeholder="129 990"
+            />
+          </label>
+
+          <label>
+            Старая цена
+            <input
+              inputMode="numeric"
+              value={form.oldPrice}
+              onChange={(event) => onChange({ ...form, oldPrice: formatIntegerInput(event.target.value) })}
+              placeholder="149 990"
             />
           </label>
 

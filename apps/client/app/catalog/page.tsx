@@ -1,6 +1,9 @@
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { Header } from "@/components/layout/Header";
-import { getCatalogProducts } from "@/lib/catalog-products";
+import {
+  getCatalogProducts,
+  searchCatalogProducts,
+} from "@/lib/catalog-products";
 
 type CatalogRouteProps = {
   searchParams: Promise<{
@@ -17,7 +20,9 @@ export default async function Catalog({ searchParams }: CatalogRouteProps) {
   const initialCategory = Number.isFinite(categoryId) ? categoryId : "all";
   const initialQuery = q ?? "";
   const initialSubcategory = subcategory ?? "";
-  const products = await getCatalogProducts();
+  const products = initialQuery.trim()
+    ? await searchCatalogProducts(initialQuery)
+    : await getCatalogProducts();
 
   return (
     <main>

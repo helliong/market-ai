@@ -19,6 +19,63 @@ export class ProductsService {
     return shuffleProducts(products).map((product) => this.toResponse(product));
   }
 
+  async searchProducts(query: string) {
+    const normalizedQuery = query.trim();
+
+    if (!normalizedQuery) {
+      return this.findProducts();
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<{ id: number }>>`
+      SELECT
+        id,
+        GREATEST(
+          similarity("name", ${normalizedQuery}) * 3.0,
+          similarity("sku", ${normalizedQuery}) * 2.6,
+          similarity("category", ${normalizedQuery}) * 2.0,
+          similarity("storeName", ${normalizedQuery}) * 1.8,
+          similarity("description", ${normalizedQuery})
+        ) AS score
+      FROM "Product"
+      WHERE "status" = 'active'
+        AND "storeStatus" = 'ACTIVATED'
+        AND "stock" > 0
+        AND (
+          "name" % ${normalizedQuery}
+          OR "sku" % ${normalizedQuery}
+          OR "category" % ${normalizedQuery}
+          OR "storeName" % ${normalizedQuery}
+          OR "description" % ${normalizedQuery}
+          OR "name" ILIKE ${`%${normalizedQuery}%`}
+          OR "sku" ILIKE ${`%${normalizedQuery}%`}
+          OR "category" ILIKE ${`%${normalizedQuery}%`}
+          OR "storeName" ILIKE ${`%${normalizedQuery}%`}
+        )
+      ORDER BY score DESC, "reviews" DESC, "rating" DESC
+      LIMIT 120
+    `;
+
+    if (!rows.length) {
+      return [];
+    }
+
+    const orderById = new Map(rows.map((row, index) => [row.id, index]));
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: {
+          in: rows.map((row) => row.id),
+        },
+      },
+      include: productWithImages,
+    });
+
+    return products
+      .sort((left, right) => {
+        return (orderById.get(left.id) ?? 0) - (orderById.get(right.id) ?? 0);
+      })
+      .map((product) => this.toResponse(product));
+  }
+
   async findProduct(productId: number) {
     const product = await this.prisma.product.findFirst({
       where: {

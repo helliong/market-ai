@@ -14,7 +14,10 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import { getCatalogQuickPicks, getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
-import type { ClientProduct } from "@/lib/catalog-products";
+import {
+  searchCatalogProducts,
+  type ClientProduct,
+} from "@/lib/catalog-products";
 
 type CatalogPageProps = {
   initialCategory?: number | "all";
@@ -41,6 +44,9 @@ export function CatalogPage({
   const [sort, setSort] = useState<SortMode>("popular");
   const [onlyDiscounts, setOnlyDiscounts] = useState(false);
   const [fastDelivery, setFastDelivery] = useState(false);
+  const [searchProducts, setSearchProducts] =
+    useState<ClientProduct[]>(initialProducts);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const products = useCatalogProducts(initialProducts);
 
   useEffect(() => {
@@ -54,6 +60,8 @@ export function CatalogPage({
 
   const hasSearch = Boolean(searchQuery.trim());
   const isSubcategoryPage = Boolean(initialSubcategory);
+  const usesServerSearch = hasSearch && !isSubcategoryPage;
+  const visibleProducts = usesServerSearch ? searchProducts : products;
   const shouldShowProducts = hasSearch || isSubcategoryPage;
   const activeCategoryId =
     hoveredCategory ?? (selectedCategory === "all" ? categories[0]?.id : selectedCategory);
@@ -63,7 +71,7 @@ export function CatalogPage({
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filtered = products.filter((product) => {
+    const filtered = visibleProducts.filter((product) => {
       const matchesCategory =
         selectedCategory === "all" ||
         product.categoryIds.includes(selectedCategory);
@@ -71,6 +79,7 @@ export function CatalogPage({
         !isSubcategoryPage || 
         product.category?.toLowerCase() === initialSubcategory.toLowerCase();
       const matchesSearch =
+        usesServerSearch ||
         !normalizedQuery ||
         product.title.toLowerCase().includes(normalizedQuery) ||
         product.storeName?.toLowerCase().includes(normalizedQuery) ||
@@ -88,7 +97,39 @@ export function CatalogPage({
       if (sort === "priceDesc") return parseProductPrice(right.price) - parseProductPrice(left.price);
       return right.reviews - left.reviews;
     });
-  }, [fastDelivery, onlyDiscounts, searchQuery, selectedCategory, sort, products, initialSubcategory, isSubcategoryPage]);
+  }, [fastDelivery, onlyDiscounts, searchQuery, selectedCategory, sort, visibleProducts, initialSubcategory, isSubcategoryPage, usesServerSearch]);
+
+  useEffect(() => {
+    const normalizedQuery = searchQuery.trim();
+
+    if (!normalizedQuery || isSubcategoryPage) {
+      setSearchProducts(products);
+      setIsSearchLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearchLoading(true);
+
+    const timeoutId = window.setTimeout(() => {
+      searchCatalogProducts(normalizedQuery)
+        .then((results) => {
+          if (isMounted) {
+            setSearchProducts(results);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSearchLoading(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isSubcategoryPage, products, searchQuery]);
 
   if (shouldShowProducts) {
     return (
@@ -199,7 +240,11 @@ export function CatalogPage({
             </div>
           </aside>
 
-          {filteredProducts.length > 0 ? (
+          {isSearchLoading ? (
+            <div className="flex min-h-[360px] items-center justify-center rounded-[32px] bg-white p-8 text-center font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+              Ищем товары...
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="min-w-0">
               <div className="mb-4 flex justify-start">
                 <label className="inline-flex h-11 w-full items-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:w-[230px]">
@@ -419,7 +464,11 @@ export function CatalogPage({
                   </div>
                 </aside>
 
-                {filteredProducts.length > 0 ? (
+                {isSearchLoading ? (
+                  <div className="flex min-h-[360px] items-center justify-center rounded-[32px] bg-white p-8 text-center font-black text-[#6D4AFF] shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                    Ищем товары...
+                  </div>
+                ) : filteredProducts.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
                     {filteredProducts.map((product) => (
                       <ProductCard key={product.id} {...product} />

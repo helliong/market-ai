@@ -28,6 +28,7 @@ type ApiProduct = {
   description: string;
   category: string;
   price: number;
+  oldPrice?: number | string;
   rating?: number;
   reviews?: number;
   stock: number;
@@ -41,6 +42,19 @@ const CATALOG_API_URL =
 
 export async function getCatalogProducts(): Promise<ClientProduct[]> {
   const apiProducts = await fetchApiProducts();
+  return apiProducts.map(mapApiProduct);
+}
+
+export async function searchCatalogProducts(
+  query: string,
+): Promise<ClientProduct[]> {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return getCatalogProducts();
+  }
+
+  const apiProducts = await fetchApiSearchProducts(normalizedQuery);
   return apiProducts.map(mapApiProduct);
 }
 
@@ -73,6 +87,25 @@ async function fetchApiProducts() {
     const response = await fetch(`${CATALOG_API_URL}/products`, {
       cache: "no-store",
     });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return (await response.json()) as ApiProduct[];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchApiSearchProducts(query: string) {
+  try {
+    const response = await fetch(
+      `${CATALOG_API_URL}/products/search?q=${encodeURIComponent(query)}`,
+      {
+        cache: "no-store",
+      },
+    );
 
     if (!response.ok) {
       return [];
@@ -135,6 +168,7 @@ function mapApiProduct(product: ApiProduct): ClientProduct {
     sku: product.sku,
     title: product.name,
     price: formatPrice(product.price),
+    oldPrice: product.oldPrice ? formatPrice(Number(product.oldPrice)) : undefined,
     rating: product.rating ?? 0,
     reviews: product.reviews ?? 0,
     badge: "New",
