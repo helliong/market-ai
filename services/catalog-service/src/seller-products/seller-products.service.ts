@@ -10,7 +10,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthProfileService } from './auth-profile.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { productCategories, getMainCategoryBySubcategory } from './product-categories';
+import {
+  getMainCategoryBySubcategory,
+  isProductCategory,
+} from './product-categories';
 import {
   buildProductTemplateWorkbook,
   isTemplateAction,
@@ -292,12 +295,7 @@ export class SellerProductsService {
         errors.push(`Строка ${row.rowNumber}: заполните название`);
       }
 
-      if (
-        !shouldDelete &&
-        !productCategories.includes(
-          row.category as (typeof productCategories)[number],
-        )
-      ) {
+      if (!shouldDelete && !isProductCategory(row.category)) {
         errors.push(`Строка ${row.rowNumber}: выберите категорию из шаблона`);
       }
 
@@ -435,11 +433,7 @@ export class SellerProductsService {
   }
 
   private assertValidCategory(category: string) {
-    if (
-      !productCategories.includes(
-        category.trim() as (typeof productCategories)[number],
-      )
-    ) {
+    if (!isProductCategory(category)) {
       throw new BadRequestException('Product category is invalid');
     }
   }

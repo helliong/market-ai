@@ -1,6 +1,6 @@
 import { inflateRawSync } from 'node:zlib';
 import {
-  productCategories,
+  isProductCategory,
   productMainCategories,
   productCategoriesTree,
 } from './product-categories';
@@ -124,37 +124,59 @@ export function parseProductWorkbook(buffer: Buffer) {
   const rows = parseRows(sheet.toString('utf8'), sharedStrings);
 
   return rows.slice(1).flatMap((row, index) => {
-    const rowNumber = index + 2;
-    const sku = stringValue(row.A).trim();
-    const name = stringValue(row.B).trim();
-    const mainCategory = stringValue(row.C).trim();
-    const category = stringValue(row.D).trim();
-    const price = parseNumber(row.E);
-    const oldPrice = parseNumber(row.F);
-    const stock = parseNumber(row.G);
-    const status = stringValue(row.H).trim() || 'active';
-    const description = stringValue(row.I).trim();
-    const action = stringValue(row.J).trim().toLowerCase();
+    const parsedRow = parseProductRow(row, index + 2);
 
-    if (!sku && !name && !category && price === 0 && stock === 0 && !action) {
+    if (
+      !parsedRow.sku &&
+      !parsedRow.name &&
+      !parsedRow.category &&
+      parsedRow.price === 0 &&
+      parsedRow.stock === 0 &&
+      !parsedRow.action
+    ) {
       return [];
     }
 
-    return [
-      {
-        rowNumber,
-        sku,
-        name,
-        category,
-        price,
-        oldPrice: oldPrice === 0 ? undefined : oldPrice,
-        stock,
-        status,
-        description,
-        action,
-      },
-    ];
+    return [parsedRow];
   });
+}
+
+function parseProductRow(row: Record<string, string>, rowNumber: number) {
+  const currentCategory = stringValue(row.D).trim();
+  const legacyCategory = stringValue(row.C).trim();
+
+  if (!isProductCategory(currentCategory) && isProductCategory(legacyCategory)) {
+    const oldPrice = parseNumber(row.F);
+
+    return {
+      rowNumber,
+      sku: stringValue(row.A).trim(),
+      name: stringValue(row.B).trim(),
+      category: legacyCategory,
+      price: parseNumber(row.D),
+      oldPrice: oldPrice === 0 ? undefined : oldPrice,
+      stock: parseNumber(row.E),
+      status: stringValue(row.F).trim() || 'active',
+      description: stringValue(row.G).trim(),
+      action: stringValue(row.H).trim().toLowerCase(),
+    };
+  }
+
+  const oldPrice = parseNumber(row.F);
+
+  return {
+    rowNumber,
+    sku: stringValue(row.A).trim(),
+    name: stringValue(row.B).trim(),
+    mainCategory: legacyCategory,
+    category: currentCategory,
+    price: parseNumber(row.E),
+    oldPrice: oldPrice === 0 ? undefined : oldPrice,
+    stock: parseNumber(row.G),
+    status: stringValue(row.H).trim() || 'active',
+    description: stringValue(row.I).trim(),
+    action: stringValue(row.J).trim().toLowerCase(),
+  };
 }
 
 function buildProductsSheet(products: ProductTemplateRow[]) {

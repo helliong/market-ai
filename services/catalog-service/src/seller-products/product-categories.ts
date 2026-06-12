@@ -81,13 +81,46 @@ export const productCategoriesTree: Record<string, string[]> = {
 };
 
 export const productMainCategories = Object.keys(productCategoriesTree) as readonly string[];
-export const productCategories = Object.values(productCategoriesTree).flat() as readonly string[];
+
+const legacyProductCategories = [
+  'Аудиотехника',
+  'Компьютеры и периферия',
+  'Умный дом',
+  'ТВ и видеотехника',
+] as const;
+
+export const productCategories = [
+  ...Object.values(productCategoriesTree).flat(),
+  ...productMainCategories,
+  ...legacyProductCategories,
+] as readonly string[];
+
+export function isProductCategory(category: string): boolean {
+  return productCategories.includes(
+    category.trim() as (typeof productCategories)[number],
+  );
+}
 
 export function getMainCategoryBySubcategory(subcategory: string): string {
+  const normalizedSubcategory = subcategory.trim();
+
+  if (productMainCategories.includes(normalizedSubcategory)) {
+    return normalizedSubcategory;
+  }
+
   for (const [mainCat, subCats] of Object.entries(productCategoriesTree)) {
-    if (subCats.includes(subcategory)) {
+    if (subCats.includes(normalizedSubcategory)) {
       return mainCat;
     }
   }
+
+  if (
+    legacyProductCategories.includes(
+      normalizedSubcategory as (typeof legacyProductCategories)[number],
+    )
+  ) {
+    return 'Электроника';
+  }
+
   return productMainCategories[0]; // fallback
 }
