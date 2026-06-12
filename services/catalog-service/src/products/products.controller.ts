@@ -15,6 +15,11 @@ export class ProductsController {
     return this.productsService.searchProducts(query);
   }
 
+  @Get('suggests')
+  suggestProducts(@Query('q') query = '') {
+    return this.productsService.suggestProducts(query);
+  }
+
   @Get('sku/:sku')
   findProductBySku(@Param('sku') sku: string) {
     return this.productsService.findProductBySku(sku);

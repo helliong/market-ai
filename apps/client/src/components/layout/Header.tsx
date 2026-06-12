@@ -5,8 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   ChevronRight,
+  Clock3,
   Heart,
   Home,
   Languages,
@@ -31,7 +33,11 @@ import { logoutClient } from "@/lib/auth-api";
 import { fetchOrders, type ApiOrder } from "@/lib/order-api";
 import { getCatalogSections } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
+import { getSearchSuggests } from "@/lib/catalog-products";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+
+const SEARCH_HISTORY_STORAGE_KEY = "marketai-search-history";
+const SEARCH_HISTORY_LIMIT = 10;
 
 // Header управляет навигацией, поиском, каталогом, профилем и быстрыми действиями магазина.
 export function Header() {
@@ -42,6 +48,7 @@ export function Header() {
   const addressRef = useRef<HTMLDivElement>(null);
   const desktopProfileRef = useRef<HTMLDivElement>(null);
   const mobileProfileRef = useRef<HTMLDivElement>(null);
+  const searchFormRef = useRef<HTMLFormElement>(null);
   const [isAddressOpen, setIsAddressOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -51,6 +58,12 @@ export function Header() {
   );
   const [city, setCity] = useState("Екатеринбург");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [suggests, setSuggests] = useState<string[]>([]);
+  const [isSuggestsOpen, setIsSuggestsOpen] = useState(false);
+  const [isSuggestsLoading, setIsSuggestsLoading] = useState(false);
+  const [activeSuggestIndex, setActiveSuggestIndex] = useState(-1);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
@@ -63,12 +76,45 @@ export function Header() {
   );
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
+  function readSearchHistory() {
+    try {
+      const storedHistory = window.localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY);
+      if (!storedHistory) {
+        return [];
+      }
+
+      const parsedHistory = JSON.parse(storedHistory);
+      if (!Array.isArray(parsedHistory)) {
+        return [];
+      }
+
+      return parsedHistory
+        .filter((item): item is string => typeof item === "string")
+        .slice(0, SEARCH_HISTORY_LIMIT);
+    } catch {
+      return [];
+    }
+  }
+
+  function openSearchPanel() {
+    const storedHistory = readSearchHistory();
+    setSearchHistory(storedHistory);
+
+    if (searchQuery.trim().length >= 2 || storedHistory.length > 0) {
+      setIsSuggestsOpen(true);
+    }
+  }
+
   const mobileNavItemClass = (isActive: boolean) =>
     `relative flex h-12 items-center justify-center rounded-xl px-2 py-2 transition hover:bg-[#6D4AFF] hover:text-white active:bg-[#4F32D9] active:text-white [&>span:last-child]:hidden ${
       isActive
         ? "bg-[#6D4AFF] text-white shadow-[0_10px_24px_rgba(109,74,255,0.26)]"
         : "text-[#6B7280]"
     }`;
+
+  useEffect(() => {
+    setSearchHistory(readSearchHistory());
+  }, []);
 
   useEffect(() => {
     if (!isAddressOpen) return;
@@ -100,6 +146,59 @@ export function Header() {
     return () =>
       document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }, [isProfileOpen]);
+
+  useEffect(() => {
+    if (!isSuggestsOpen) return;
+
+    function handleDocumentPointerDown(event: PointerEvent) {
+      if (searchFormRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      setIsSuggestsOpen(false);
+      setActiveSuggestIndex(-1);
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    return () =>
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+  }, [isSuggestsOpen]);
+
+  useEffect(() => {
+    const normalizedQuery = debouncedSearchQuery.trim();
+
+    if (normalizedQuery.length < 2) {
+      setSuggests([]);
+      setIsSuggestsLoading(false);
+      setActiveSuggestIndex(-1);
+      return;
+    }
+
+    let isCurrent = true;
+    setIsSuggestsLoading(true);
+
+    getSearchSuggests(normalizedQuery)
+      .then((items) => {
+        if (!isCurrent) return;
+        setSuggests(items);
+        setActiveSuggestIndex(-1);
+        setIsSuggestsOpen(document.activeElement === searchFormRef.current?.querySelector("input"));
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setSuggests([]);
+        setActiveSuggestIndex(-1);
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsSuggestsLoading(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [debouncedSearchQuery]);
 
   useEffect(() => {
     let isMounted = true;
@@ -178,11 +277,105 @@ export function Header() {
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const query = searchQuery.trim();
+    submitSearch(searchQuery);
+  }
+
+  function submitSearch(value: string) {
+    const query = value.trim();
+    if (query) {
+      saveSearchHistory(query);
+    }
     setIsAddressOpen(false);
     setIsCatalogOpen(false);
     setIsProfileOpen(false);
+    setIsSuggestsOpen(false);
+    setActiveSuggestIndex(-1);
     router.push(query ? `/catalog?q=${encodeURIComponent(query)}` : "/catalog");
+  }
+
+  function saveSearchHistory(query: string) {
+    setSearchHistory((currentHistory) => {
+      const nextHistory = [
+        query,
+        ...currentHistory.filter(
+          (item) => item.toLowerCase() !== query.toLowerCase(),
+        ),
+      ].slice(0, SEARCH_HISTORY_LIMIT);
+
+      window.localStorage.setItem(
+        SEARCH_HISTORY_STORAGE_KEY,
+        JSON.stringify(nextHistory),
+      );
+
+      return nextHistory;
+    });
+  }
+
+  function clearSearchHistory() {
+    setSearchHistory([]);
+    window.localStorage.removeItem(SEARCH_HISTORY_STORAGE_KEY);
+  }
+
+  function removeSearchHistoryItem(query: string) {
+    setSearchHistory((currentHistory) => {
+      const nextHistory = currentHistory.filter(
+        (item) => item.toLowerCase() !== query.toLowerCase(),
+      );
+
+      if (nextHistory.length > 0) {
+        window.localStorage.setItem(
+          SEARCH_HISTORY_STORAGE_KEY,
+          JSON.stringify(nextHistory),
+        );
+      } else {
+        window.localStorage.removeItem(SEARCH_HISTORY_STORAGE_KEY);
+        setIsSuggestsOpen(searchQuery.trim().length >= 2);
+      }
+
+      return nextHistory;
+    });
+  }
+
+  function selectSuggest(suggest: string) {
+    setSearchQuery(suggest);
+    submitSearch(suggest);
+  }
+
+  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (!isSuggestsOpen || (!suggests.length && !isSuggestsLoading)) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestIndex((current) =>
+        suggests.length ? (current + 1) % suggests.length : -1,
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestIndex((current) =>
+        suggests.length
+          ? current <= 0
+            ? suggests.length - 1
+            : current - 1
+          : -1,
+      );
+      return;
+    }
+
+    if (event.key === "Enter" && activeSuggestIndex >= 0) {
+      event.preventDefault();
+      selectSuggest(suggests[activeSuggestIndex]);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsSuggestsOpen(false);
+      setActiveSuggestIndex(-1);
+    }
   }
 
   return (
@@ -291,6 +484,7 @@ export function Header() {
           </div>
 
           <form
+            ref={searchFormRef}
             onSubmit={handleSearchSubmit}
             className="relative order-4 min-w-0 flex-1 xl:order-none xl:w-auto xl:basis-auto"
           >
@@ -300,10 +494,105 @@ export function Header() {
             />
             <input
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setIsSuggestsOpen(event.target.value.trim().length >= 2);
+              }}
+              onFocus={() => {
+                openSearchPanel();
+              }}
+              onClick={openSearchPanel}
+              onKeyDown={handleSearchKeyDown}
               placeholder={t("searchPlaceholder")}
               className="h-12 w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] pl-12 pr-4 text-sm outline-none transition focus:border-[#6D4AFF] focus:bg-white"
             />
+            {isSuggestsOpen &&
+              (isSuggestsLoading ||
+                suggests.length > 0 ||
+                searchHistory.length > 0) && (
+              <div className="absolute left-0 right-0 top-[56px] z-50 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
+                {searchQuery.trim().length < 2 && searchHistory.length > 0 && (
+                  <div className="p-2">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-base font-black text-[#111827]">
+                        История
+                      </h3>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={clearSearchHistory}
+                        className="text-sm font-black text-[#6D4AFF] transition hover:text-[#4F32D9]"
+                      >
+                        Очистить
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {searchHistory.map((historyItem) => (
+                        <button
+                          key={historyItem}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => selectSuggest(historyItem)}
+                          className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold text-[#111827] transition hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F1EDFF] text-[#6D4AFF]">
+                            <Clock3 size={16} />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{historyItem}</span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Удалить "${historyItem}" из истории поиска`}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              removeSearchHistoryItem(historyItem);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                removeSearchHistoryItem(historyItem);
+                              }
+                            }}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#94A3B8] opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
+                          >
+                            <X size={15} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {searchQuery.trim().length >= 2 && isSuggestsLoading && (
+                  <div className="px-4 py-3 text-sm font-semibold text-[#6B7280]">
+                    Ищем подсказки...
+                  </div>
+                )}
+                {searchQuery.trim().length >= 2 &&
+                  !isSuggestsLoading &&
+                  suggests.map((suggest, index) => (
+                    <button
+                      key={suggest}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectSuggest(suggest)}
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold transition ${
+                        activeSuggestIndex === index
+                          ? "bg-[#F1EDFF] text-[#6D4AFF]"
+                          : "text-[#111827] hover:bg-[#F6F7FB] hover:text-[#6D4AFF]"
+                      }`}
+                    >
+                      <Search size={16} className="shrink-0 text-[#6B7280]" />
+                      <span className="min-w-0 truncate">{suggest}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
           </form>
 
           <nav className="order-none ml-auto hidden items-center gap-2 xl:flex">

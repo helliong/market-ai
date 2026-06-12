@@ -26,6 +26,38 @@ export class ProductsService {
       return this.findProducts();
     }
 
+    const queryTokens = getSearchTokens(normalizedQuery);
+    const isSpecificQuery = queryTokens.length > 1;
+    const specificMatchCondition = isSpecificQuery
+      ? Prisma.sql`
+        (
+          "name" ILIKE ${`%${normalizedQuery}%`}
+          OR "sku" ILIKE ${`%${normalizedQuery}%`}
+          OR (
+            ${Prisma.join(
+              queryTokens.map(
+                (token) =>
+                  Prisma.sql`("name" ILIKE ${`%${token}%`} OR "sku" ILIKE ${`%${token}%`})`,
+              ),
+              ' AND ',
+            )}
+          )
+        )
+      `
+      : Prisma.sql`
+        (
+          "name" % ${normalizedQuery}
+          OR "sku" % ${normalizedQuery}
+          OR "name" ILIKE ${`%${normalizedQuery}%`}
+          OR "sku" ILIKE ${`%${normalizedQuery}%`}
+          OR "storeName" ILIKE ${`%${normalizedQuery}%`}
+          OR "category" % ${normalizedQuery}
+          OR "storeName" % ${normalizedQuery}
+          OR "description" % ${normalizedQuery}
+          OR "category" ILIKE ${`%${normalizedQuery}%`}
+        )
+      `;
+
     const rows = await this.prisma.$queryRaw<Array<{ id: number }>>`
       SELECT
         id,
@@ -40,17 +72,7 @@ export class ProductsService {
       WHERE "status" = 'active'
         AND "storeStatus" = 'ACTIVATED'
         AND "stock" > 0
-        AND (
-          "name" % ${normalizedQuery}
-          OR "sku" % ${normalizedQuery}
-          OR "category" % ${normalizedQuery}
-          OR "storeName" % ${normalizedQuery}
-          OR "description" % ${normalizedQuery}
-          OR "name" ILIKE ${`%${normalizedQuery}%`}
-          OR "sku" ILIKE ${`%${normalizedQuery}%`}
-          OR "category" ILIKE ${`%${normalizedQuery}%`}
-          OR "storeName" ILIKE ${`%${normalizedQuery}%`}
-        )
+        AND ${specificMatchCondition}
       ORDER BY score DESC, "reviews" DESC, "rating" DESC
       LIMIT 120
     `;
@@ -74,6 +96,52 @@ export class ProductsService {
         return (orderById.get(left.id) ?? 0) - (orderById.get(right.id) ?? 0);
       })
       .map((product) => this.toResponse(product));
+  }
+
+  async suggestProducts(query: string) {
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery.length < 2) {
+      return [];
+    }
+
+    const rows = await this.prisma.$queryRaw<
+      Array<{ suggestion: string; score: number }>
+    >`
+      SELECT suggestion, MAX(score) AS score
+      FROM (
+        SELECT
+          "name" AS suggestion,
+          GREATEST(
+            similarity("name", ${normalizedQuery}) * 3.0,
+            CASE WHEN "name" ILIKE ${`%${normalizedQuery}%`} THEN 4.0 ELSE 0 END
+          ) AS score
+        FROM "Product"
+        WHERE "status" = 'active'
+          AND "storeStatus" = 'ACTIVATED'
+          AND "stock" > 0
+          AND ("name" % ${normalizedQuery} OR "name" ILIKE ${`%${normalizedQuery}%`})
+
+        UNION ALL
+
+        SELECT
+          "category" AS suggestion,
+          GREATEST(
+            similarity("category", ${normalizedQuery}) * 2.0,
+            CASE WHEN "category" ILIKE ${`%${normalizedQuery}%`} THEN 3.0 ELSE 0 END
+          ) AS score
+        FROM "Product"
+        WHERE "status" = 'active'
+          AND "storeStatus" = 'ACTIVATED'
+          AND "stock" > 0
+          AND ("category" % ${normalizedQuery} OR "category" ILIKE ${`%${normalizedQuery}%`})
+      ) AS matched_suggestions
+      GROUP BY suggestion
+      ORDER BY score DESC, LENGTH(suggestion), suggestion
+      LIMIT 7
+    `;
+
+    return rows.map((row) => row.suggestion);
   }
 
   async findProduct(productId: number) {
@@ -185,4 +253,12 @@ function shuffleProducts<T>(products: T[]) {
   }
 
   return shuffled;
+}
+
+function getSearchTokens(query: string) {
+  return query
+    .toLowerCase()
+    .split(/[\s,.;:!?()[\]{}"']+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
 }

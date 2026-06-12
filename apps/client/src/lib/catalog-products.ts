@@ -58,6 +58,16 @@ export async function searchCatalogProducts(
   return apiProducts.map(mapApiProduct);
 }
 
+export async function getSearchSuggests(query: string): Promise<string[]> {
+  const normalizedQuery = query.trim();
+
+  if (normalizedQuery.length < 2) {
+    return [];
+  }
+
+  return fetchApiSuggests(normalizedQuery);
+}
+
 export async function getCatalogProduct(
   productId: number,
 ): Promise<ClientProduct | null> {
@@ -112,6 +122,25 @@ async function fetchApiSearchProducts(query: string) {
     }
 
     return (await response.json()) as ApiProduct[];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchApiSuggests(query: string) {
+  try {
+    const response = await fetch(
+      `${CATALOG_API_URL}/products/suggests?q=${encodeURIComponent(query)}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return (await response.json()) as string[];
   } catch {
     return [];
   }
