@@ -66,15 +66,14 @@ export function StorePage({ storeName, storeProfile }: StorePageProps) {
       : "4.8";
   const heroBackground = getStoreHeroBackground(storeName);
   const filteredStoreProducts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchText(searchQuery);
     const filtered = storeProducts.filter((product) => {
       const matchesCategory =
         selectedCategory === "all" ||
         product.categoryIds.includes(selectedCategory);
       const matchesSearch =
         !normalizedQuery ||
-        product.title.toLowerCase().includes(normalizedQuery) ||
-        product.badge?.toLowerCase().includes(normalizedQuery);
+        fuzzyProductMatches(product, normalizedQuery);
 
       return matchesCategory && matchesSearch;
     });
@@ -386,6 +385,120 @@ export function StorePage({ storeName, storeProfile }: StorePageProps) {
 // Преобразует цену товара из строки в число для сортировки витрины магазина.
 function parseProductPrice(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
+}
+
+function fuzzyProductMatches(
+  product: {
+    title: string;
+    sku?: string;
+    badge?: string;
+    category?: string;
+  },
+  normalizedQuery: string,
+) {
+  const searchableValues = [
+    product.title,
+    product.sku,
+    product.badge,
+    product.category,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeSearchText);
+
+  return searchableValues.some((value) => fuzzyTextMatches(value, normalizedQuery));
+}
+
+function fuzzyTextMatches(value: string, query: string) {
+  if (!query || value.includes(query)) {
+    return true;
+  }
+
+  const queryWords = splitSearchWords(query);
+  const valueWords = splitSearchWords(value);
+
+  return queryWords.every((queryWord) =>
+    valueWords.some((valueWord) => fuzzyWordMatches(valueWord, queryWord)),
+  );
+}
+
+function fuzzyWordMatches(valueWord: string, queryWord: string) {
+  if (valueWord.includes(queryWord)) {
+    return true;
+  }
+
+  if (queryWord.length < 4) {
+    return false;
+  }
+
+  if (
+    queryWord.length >= 5 &&
+    valueWord.length >= 5 &&
+    (valueWord.startsWith(queryWord) || queryWord.startsWith(valueWord)) &&
+    Math.abs(valueWord.length - queryWord.length) <= 3
+  ) {
+    return true;
+  }
+
+  const allowedDistance = queryWord.length <= 5 ? 1 : 2;
+
+  if (
+    valueWord[0] !== queryWord[0] ||
+    Math.abs(valueWord.length - queryWord.length) > allowedDistance
+  ) {
+    return false;
+  }
+
+  return levenshteinDistance(valueWord, queryWord) <= allowedDistance;
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^a-zа-я0-9]+/g, " ");
+}
+
+function splitSearchWords(value: string) {
+  return value.split(/\s+/).filter(Boolean);
+}
+
+function levenshteinDistance(left: string, right: string) {
+  if (left === right) {
+    return 0;
+  }
+
+  if (!left.length) {
+    return right.length;
+  }
+
+  if (!right.length) {
+    return left.length;
+  }
+
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const current = Array(right.length + 1).fill(0);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    current[0] = leftIndex;
+
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost =
+        left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+
+      current[rightIndex] = Math.min(
+        previous[rightIndex] + 1,
+        current[rightIndex - 1] + 1,
+        previous[rightIndex - 1] + substitutionCost,
+      );
+    }
+
+    for (let index = 0; index <= right.length; index += 1) {
+      previous[index] = current[index];
+    }
+  }
+
+  return previous[right.length];
 }
 
 // Подбирает стабильный фон hero-блока магазина на основе названия магазина.

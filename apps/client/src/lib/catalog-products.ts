@@ -184,6 +184,58 @@ function inferCategoryIds(category: string) {
   const normalized = category.trim().toLowerCase();
 
   if (
+    includesAny(normalized, [
+      "clothing",
+      "shirt",
+      "shorts",
+      "skirt",
+      "pants",
+      "dress",
+      "\u043e\u0434\u0435\u0436",
+      "\u0444\u0443\u0442\u0431\u043e\u043b",
+      "\u0448\u043e\u0440\u0442",
+      "\u044e\u0431\u043a",
+      "\u0431\u0440\u044e\u043a",
+      "\u043f\u043b\u0430\u0442\u044c",
+      "\u0432\u0435\u0440\u0445\u043d",
+      "\u043e\u0431\u0443\u0432",
+      "\u043a\u0440\u043e\u0441\u0441\u043e\u0432",
+      "\u0431\u043e\u0442\u0438\u043d",
+      "\u0442\u0443\u0444\u043b",
+      "\u0441\u0430\u043f\u043e\u0433",
+    ])
+  ) {
+    return [3];
+  }
+
+  if (
+    includesAny(normalized, [
+      "sport",
+      "fitness",
+      "\u0441\u043f\u043e\u0440\u0442",
+      "\u0442\u0440\u0435\u043d\u0430\u0436",
+      "\u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440",
+    ])
+  ) {
+    return [5];
+  }
+
+  if (
+    includesAny(normalized, [
+      "home",
+      "decor",
+      "\u0434\u043e\u043c",
+      "\u0431\u044b\u0442",
+      "\u043f\u043e\u0441\u0443\u0434",
+      "\u0442\u0435\u043a\u0441\u0442\u0438\u043b",
+      "\u0434\u0435\u043a\u043e\u0440",
+      "\u0445\u043e\u0437\u044f\u0439\u0441\u0442\u0432",
+    ])
+  ) {
+    return [4];
+  }
+
+  if (
     normalized.includes("phone") ||
     normalized.includes("smart") ||
     normalized.includes("смартф")
@@ -196,6 +248,10 @@ function inferCategoryIds(category: string) {
   }
 
   return [1];
+}
+
+function includesAny(value: string, patterns: string[]) {
+  return patterns.some((pattern) => value.includes(pattern));
 }
 
 function formatPrice(value: number) {
