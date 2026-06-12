@@ -115,6 +115,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
               <th>Название файла</th>
               <th>SKU</th>
               <th>Товар</th>
+              <th>Цвет</th>
               <th>Тип фото</th>
               <th>Статус</th>
               <th>Ошибка</th>
@@ -125,6 +126,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
             {visibleRows.map(({ product, image, isAdditional }) => {
               const additionalImagesCount = getAdditionalImages(product).length;
               const isExpanded = expandedProductIds.has(product.id);
+              const productColor = getProductColor(product);
 
               return (
                 <tr key={`${product.id}-${image?.id ?? "empty"}`}>
@@ -138,6 +140,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
                   <td>{image ? getFileName(image) : "—"}</td>
                   <td>{product.sku}</td>
                   <td>{product.name}</td>
+                  <td>{productColor || "—"}</td>
                   <td>{image?.isMain ? "Главное фото" : image ? "Дополнительное фото" : "—"}</td>
                   <td>
                     <span className="status-badge">
@@ -174,7 +177,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
 
             {visibleRows.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty-cell">
+                <td colSpan={9} className="empty-cell">
                   {products.length === 0 ? "Товары пока не добавлены" : "Товары не найдены"}
                 </td>
               </tr>
@@ -256,6 +259,34 @@ function getFileName(image: ProductImage) {
   } catch {
     return image.url.split("/").filter(Boolean).at(-1) ?? image.url;
   }
+}
+
+function getProductColor(product: Product) {
+  const attributes = product.attributes ?? {};
+  const descriptionAttributes = getProductDescriptionAttributes(product.description);
+
+  return attributes["Цвет"] ?? attributes.color ?? descriptionAttributes["Цвет"] ?? "";
+}
+
+function getProductDescriptionAttributes(description: string) {
+  const attributes: Record<string, string> = {};
+
+  for (const line of description.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf(":");
+
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+
+    if (key && value) {
+      attributes[key] = value;
+    }
+  }
+
+  return attributes;
 }
 
 function normalizeSearch(value: string) {
