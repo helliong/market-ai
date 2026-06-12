@@ -22,22 +22,16 @@ type ProductFilters = {
   sku: string;
   name: string;
   category: string;
+  attributes: string;
   status: "" | ProductStatus;
-  minPrice: string;
-  maxPrice: string;
-  minStock: string;
-  maxStock: string;
 };
 
 const emptyFilters: ProductFilters = {
   sku: "",
   name: "",
   category: "",
+  attributes: "",
   status: "",
-  minPrice: "",
-  maxPrice: "",
-  minStock: "",
-  maxStock: "",
 };
 
 export function ProductsPage({
@@ -271,39 +265,11 @@ export function ProductsPage({
           </select>
         </label>
         <label>
-          Цена от
+          Характеристики
           <input
-            inputMode="numeric"
-            value={filters.minPrice}
-            onChange={(event) => updateFilter("minPrice", event.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label>
-          Цена до
-          <input
-            inputMode="numeric"
-            value={filters.maxPrice}
-            onChange={(event) => updateFilter("maxPrice", event.target.value)}
-            placeholder="150000"
-          />
-        </label>
-        <label>
-          Остаток от
-          <input
-            inputMode="numeric"
-            value={filters.minStock}
-            onChange={(event) => updateFilter("minStock", event.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label>
-          Остаток до
-          <input
-            inputMode="numeric"
-            value={filters.maxStock}
-            onChange={(event) => updateFilter("maxStock", event.target.value)}
-            placeholder="100"
+            value={filters.attributes}
+            onChange={(event) => updateFilter("attributes", event.target.value)}
+            placeholder="Размер, цвет, материал"
           />
         </label>
         <div className="product-filter-summary">
@@ -525,10 +491,7 @@ function filterProducts(
 ) {
   const sku = normalizeSearch(filters.sku);
   const name = normalizeSearch(filters.name);
-  const minPrice = parseFilterNumber(filters.minPrice);
-  const maxPrice = parseFilterNumber(filters.maxPrice);
-  const minStock = parseFilterNumber(filters.minStock);
-  const maxStock = parseFilterNumber(filters.maxStock);
+  const attributes = normalizeSearch(filters.attributes);
 
   return products.filter((product) => {
     if (!options.skipTextFilters && sku && !normalizeSearch(product.sku).includes(sku)) {
@@ -547,24 +510,19 @@ function filterProducts(
       return false;
     }
 
-    if (minPrice !== null && product.price < minPrice) {
-      return false;
-    }
-
-    if (maxPrice !== null && product.price > maxPrice) {
-      return false;
-    }
-
-    if (minStock !== null && product.stock < minStock) {
-      return false;
-    }
-
-    if (maxStock !== null && product.stock > maxStock) {
+    if (attributes && !normalizeSearch(getAttributeSearchText(product)).includes(attributes)) {
       return false;
     }
 
     return true;
   });
+}
+
+function getAttributeSearchText(product: Product) {
+  const parsedAttributes = getProductAttributes(product);
+  return Object.entries(parsedAttributes)
+    .flatMap(([key, value]) => [key, value])
+    .join(" ");
 }
 
 function ProductThumbnail({ product }: { product: Product }) {
@@ -589,11 +547,6 @@ function ProductThumbnail({ product }: { product: Product }) {
 
 function normalizeSearch(value: string) {
   return value.trim().toLowerCase();
-}
-
-function parseFilterNumber(value: string) {
-  const digits = value.replace(/\D/g, "");
-  return digits ? Number(digits) : null;
 }
 
 function ToastNotification({

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Download, FileUp, Percent } from "lucide-react";
 import { formatCurrency } from "../formatters";
 import type { Product } from "../types";
@@ -9,12 +10,35 @@ type ProductPricesPageProps = {
   onEditProduct: (product: Product) => void;
 };
 
+type PriceFilters = {
+  query: string;
+  minPrice: string;
+  maxPrice: string;
+  minOldPrice: string;
+  maxOldPrice: string;
+};
+
+const emptyPriceFilters: PriceFilters = {
+  query: "",
+  minPrice: "",
+  maxPrice: "",
+  minOldPrice: "",
+  maxOldPrice: "",
+};
+
 export function ProductPricesPage({
   products,
   onDownloadTemplate,
   onImportTemplate,
   onEditProduct,
 }: ProductPricesPageProps) {
+  const [filters, setFilters] = useState<PriceFilters>(emptyPriceFilters);
+  const filteredProducts = useMemo(
+    () => filterPriceProducts(products, filters),
+    [filters, products],
+  );
+  const hasActiveFilters = Object.values(filters).some(Boolean);
+
   return (
     <section className="panel">
       <div className="section-header">
@@ -50,6 +74,64 @@ export function ProductPricesPage({
         </div>
       </div>
 
+      <div className="product-filters" aria-label="Фильтры цен">
+        <label>
+          Товар или SKU
+          <input
+            value={filters.query}
+            onChange={(event) => setFilters({ ...filters, query: event.target.value })}
+            placeholder="SKU или название"
+          />
+        </label>
+        <label>
+          Цена от
+          <input
+            inputMode="numeric"
+            value={filters.minPrice}
+            onChange={(event) => setFilters({ ...filters, minPrice: event.target.value })}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          Цена до
+          <input
+            inputMode="numeric"
+            value={filters.maxPrice}
+            onChange={(event) => setFilters({ ...filters, maxPrice: event.target.value })}
+            placeholder="100000"
+          />
+        </label>
+        <label>
+          Старая цена от
+          <input
+            inputMode="numeric"
+            value={filters.minOldPrice}
+            onChange={(event) => setFilters({ ...filters, minOldPrice: event.target.value })}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          Старая цена до
+          <input
+            inputMode="numeric"
+            value={filters.maxOldPrice}
+            onChange={(event) => setFilters({ ...filters, maxOldPrice: event.target.value })}
+            placeholder="150000"
+          />
+        </label>
+        <div className="product-filter-summary">
+          <span>{`Найдено ${filteredProducts.length} из ${products.length}`}</span>
+          <button
+            type="button"
+            className="table-button"
+            disabled={!hasActiveFilters}
+            onClick={() => setFilters(emptyPriceFilters)}
+          >
+            Сбросить
+          </button>
+        </div>
+      </div>
+
       <div className="table-wrapper">
         <table>
           <thead>
@@ -65,7 +147,7 @@ export function ProductPricesPage({
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => {
+            {filteredProducts.map((product) => {
               const discount = getDiscount(product);
 
               return (
@@ -88,10 +170,10 @@ export function ProductPricesPage({
               );
             })}
 
-            {products.length === 0 && (
+            {filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty-cell">
-                  Товары пока не добавлены
+                  {products.length === 0 ? "Товары пока не добавлены" : "Товары не найдены"}
                 </td>
               </tr>
             )}
@@ -108,4 +190,52 @@ function getDiscount(product: Product) {
   }
 
   return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+}
+
+function filterPriceProducts(products: Product[], filters: PriceFilters) {
+  const query = normalizeSearch(filters.query);
+  const minPrice = parseFilterNumber(filters.minPrice);
+  const maxPrice = parseFilterNumber(filters.maxPrice);
+  const minOldPrice = parseFilterNumber(filters.minOldPrice);
+  const maxOldPrice = parseFilterNumber(filters.maxOldPrice);
+
+  return products.filter((product) => {
+    const oldPrice = product.oldPrice ?? 0;
+
+    if (
+      query &&
+      ![product.sku, product.name, product.category, String(product.price), String(product.oldPrice ?? "")]
+        .map(normalizeSearch)
+        .some((value) => value.includes(query))
+    ) {
+      return false;
+    }
+
+    if (minPrice !== null && product.price < minPrice) {
+      return false;
+    }
+
+    if (maxPrice !== null && product.price > maxPrice) {
+      return false;
+    }
+
+    if (minOldPrice !== null && oldPrice < minOldPrice) {
+      return false;
+    }
+
+    if (maxOldPrice !== null && oldPrice > maxOldPrice) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function parseFilterNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? Number(digits) : null;
 }

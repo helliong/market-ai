@@ -41,6 +41,7 @@ import { SellerAgreementPage } from "./agreement/SellerAgreementPage";
 import { AdminDialog } from "./admin/components/AdminDialog";
 import type { AdminDialogState } from "./admin/components/AdminDialog";
 import { ProductModal } from "./admin/components/ProductModal";
+import type { ProductModalMode } from "./admin/components/ProductModal";
 import { emptyProductForm } from "./admin/data";
 import { DashboardPage } from "./admin/pages/DashboardPage";
 import { OrdersPage } from "./admin/pages/OrdersPage";
@@ -149,6 +150,7 @@ function App() {
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productModalMode, setProductModalMode] = useState<ProductModalMode>("catalog");
   const [dialog, setDialog] = useState<AdminDialogState | null>(null);
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
 
@@ -337,17 +339,35 @@ function App() {
 
   function openAddProductModal() {
     setEditingProduct(null);
+    setProductModalMode("catalog");
     setProductForm(emptyProductForm);
     setIsProductModalOpen(true);
   }
 
-  function openEditProductModal(product: Product) {
+  function openEditProductModal(product: Product, mode: ProductModalMode = "catalog") {
+    const parsedDescription = parseProductDescription(product.description);
+
     setEditingProduct(product);
+    setProductModalMode(mode);
     setProductForm({
       sku: product.sku,
       name: product.name,
-      description: product.description,
+      description: parsedDescription.description,
       category: product.category,
+      color: parsedDescription.attributes["Цвет"] ?? "",
+      size: parsedDescription.attributes["Размер"] ?? "",
+      memory: parsedDescription.attributes["Память"] ?? "",
+      material: parsedDescription.attributes["Материал"] ?? "",
+      brand: parsedDescription.attributes["Бренд"] ?? "",
+      country: parsedDescription.attributes["Страна производства"] ?? "",
+      barcode: parsedDescription.attributes["Штрихкод"] ?? "",
+      gender: parsedDescription.attributes["Пол"] ?? "",
+      season: parsedDescription.attributes["Сезон"] ?? "",
+      diagonal: parsedDescription.attributes["Диагональ"] ?? "",
+      processor: parsedDescription.attributes["Процессор"] ?? "",
+      warranty: parsedDescription.attributes["Гарантия"] ?? "",
+      volume: parsedDescription.attributes["Объем"] ?? "",
+      bundle: parsedDescription.attributes["Комплектация"] ?? "",
       price: formatMaskedNumber(product.price),
       oldPrice: product.oldPrice ? formatMaskedNumber(product.oldPrice) : "",
       stock: formatMaskedNumber(product.stock),
@@ -364,6 +384,7 @@ function App() {
   function closeProductModal() {
     setIsProductModalOpen(false);
     setEditingProduct(null);
+    setProductModalMode("catalog");
     setProductForm(emptyProductForm);
   }
 
@@ -371,7 +392,7 @@ function App() {
     event.preventDefault();
     const sku = productForm.sku.trim();
     const name = productForm.name.trim();
-    const description = productForm.description.trim();
+    const description = buildProductDescription(productForm.description.trim(), productForm);
     const category = productForm.category.trim();
     const price = parseMaskedNumber(productForm.price);
     const oldPrice = productForm.oldPrice ? parseMaskedNumber(productForm.oldPrice) : undefined;
@@ -394,7 +415,8 @@ function App() {
     }
 
     try {
-      const normalizedForm = {
+      const normalizedForm: ProductForm = {
+        ...productForm,
         sku,
         name,
         description,
@@ -1005,7 +1027,7 @@ function App() {
             onAddProduct={openAddProductModal}
             onDownloadTemplate={handleDownloadProductTemplate}
             onImportTemplate={handleImportProductTemplate}
-            onEditProduct={openEditProductModal}
+            onEditProduct={(product) => openEditProductModal(product, "catalog")}
             onDeleteProduct={deleteProduct}
           />
         )}
@@ -1014,7 +1036,7 @@ function App() {
             products={products}
             onDownloadTemplate={handleDownloadProductTemplate}
             onImportTemplate={handleImportProductTemplate}
-            onEditProduct={openEditProductModal}
+            onEditProduct={(product) => openEditProductModal(product, "prices")}
           />
         )}
         {page === "productStocks" && (
@@ -1022,13 +1044,13 @@ function App() {
             products={products}
             onDownloadTemplate={handleDownloadProductTemplate}
             onImportTemplate={handleImportProductTemplate}
-            onEditProduct={openEditProductModal}
+            onEditProduct={(product) => openEditProductModal(product, "stocks")}
           />
         )}
         {page === "productImages" && (
           <ProductImagesPage
             products={products}
-            onEditProduct={openEditProductModal}
+            onEditProduct={(product) => openEditProductModal(product, "images")}
           />
         )}
         {page === "orders" && (
@@ -1060,6 +1082,7 @@ function App() {
         <ProductModal
           form={productForm}
           isEditing={Boolean(editingProduct)}
+          mode={productModalMode}
           storeName={storeName}
           onClose={closeProductModal}
           onChange={setProductForm}
@@ -1120,6 +1143,80 @@ function getMainProductImageUrl(product?: Product) {
     product.images.find((image) => image.isMain)?.url ??
     [...product.images].sort((left, right) => left.sortOrder - right.sortOrder)[0]?.url
   );
+}
+
+function parseProductDescription(description: string) {
+  const header = "Характеристики:";
+  const headerIndex = description.indexOf(header);
+
+  if (headerIndex === -1) {
+    return {
+      description: description.trim(),
+      attributes: {} as Record<string, string>,
+    };
+  }
+
+  const baseDescription = description.slice(0, headerIndex).trim();
+  const attributeLines = description
+    .slice(headerIndex + header.length)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const attributes = attributeLines.reduce<Record<string, string>>((result, line) => {
+    const separatorIndex = line.indexOf(":");
+
+    if (separatorIndex === -1) {
+      return result;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+
+    if (key && value) {
+      result[key] = value;
+    }
+
+    return result;
+  }, {});
+
+  return {
+    description: baseDescription,
+    attributes,
+  };
+}
+
+function buildProductDescription(baseDescription: string, form: ProductForm) {
+  const attributes = [
+    ["Цвет", form.color],
+    ["Размер", form.size],
+    ["Память", form.memory],
+    ["Материал", form.material],
+    ["Бренд", form.brand],
+    ["Страна производства", form.country],
+    ["Штрихкод", form.barcode],
+    ["Пол", form.gender],
+    ["Сезон", form.season],
+    ["Диагональ", form.diagonal],
+    ["Процессор", form.processor],
+    ["Гарантия", form.warranty],
+    ["Объем", form.volume],
+    ["Комплектация", form.bundle],
+  ]
+    .map(([label, value]) => [label, value.trim()] as const)
+    .filter(([, value]) => value);
+
+  if (!attributes.length) {
+    return baseDescription;
+  }
+
+  const attributesText = attributes
+    .map(([label, value]) => `${label}: ${value}`)
+    .join("\n");
+
+  return [baseDescription, `Характеристики:\n${attributesText}`]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export default App;

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { ImagePlus, Upload } from "lucide-react";
 import type { Product, ProductImage } from "../types";
 
@@ -6,22 +7,35 @@ type ProductImagesPageProps = {
   onEditProduct: (product: Product) => void;
 };
 
+type ImageRow = {
+  product: Product;
+  image: ProductImage | null;
+};
+
 export function ProductImagesPage({ products, onEditProduct }: ProductImagesPageProps) {
-  const rows = products.reduce<Array<{ product: Product; image: ProductImage | null }>>(
-    (items, product) => {
-      if (!product.images.length) {
-        items.push({ product, image: null });
+  const [query, setQuery] = useState("");
+  const [imageStatus, setImageStatus] = useState<"" | "withImages" | "withoutImages">("");
+  const rows = useMemo(
+    () =>
+      products.reduce<ImageRow[]>((items, product) => {
+        if (!product.images.length) {
+          items.push({ product, image: null });
+          return items;
+        }
+
+        product.images.forEach((image) => {
+          items.push({ product, image });
+        });
+
         return items;
-      }
-
-      product.images.forEach((image) => {
-        items.push({ product, image });
-      });
-
-      return items;
-    },
-    [],
+      }, []),
+    [products],
   );
+  const filteredRows = useMemo(
+    () => filterImageRows(rows, query, imageStatus),
+    [imageStatus, query, rows],
+  );
+  const hasActiveFilters = Boolean(query || imageStatus);
 
   return (
     <section className="panel">
@@ -48,6 +62,42 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
         </div>
       </div>
 
+      <div className="product-filters" aria-label="Фильтры изображений">
+        <label>
+          Товар, SKU или файл
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="SKU, название или файл"
+          />
+        </label>
+        <label>
+          Статус фото
+          <select
+            value={imageStatus}
+            onChange={(event) => setImageStatus(event.target.value as typeof imageStatus)}
+          >
+            <option value="">Все статусы</option>
+            <option value="withImages">С фото</option>
+            <option value="withoutImages">Без фото</option>
+          </select>
+        </label>
+        <div className="product-filter-summary">
+          <span>{`Найдено ${filteredRows.length} из ${rows.length}`}</span>
+          <button
+            type="button"
+            className="table-button"
+            disabled={!hasActiveFilters}
+            onClick={() => {
+              setQuery("");
+              setImageStatus("");
+            }}
+          >
+            Сбросить
+          </button>
+        </div>
+      </div>
+
       <div className="table-wrapper">
         <table>
           <thead>
@@ -63,7 +113,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ product, image }) => (
+            {filteredRows.map(({ product, image }) => (
               <tr key={`${product.id}-${image?.id ?? "empty"}`}>
                 <td>
                   {image ? (
@@ -90,10 +140,10 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
               </tr>
             ))}
 
-            {rows.length === 0 && (
+            {filteredRows.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty-cell">
-                  Товары пока не добавлены
+                  {products.length === 0 ? "Товары пока не добавлены" : "Товары не найдены"}
                 </td>
               </tr>
             )}
@@ -104,10 +154,39 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
   );
 }
 
+function filterImageRows(rows: ImageRow[], query: string, imageStatus: "" | "withImages" | "withoutImages") {
+  const normalizedQuery = normalizeSearch(query);
+
+  return rows.filter(({ product, image }) => {
+    if (imageStatus === "withImages" && !image) {
+      return false;
+    }
+
+    if (imageStatus === "withoutImages" && image) {
+      return false;
+    }
+
+    if (
+      normalizedQuery &&
+      ![product.sku, product.name, product.category, image ? getFileName(image) : ""]
+        .map(normalizeSearch)
+        .some((value) => value.includes(normalizedQuery))
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 function getFileName(image: ProductImage) {
   try {
     return new URL(image.url).pathname.split("/").filter(Boolean).at(-1) ?? image.url;
   } catch {
     return image.url.split("/").filter(Boolean).at(-1) ?? image.url;
   }
+}
+
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
 }

@@ -1,8 +1,9 @@
-import { inflateRawSync } from 'node:zlib';
+﻿import { inflateRawSync } from 'node:zlib';
 import {
   isProductCategory,
   productMainCategories,
   productCategoriesTree,
+  getMainCategoryBySubcategory,
 } from './product-categories';
 import { productStatuses, type ProductStatus } from './dto/create-product.dto';
 
@@ -21,6 +22,23 @@ export type ProductTemplateRow = {
 
 export const productTemplateActions = ['delete'] as const;
 export type ProductTemplateAction = (typeof productTemplateActions)[number];
+
+const productAttributeHeaders = [
+  'Цвет',
+  'Размер',
+  'Память',
+  'Материал',
+  'Бренд',
+  'Страна производства',
+  'Штрихкод',
+  'Пол',
+  'Сезон',
+  'Диагональ',
+  'Процессор',
+  'Гарантия',
+  'Объем',
+  'Комплектация',
+];
 
 export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
   const files = new Map<string, Buffer>();
@@ -135,7 +153,19 @@ ${categoryTemplateSheets
   files.set('xl/worksheets/sheet1.xml', text(buildProductsSheet(products)));
   files.set('xl/worksheets/sheet2.xml', text(buildCategoriesSheet()));
   categoryTemplateSheets.forEach((sheet) => {
-    files.set(sheet.path, text(buildCategoryTemplateSheet(sheet.mainCategory)));
+    files.set(
+      sheet.path,
+      text(
+        buildCategoryTemplateSheet(
+          sheet.mainCategory,
+          products.filter(
+            (product) =>
+              (product.mainCategory ?? getMainCategoryBySubcategory(product.category)) ===
+              sheet.mainCategory,
+          ),
+        ),
+      ),
+    );
   });
 
   return writeZip(files);
@@ -143,39 +173,106 @@ ${categoryTemplateSheets
 
 export function parseProductWorkbook(buffer: Buffer) {
   const files = readZip(buffer);
-  const sheets = [...files.entries()]
-    .filter(([name]) => /^xl\/worksheets\/sheet\d+\.xml$/.test(name))
-    .filter(([name]) => name !== 'xl/worksheets/sheet2.xml')
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([, sheet]) => sheet);
+  const productsSheet = files.get('xl/worksheets/sheet1.xml');
 
-  if (!sheets.length) {
+  if (!productsSheet) {
     throw new Error('В файле не найден лист Products');
   }
 
   const sharedStrings = parseSharedStrings(files.get('xl/sharedStrings.xml'));
-  const rows = sheets.flatMap((sheet) =>
-    parseRows(sheet.toString('utf8'), sharedStrings).slice(1),
+  const productRows = parseRows(productsSheet.toString('utf8'), sharedStrings)
+    .slice(1)
+    .flatMap((row, index) => {
+      const parsedRow = parseProductRow(row, index + 2);
+      return isEmptyTemplateRow(parsedRow) ? [] : [parsedRow];
+    });
+  const rowsBySku = new Map(
+    productRows.map((row) => [row.sku.trim().toUpperCase(), row]),
   );
 
-  return rows.flatMap((row, index) => {
-    const parsedRow = parseProductRow(row, index + 2);
+  productMainCategories.forEach((mainCategory, index) => {
+    const sheet = files.get(`xl/worksheets/sheet${index + 3}.xml`);
 
-    if (
-      !parsedRow.sku &&
-      !parsedRow.name &&
-      !parsedRow.category &&
-      parsedRow.price === 0 &&
-      parsedRow.stock === 0 &&
-      !parsedRow.action
-    ) {
-      return [];
+    if (!sheet) {
+      return;
     }
 
-    return [parsedRow];
+    parseRows(sheet.toString('utf8'), sharedStrings)
+      .slice(1)
+      .forEach((row, rowIndex) => {
+        const parsedRow = parseCategoryProductRow(row, rowIndex + 2, mainCategory);
+
+        if (isEmptyTemplateRow(parsedRow)) {
+          return;
+        }
+
+        const sku = parsedRow.sku.trim().toUpperCase();
+        const existingRow = rowsBySku.get(sku);
+        rowsBySku.set(sku, existingRow ? mergeTemplateRows(existingRow, parsedRow) : parsedRow);
+      });
   });
+
+  return [...rowsBySku.values()];
 }
 
+function isEmptyTemplateRow(parsedRow: ReturnType<typeof parseProductRow>) {
+  return (
+    !parsedRow.sku &&
+    !parsedRow.name &&
+    !parsedRow.category &&
+    parsedRow.price === 0 &&
+    parsedRow.stock === 0 &&
+    !parsedRow.action
+  );
+}
+
+function mergeTemplateRows(
+  baseRow: ReturnType<typeof parseProductRow>,
+  categoryRow: ReturnType<typeof parseProductRow>,
+) {
+  return {
+    ...baseRow,
+    name: categoryRow.name || baseRow.name,
+    mainCategory: categoryRow.mainCategory || baseRow.mainCategory,
+    category: categoryRow.category || baseRow.category,
+    price: categoryRow.price || baseRow.price,
+    oldPrice: categoryRow.oldPrice ?? baseRow.oldPrice,
+    stock: categoryRow.stock || baseRow.stock,
+    status: categoryRow.status || baseRow.status,
+    description: categoryRow.description || baseRow.description,
+    action: categoryRow.action || baseRow.action,
+  };
+}
+
+function parseCategoryProductRow(
+  row: Record<string, string>,
+  rowNumber: number,
+  mainCategory: string,
+) {
+  const attributeHeaders = getCategoryAttributeHeaders(mainCategory);
+  const attributes = Object.fromEntries(
+    attributeHeaders.map((header, index) => [
+      header,
+      row[columnName(10 + index)],
+    ]),
+  );
+  const actionColumn = columnName(10 + attributeHeaders.length);
+  const oldPrice = parseNumber(row.F);
+
+  return {
+    rowNumber,
+    sku: stringValue(row.A).trim(),
+    name: stringValue(row.B).trim(),
+    mainCategory: stringValue(row.C).trim() || mainCategory,
+    category: stringValue(row.D).trim(),
+    price: parseNumber(row.E),
+    oldPrice: oldPrice === 0 ? undefined : oldPrice,
+    stock: parseNumber(row.G),
+    status: stringValue(row.H).trim() || 'active',
+    description: buildDescriptionWithAttributes(stringValue(row.I).trim(), attributes),
+    action: stringValue(row[actionColumn]).trim().toLowerCase(),
+  };
+}
 function parseProductRow(row: Record<string, string>, rowNumber: number) {
   const currentCategory = stringValue(row.D).trim();
   const legacyCategory = stringValue(row.C).trim();
@@ -198,15 +295,14 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
   }
 
   const oldPrice = parseNumber(row.F);
-  const description = buildDescriptionWithAttributes(stringValue(row.I).trim(), {
-    'Цвет': row.J,
-    'Размер': row.K,
-    'Память': row.L,
-    'Материал': row.M,
-    'Бренд': row.N,
-    'Страна производства': row.O,
-    'Штрихкод': row.P,
-  });
+  const attributes = Object.fromEntries(
+    productAttributeHeaders.map((header, index) => [
+      header,
+      row[columnName(10 + index)],
+    ]),
+  );
+  const actionColumn = columnName(10 + productAttributeHeaders.length);
+  const description = buildDescriptionWithAttributes(stringValue(row.I).trim(), attributes);
 
   return {
     rowNumber,
@@ -219,7 +315,7 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
     stock: parseNumber(row.G),
     status: stringValue(row.H).trim() || 'active',
     description,
-    action: (stringValue(row.Q).trim() || stringValue(row.J).trim()).toLowerCase(),
+    action: stringValue(row[actionColumn]).trim().toLowerCase(),
   };
 }
 
@@ -234,26 +330,28 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     'Остаток',
     'Статус',
     'Описание',
-  ];
-  headers.push(
-    'Цвет',
-    'Размер',
-    'Память',
-    'Материал',
-    'Бренд',
-    'Страна производства',
-    'Штрихкод',
+    ...productAttributeHeaders,
     'Action',
-  );
+  ];
+  const actionColumn = columnName(headers.length);
 
   const headerCells = headers
     .map((header, index) =>
-      inlineCell(`${String.fromCharCode(65 + index)}1`, header, 1),
+      inlineCell(`${columnName(index + 1)}1`, header, 1),
     )
     .join('');
   const rows = products
     .map((product, index) => {
       const row = index + 2;
+      const parsedDescription = parseDescriptionAttributes(product.description);
+      const attributeCells = productAttributeHeaders.map((header, attrIndex) =>
+        inlineCell(
+          `${columnName(10 + attrIndex)}${row}`,
+          parsedDescription.attributes[header] ?? '',
+          2,
+        ),
+      );
+
       return `<row r="${row}">${[
         inlineCell(`A${row}`, product.sku, 2),
         inlineCell(`B${row}`, product.name, 2),
@@ -270,37 +368,30 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
           product.status,
           2,
         ),
-        inlineCell(`I${row}`, product.description, 2),
-        inlineCell(`J${row}`, '', 2),
-        inlineCell(`K${row}`, '', 2),
-        inlineCell(`L${row}`, '', 2),
-        inlineCell(`M${row}`, '', 2),
-        inlineCell(`N${row}`, '', 2),
-        inlineCell(`O${row}`, '', 2),
-        inlineCell(`P${row}`, '', 2),
-        inlineCell(`Q${row}`, product.action ?? '', 2),
+        inlineCell(`I${row}`, parsedDescription.description, 2),
+        ...attributeCells,
+        inlineCell(`${actionColumn}${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:Q500"/>
+  <dimension ref="A1:${actionColumn}500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="16" width="18" customWidth="1"/><col min="17" max="17" width="16" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="${headers.length - 1}" width="18" customWidth="1"/><col min="${headers.length}" max="${headers.length}" width="16" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
   <dataValidations count="7">
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$${productMainCategories.length + 1}</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>INDIRECT(SUBSTITUTE(SUBSTITUTE($C2, " ", "_"), "-", "_"))</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>INDIRECT(SUBSTITUTE(SUBSTITUTE($C2, &quot; &quot;, &quot;_&quot;), &quot;-&quot;, &quot;_&quot;))</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="E2:E500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="F2:F500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>0</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="H2:H500"><formula1>"active,draft,archived"</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="Q2:Q500"><formula1>"delete"</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="H2:H500"><formula1>&quot;active,draft,archived&quot;</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="${actionColumn}2:${actionColumn}500"><formula1>&quot;delete&quot;</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }
-
 function buildCategoriesSheet() {
   const rowsXml: string[] = [];
   
@@ -346,7 +437,11 @@ function buildCategoriesSheet() {
 </worksheet>`;
 }
 
-function buildCategoryTemplateSheet(mainCategory: string) {
+function buildCategoryTemplateSheet(
+  mainCategory: string,
+  products: ProductTemplateRow[],
+) {
+  const attributeHeaders = getCategoryAttributeHeaders(mainCategory);
   const headers = [
     'SKU',
     'Название',
@@ -357,7 +452,7 @@ function buildCategoryTemplateSheet(mainCategory: string) {
     'Остаток',
     'Статус',
     'Описание',
-    ...getCategoryAttributeHeaders(mainCategory),
+    ...attributeHeaders,
     'Action',
   ];
   const headerCells = headers
@@ -366,16 +461,53 @@ function buildCategoryTemplateSheet(mainCategory: string) {
     )
     .join('');
   const lastColumn = columnName(headers.length);
+  const actionColumn = columnName(headers.length);
+  const rows = products
+    .map((product, index) => {
+      const row = index + 2;
+      const parsedDescription = parseDescriptionAttributes(product.description);
+      const attributeCells = attributeHeaders.map((header, attrIndex) =>
+        inlineCell(
+          `${columnName(10 + attrIndex)}${row}`,
+          parsedDescription.attributes[header] ?? '',
+          2,
+        ),
+      );
+
+      return `<row r="${row}">${[
+        inlineCell(`A${row}`, product.sku, 2),
+        inlineCell(`B${row}`, product.name, 2),
+        inlineCell(`C${row}`, product.mainCategory ?? mainCategory, 2),
+        inlineCell(`D${row}`, product.category, 2),
+        numberCell(`E${row}`, product.price, 2),
+        product.oldPrice
+          ? numberCell(`F${row}`, product.oldPrice, 2)
+          : inlineCell(`F${row}`, '', 2),
+        numberCell(`G${row}`, product.stock, 2),
+        formulaStrCell(
+          `H${row}`,
+          `IF(G${row}=0,"draft","active")`,
+          product.status,
+          2,
+        ),
+        inlineCell(`I${row}`, parsedDescription.description, 2),
+        ...attributeCells,
+        inlineCell(`${actionColumn}${row}`, product.action ?? '', 2),
+      ].join('')}</row>`;
+    })
+    .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <dimension ref="A1:${lastColumn}500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <cols><col min="1" max="${headers.length}" width="18" customWidth="1"/></cols>
-  <sheetData><row r="1">${headerCells}</row></sheetData>
+  <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
+  <dataValidations count="1">
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="${actionColumn}2:${actionColumn}500"><formula1>&quot;delete&quot;</formula1></dataValidation>
+  </dataValidations>
 </worksheet>`;
 }
-
 function getCategoryAttributeHeaders(mainCategory: string) {
   const normalized = mainCategory.toLowerCase();
 
@@ -410,6 +542,44 @@ function buildDescriptionWithAttributes(
   return [description, `Характеристики:\n${attributesText}`]
     .filter(Boolean)
     .join('\n\n');
+}
+
+function parseDescriptionAttributes(description: string) {
+  const header = 'Характеристики:';
+  const headerIndex = description.indexOf(header);
+
+  if (headerIndex === -1) {
+    return {
+      description: description.trim(),
+      attributes: {} as Record<string, string>,
+    };
+  }
+
+  const baseDescription = description.slice(0, headerIndex).trim();
+  const attributes = description
+    .slice(headerIndex + header.length)
+    .split(/\r?\n/)
+    .reduce<Record<string, string>>((result, line) => {
+      const separatorIndex = line.indexOf(':');
+
+      if (separatorIndex <= 0) {
+        return result;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      const value = line.slice(separatorIndex + 1).trim();
+
+      if (key && value) {
+        result[key] = value;
+      }
+
+      return result;
+    }, {});
+
+  return {
+    description: baseDescription,
+    attributes,
+  };
 }
 
 function sanitizeSheetName(value: string) {
