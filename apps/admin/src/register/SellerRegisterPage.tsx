@@ -11,12 +11,17 @@ import { useLanguage } from "../hooks/useLanguage";
 import "./SellerRegisterPage.css";
 
 type SellerRegisterPageProps = {
-  onSubmit: (seller: { name: string; email: string }) => void;
+  onSubmit: (seller: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
 };
 
 type PendingSeller = {
   name: string;
   email: string;
+  password: string;
 };
 
 type ToastState = {
@@ -80,7 +85,11 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
         storeName: trimmedName,
         agreementAccepted: isAgreementAccepted,
       });
-      setPendingSeller({ name: trimmedName, email: trimmedEmail });
+      setPendingSeller({
+        name: trimmedName,
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
       setVerificationCode("");
       setVerificationError(undefined);
       showToast(t("successRegistration"), "success");
@@ -105,7 +114,7 @@ export function SellerRegisterPage({ onSubmit }: SellerRegisterPageProps) {
     setVerificationError(undefined);
     try {
       await verifySellerEmail({ email: pendingSeller.email, code: verificationCode });
-      onSubmit(pendingSeller);
+      await onSubmit(pendingSeller);
     } catch (error) {
       setVerificationError(error instanceof Error ? error.message : t("errorInvalidVerificationCode"));
     } finally {

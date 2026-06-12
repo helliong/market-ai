@@ -31,7 +31,7 @@ export function AdminDialog({ dialog, onClose }: AdminDialogProps) {
           {isDanger ? "!" : "i"}
         </div>
 
-        <div>
+        <div className="dialog-content">
           <h2>{dialog.title}</h2>
           <p>{dialog.message}</p>
         </div>

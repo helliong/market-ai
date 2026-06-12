@@ -1678,9 +1678,11 @@ th {
 }
 
 .dialog-card {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
   width: min(420px, 100%);
+  max-height: min(720px, calc(100vh - 32px));
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--bg-card);
@@ -1712,13 +1714,21 @@ th {
   font-size: 24px;
 }
 
+.dialog-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .dialog-card p {
   margin: 8px 0 0;
   color: var(--text-muted);
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 .dialog-actions {
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   gap: 10px;

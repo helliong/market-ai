@@ -678,13 +678,25 @@ export class AuthService {
     const seller = await this.getSellerForLegalUpdate(accountId);
     const legalProfile = this.normalizeSellerLegalProfile(dto);
 
-    return this.prisma.sellerLegalProfile.upsert({
-      where: { sellerId: seller.id },
-      create: {
-        sellerId: seller.id,
-        ...legalProfile,
-      },
-      update: legalProfile,
+    return this.prisma.$transaction(async (tx) => {
+      const savedLegalProfile = await tx.sellerLegalProfile.upsert({
+        where: { sellerId: seller.id },
+        create: {
+          sellerId: seller.id,
+          ...legalProfile,
+        },
+        update: legalProfile,
+      });
+
+      await tx.userSeller.update({
+        where: { id: seller.id },
+        data: {
+          legalName: savedLegalProfile.legalName,
+          inn: savedLegalProfile.taxId,
+        },
+      });
+
+      return savedLegalProfile;
     });
   }
 

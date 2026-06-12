@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   getCurrentSeller,
+  loginSellerAccount,
   logoutSellerAccount,
   pauseSellerStore,
   resumeSellerStore,
@@ -544,9 +545,13 @@ function App() {
     setSellerProfile(seller);
   }
 
-  function registerSeller(seller: { name: string; email: string }) {
+  async function registerSeller(seller: { name: string; email: string; password: string }) {
+    await loginSellerAccount({
+      email: seller.email,
+      password: seller.password,
+    });
+    await restoreSellerSession();
     setStoreName(seller.name);
-    setSellerProfile(null);
     navigateToPage("dashboard");
   }
 
