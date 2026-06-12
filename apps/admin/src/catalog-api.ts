@@ -37,6 +37,7 @@ function productPayloadFromForm(form: ProductForm) {
     sku: form.sku,
     name: form.name,
     description: form.description,
+    attributes: productAttributesFromForm(form),
     category: form.category,
     price: parseFormNumber(form.price),
     oldPrice: form.oldPrice ? parseFormNumber(form.oldPrice) : undefined,
@@ -48,6 +49,27 @@ function productPayloadFromForm(form: ProductForm) {
       sortOrder: index,
     })),
   };
+}
+
+function productAttributesFromForm(form: ProductForm) {
+  return Object.fromEntries(
+    [
+      ["Цвет", form.color],
+      ["Размер", form.size],
+      ["Память", form.memory],
+      ["Материал", form.material],
+      ["Бренд", form.brand],
+      ["Страна производства", form.country],
+      ["Штрихкод", form.barcode],
+      ["Пол", form.gender],
+      ["Сезон", form.season],
+      ["Диагональ", form.diagonal],
+      ["Процессор", form.processor],
+      ["Гарантия", form.warranty],
+      ["Объем", form.volume],
+      ["Комплектация", form.bundle],
+    ].filter(([, value]) => value.trim()),
+  );
 }
 
 function parseFormNumber(value: string) {

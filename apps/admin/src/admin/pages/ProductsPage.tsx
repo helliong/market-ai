@@ -418,7 +418,7 @@ function getCatalogAttributeColumns(products: Product[]) {
 }
 
 function getProductAttributes(product: Product) {
-  const attributes: Record<string, string> = {};
+  const attributes: Record<string, string> = { ...(product.attributes ?? {}) };
 
   for (const line of product.description.split(/\r?\n/)) {
     const separatorIndex = line.indexOf(":");
@@ -428,7 +428,7 @@ function getProductAttributes(product: Product) {
 
     const key = line.slice(0, separatorIndex).trim();
     const value = line.slice(separatorIndex + 1).trim();
-    if (key && value) {
+    if (key && value && !attributes[key]) {
       attributes[key] = value;
     }
   }

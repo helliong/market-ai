@@ -31,7 +31,7 @@ type ProductPageProps = {
   relatedProducts?: Product[];
 };
 
-const specs = [
+const defaultSpecs = [
   ["warranty", "12months"],
   ["deliveryOption", "todayOrTomorrow"],
   ["paymentOption", "cardOnDelivery"],
@@ -68,6 +68,21 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
   const productCategory = product.categoryIds
     ? categories.find((category) => product.categoryIds?.includes(category.id))
     : undefined;
+  const productSpecs = useMemo(
+    () => [
+      ...Object.entries(product.attributes).map(([label, value]) => ({
+        label,
+        value,
+        translate: false,
+      })),
+      ...defaultSpecs.map(([label, value]) => ({
+        label,
+        value,
+        translate: true,
+      })),
+    ],
+    [product.attributes],
+  );
 
   useEffect(() => {
     if (!product.storeName) {
@@ -292,10 +307,14 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
           <div className="mt-4 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
             <h2 className="text-xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
             <div className="mt-5 space-y-3">
-              {specs.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between border-b border-[#E5E7EB] pb-3 text-sm last:border-b-0 last:pb-0">
-                  <span className="text-[#6B7280]">{t(key)}</span>
-                  <span className="font-bold text-[#111827]">{t(value)}</span>
+              {productSpecs.map((spec) => (
+                <div key={spec.label} className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] pb-3 text-sm last:border-b-0 last:pb-0">
+                  <span className="text-[#6B7280]">
+                    {spec.translate ? t(spec.label) : spec.label}
+                  </span>
+                  <span className="text-right font-bold text-[#111827]">
+                    {spec.translate ? t(spec.value) : spec.value}
+                  </span>
                 </div>
               ))}
             </div>

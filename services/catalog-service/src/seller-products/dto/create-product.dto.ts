@@ -6,6 +6,7 @@ import {
   IsIn,
   IsInt,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -66,6 +67,14 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(2000)
   description?: string;
+
+  @ApiPropertyOptional({
+    example: { color: 'темно-синий', size: 'M', material: 'Полиэстер' },
+    description: 'Product characteristics keyed by attribute name.',
+  })
+  @IsOptional()
+  @IsObject()
+  attributes?: Record<string, unknown>;
 
   @ApiProperty({ example: 'electronics' })
   @IsString()

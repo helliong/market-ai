@@ -346,6 +346,10 @@ function App() {
 
   function openEditProductModal(product: Product, mode: ProductModalMode = "catalog") {
     const parsedDescription = parseProductDescription(product.description);
+    const attributes = {
+      ...parsedDescription.attributes,
+      ...(product.attributes ?? {}),
+    };
 
     setEditingProduct(product);
     setProductModalMode(mode);
@@ -354,20 +358,20 @@ function App() {
       name: product.name,
       description: parsedDescription.description,
       category: product.category,
-      color: parsedDescription.attributes["Цвет"] ?? "",
-      size: parsedDescription.attributes["Размер"] ?? "",
-      memory: parsedDescription.attributes["Память"] ?? "",
-      material: parsedDescription.attributes["Материал"] ?? "",
-      brand: parsedDescription.attributes["Бренд"] ?? "",
-      country: parsedDescription.attributes["Страна производства"] ?? "",
-      barcode: parsedDescription.attributes["Штрихкод"] ?? "",
-      gender: parsedDescription.attributes["Пол"] ?? "",
-      season: parsedDescription.attributes["Сезон"] ?? "",
-      diagonal: parsedDescription.attributes["Диагональ"] ?? "",
-      processor: parsedDescription.attributes["Процессор"] ?? "",
-      warranty: parsedDescription.attributes["Гарантия"] ?? "",
-      volume: parsedDescription.attributes["Объем"] ?? "",
-      bundle: parsedDescription.attributes["Комплектация"] ?? "",
+      color: attributes["Цвет"] ?? "",
+      size: attributes["Размер"] ?? "",
+      memory: attributes["Память"] ?? "",
+      material: attributes["Материал"] ?? "",
+      brand: attributes["Бренд"] ?? "",
+      country: attributes["Страна производства"] ?? "",
+      barcode: attributes["Штрихкод"] ?? "",
+      gender: attributes["Пол"] ?? "",
+      season: attributes["Сезон"] ?? "",
+      diagonal: attributes["Диагональ"] ?? "",
+      processor: attributes["Процессор"] ?? "",
+      warranty: attributes["Гарантия"] ?? "",
+      volume: attributes["Объем"] ?? "",
+      bundle: attributes["Комплектация"] ?? "",
       price: formatMaskedNumber(product.price),
       oldPrice: product.oldPrice ? formatMaskedNumber(product.oldPrice) : "",
       stock: formatMaskedNumber(product.stock),

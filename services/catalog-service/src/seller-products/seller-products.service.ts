@@ -113,6 +113,7 @@ export class SellerProductsService {
           sku: product.sku,
           name: product.name,
           description: product.description,
+          attributes: normalizeProductAttributeStrings(product.attributes, product.description),
           mainCategory: getMainCategoryBySubcategory(product.category),
           category: product.category,
           price: product.price.toNumber(),
@@ -151,6 +152,7 @@ export class SellerProductsService {
           sku: normalizeSku(dto.sku),
           name: dto.name.trim(),
           description: dto.description?.trim() ?? '',
+          attributes: normalizeProductAttributes(dto.attributes, dto.description),
           category: dto.category.trim(),
           price: new Prisma.Decimal(dto.price),
           oldPrice: dto.oldPrice ? new Prisma.Decimal(dto.oldPrice) : null,
@@ -186,6 +188,10 @@ export class SellerProductsService {
 
     if (dto.description !== undefined) {
       data.description = dto.description.trim();
+    }
+
+    if (dto.attributes !== undefined || dto.description !== undefined) {
+      data.attributes = normalizeProductAttributes(dto.attributes, dto.description);
     }
 
     if (dto.category !== undefined) {
@@ -373,6 +379,7 @@ export class SellerProductsService {
           sku: row.sku,
           name: row.name,
           description: row.description,
+          attributes: normalizeProductAttributes(row.attributes, row.description),
           category: row.category,
           price: new Prisma.Decimal(row.price),
           oldPrice: row.oldPrice ? new Prisma.Decimal(row.oldPrice) : null,
@@ -461,6 +468,7 @@ export class SellerProductsService {
     sku: string;
     name: string;
     description: string;
+    attributes: Prisma.JsonValue;
     category: string;
     price: Prisma.Decimal;
     oldPrice: Prisma.Decimal | null;
@@ -483,6 +491,7 @@ export class SellerProductsService {
       price: product.price.toNumber(),
       oldPrice: product.oldPrice ? product.oldPrice.toNumber() : undefined,
       rating: product.rating.toNumber(),
+      attributes: normalizeProductAttributes(product.attributes, product.description),
       images: product.images ?? [],
     };
   }
@@ -601,6 +610,66 @@ function normalizeImages(
 
 function normalizeSku(value: string) {
   return value.trim().toUpperCase();
+}
+
+function normalizeProductAttributes(
+  value: unknown,
+  fallbackDescription = '',
+): Prisma.InputJsonObject {
+  const parsedFromDescription = parseDescriptionAttributes(fallbackDescription);
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return parsedFromDescription;
+  }
+
+  const attributes = Object.entries(value)
+    .map(([key, attrValue]) => [key.trim(), String(attrValue ?? '').trim()] as const)
+    .filter(([key, attrValue]) => key.length > 0 && attrValue.length > 0);
+
+  return {
+    ...parsedFromDescription,
+    ...Object.fromEntries(attributes),
+  };
+}
+
+function normalizeProductAttributeStrings(
+  value: unknown,
+  fallbackDescription = '',
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(normalizeProductAttributes(value, fallbackDescription)).map(
+      ([key, attrValue]) => [key, String(attrValue ?? '')],
+    ),
+  );
+}
+
+function parseDescriptionAttributes(description: string): Record<string, string> {
+  const header = 'Характеристики:';
+  const headerIndex = description.indexOf(header);
+
+  if (headerIndex === -1) {
+    return {};
+  }
+
+  return description
+    .slice(headerIndex + header.length)
+    .split(/\r?\n/)
+    .reduce<Record<string, string>>((result, line) => {
+      const separatorIndex = line.indexOf(':');
+
+      if (separatorIndex <= 0) {
+        return result;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      const attrValue = line.slice(separatorIndex + 1).trim();
+
+      if (key && attrValue) {
+        result[key] = attrValue;
+      }
+
+      return result;
+    }, {});
 }
 
 function buildStocksFileName(storeName: string) {

@@ -188,6 +188,7 @@ export class ProductsService {
     sku: string;
     name: string;
     description: string;
+    attributes: Prisma.JsonValue;
     category: string;
     price: Prisma.Decimal;
     rating: Prisma.Decimal;
@@ -208,6 +209,7 @@ export class ProductsService {
       ...product,
       price: product.price.toNumber(),
       rating: product.rating.toNumber(),
+      attributes: normalizeProductAttributes(product.attributes, product.description),
       images: product.images ?? [],
     };
   }
@@ -240,6 +242,55 @@ const productWithImages = {
     orderBy: { sortOrder: 'asc' },
   },
 } satisfies Prisma.ProductInclude;
+
+function normalizeProductAttributes(
+  value: unknown,
+  fallbackDescription = '',
+): Record<string, string> {
+  const parsedFromDescription = parseDescriptionAttributes(fallbackDescription);
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return parsedFromDescription;
+  }
+
+  const attributes = Object.entries(value)
+    .map(([key, attrValue]) => [key.trim(), String(attrValue ?? '').trim()] as const)
+    .filter(([key, attrValue]) => key.length > 0 && attrValue.length > 0);
+
+  return {
+    ...parsedFromDescription,
+    ...Object.fromEntries(attributes),
+  };
+}
+
+function parseDescriptionAttributes(description: string): Record<string, string> {
+  const header = 'Характеристики:';
+  const headerIndex = description.indexOf(header);
+
+  if (headerIndex === -1) {
+    return {};
+  }
+
+  return description
+    .slice(headerIndex + header.length)
+    .split(/\r?\n/)
+    .reduce<Record<string, string>>((result, line) => {
+      const separatorIndex = line.indexOf(':');
+
+      if (separatorIndex <= 0) {
+        return result;
+      }
+
+      const key = line.slice(0, separatorIndex).trim();
+      const attrValue = line.slice(separatorIndex + 1).trim();
+
+      if (key && attrValue) {
+        result[key] = attrValue;
+      }
+
+      return result;
+    }, {});
+}
 
 function shuffleProducts<T>(products: T[]) {
   const shuffled = [...products];

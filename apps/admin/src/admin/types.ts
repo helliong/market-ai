@@ -19,6 +19,7 @@ export type Product = {
   sku: string;
   name: string;
   description: string;
+  attributes?: Record<string, string>;
   category: string;
   price: number;
   oldPrice?: number;

@@ -1518,9 +1518,10 @@ input:disabled {
 
 .product-filter-summary {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: end;
+  flex-direction: column;
+  gap: 8px;
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 700;

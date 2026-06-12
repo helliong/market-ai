@@ -14,6 +14,7 @@ model Product {
   sku         String   @unique
   name        String
   description String   @default("")
+  attributes  Json     @default("{}")
   category    String
   price       Decimal  @db.Decimal(12, 2)
   oldPrice    Decimal? @db.Decimal(12, 2)

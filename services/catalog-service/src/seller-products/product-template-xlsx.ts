@@ -11,13 +11,18 @@ export type ProductTemplateRow = {
   sku: string;
   name: string;
   description: string;
+  attributes?: Record<string, string>;
   mainCategory?: string;
   category: string;
   price: number;
   oldPrice?: number;
   stock: number;
-  status: ProductStatus;
-  action?: ProductTemplateAction | '';
+  status: ProductStatus | string;
+  action?: string;
+};
+
+type ParsedProductTemplateRow = ProductTemplateRow & {
+  rowNumber: number;
 };
 
 export const productTemplateActions = ['delete'] as const;
@@ -215,7 +220,7 @@ export function parseProductWorkbook(buffer: Buffer) {
   return [...rowsBySku.values()];
 }
 
-function isEmptyTemplateRow(parsedRow: ReturnType<typeof parseProductRow>) {
+function isEmptyTemplateRow(parsedRow: ParsedProductTemplateRow) {
   return (
     !parsedRow.sku &&
     !parsedRow.name &&
@@ -227,8 +232,8 @@ function isEmptyTemplateRow(parsedRow: ReturnType<typeof parseProductRow>) {
 }
 
 function mergeTemplateRows(
-  baseRow: ReturnType<typeof parseProductRow>,
-  categoryRow: ReturnType<typeof parseProductRow>,
+  baseRow: ParsedProductTemplateRow,
+  categoryRow: ParsedProductTemplateRow,
 ) {
   return {
     ...baseRow,
@@ -240,6 +245,10 @@ function mergeTemplateRows(
     stock: categoryRow.stock || baseRow.stock,
     status: categoryRow.status || baseRow.status,
     description: categoryRow.description || baseRow.description,
+    attributes: {
+      ...(baseRow.attributes ?? {}),
+      ...(categoryRow.attributes ?? {}),
+    },
     action: categoryRow.action || baseRow.action,
   };
 }
@@ -248,12 +257,12 @@ function parseCategoryProductRow(
   row: Record<string, string>,
   rowNumber: number,
   mainCategory: string,
-) {
+): ParsedProductTemplateRow {
   const attributeHeaders = getCategoryAttributeHeaders(mainCategory);
   const attributes = Object.fromEntries(
     attributeHeaders.map((header, index) => [
       header,
-      row[columnName(10 + index)],
+      stringValue(row[columnName(10 + index)]).trim(),
     ]),
   );
   const actionColumn = columnName(10 + attributeHeaders.length);
@@ -269,11 +278,15 @@ function parseCategoryProductRow(
     oldPrice: oldPrice === 0 ? undefined : oldPrice,
     stock: parseNumber(row.G),
     status: stringValue(row.H).trim() || 'active',
-    description: buildDescriptionWithAttributes(stringValue(row.I).trim(), attributes),
+    description: stringValue(row.I).trim(),
+    attributes: filterEmptyAttributes(attributes),
     action: stringValue(row[actionColumn]).trim().toLowerCase(),
   };
 }
-function parseProductRow(row: Record<string, string>, rowNumber: number) {
+function parseProductRow(
+  row: Record<string, string>,
+  rowNumber: number,
+): ParsedProductTemplateRow {
   const currentCategory = stringValue(row.D).trim();
   const legacyCategory = stringValue(row.C).trim();
 
@@ -298,11 +311,11 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
   const attributes = Object.fromEntries(
     productAttributeHeaders.map((header, index) => [
       header,
-      row[columnName(10 + index)],
+      stringValue(row[columnName(10 + index)]).trim(),
     ]),
   );
   const actionColumn = columnName(10 + productAttributeHeaders.length);
-  const description = buildDescriptionWithAttributes(stringValue(row.I).trim(), attributes);
+  const description = stringValue(row.I).trim();
 
   return {
     rowNumber,
@@ -315,6 +328,7 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
     stock: parseNumber(row.G),
     status: stringValue(row.H).trim() || 'active',
     description,
+    attributes: filterEmptyAttributes(attributes),
     action: stringValue(row[actionColumn]).trim().toLowerCase(),
   };
 }
@@ -344,10 +358,14 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     .map((product, index) => {
       const row = index + 2;
       const parsedDescription = parseDescriptionAttributes(product.description);
+      const attributes = {
+        ...parsedDescription.attributes,
+        ...(product.attributes ?? {}),
+      };
       const attributeCells = productAttributeHeaders.map((header, attrIndex) =>
         inlineCell(
           `${columnName(10 + attrIndex)}${row}`,
-          parsedDescription.attributes[header] ?? '',
+          attributes[header] ?? '',
           2,
         ),
       );
@@ -466,10 +484,14 @@ function buildCategoryTemplateSheet(
     .map((product, index) => {
       const row = index + 2;
       const parsedDescription = parseDescriptionAttributes(product.description);
+      const attributes = {
+        ...parsedDescription.attributes,
+        ...(product.attributes ?? {}),
+      };
       const attributeCells = attributeHeaders.map((header, attrIndex) =>
         inlineCell(
           `${columnName(10 + attrIndex)}${row}`,
-          parsedDescription.attributes[header] ?? '',
+          attributes[header] ?? '',
           2,
         ),
       );
@@ -542,6 +564,12 @@ function buildDescriptionWithAttributes(
   return [description, `Характеристики:\n${attributesText}`]
     .filter(Boolean)
     .join('\n\n');
+}
+
+function filterEmptyAttributes(attributes: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([, value]) => value.trim().length > 0),
+  );
 }
 
 function parseDescriptionAttributes(description: string) {

@@ -90,11 +90,23 @@ export function buildProductOptionsMap(products: ClientProduct[]) {
 
   for (const groupProducts of groups.values()) {
     const colorProducts = groupProducts
-      .map((product) => ({ product, color: extractColor(product.title) }))
-      .filter((item) => Boolean(item.color));
+      .map((product) => ({ product, color: getProductColor(product) }))
+      .filter((item) => Boolean(item.color))
+      .sort((left, right) => {
+        const colorCompare = (left.color?.name ?? "").localeCompare(
+          right.color?.name ?? "",
+          "ru",
+        );
+
+        if (colorCompare !== 0) {
+          return colorCompare;
+        }
+
+        return left.product.sku.localeCompare(right.product.sku, "ru");
+      });
 
     for (const product of groupProducts) {
-      const currentColor = extractColor(product.title);
+      const currentColor = getProductColor(product);
       const colorVariants =
         colorProducts.length > 1
           ? colorProducts.map(({ product: variant, color }) => ({
@@ -132,6 +144,12 @@ function isApparelProduct(product: ClientProduct) {
 }
 
 function getProductSizes(product: ClientProduct) {
+  const size = getAttribute(product, "Размер", "size");
+
+  if (size) {
+    return splitAttributeValues(size);
+  }
+
   const searchable = normalizeText(`${product.title} ${product.category ?? ""}`);
   return SHOE_WORDS.some((word) => searchable.includes(word))
     ? EUROPEAN_SIZE_SET
@@ -156,6 +174,33 @@ function normalizeBaseTitle(title: string) {
   }
 
   return normalized.replace(/\s+/g, " ").trim();
+}
+
+function getProductColor(product: ClientProduct) {
+  const attributeColor = getAttribute(product, "Цвет", "color");
+  return attributeColor
+    ? colorFromName(attributeColor)
+    : extractColor(product.title);
+}
+
+function getAttribute(product: ClientProduct, ruKey: string, enKey: string) {
+  return product.attributes[ruKey] ?? product.attributes[enKey] ?? "";
+}
+
+function splitAttributeValues(value: string) {
+  return value
+    .split(/[,;/|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function colorFromName(name: string) {
+  const knownColor = extractColor(name);
+
+  return {
+    name,
+    hex: knownColor?.hex ?? "#CBD5E1",
+  };
 }
 
 function extractColor(title: string) {

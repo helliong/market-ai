@@ -8,6 +8,7 @@ export type ClientProduct = {
   reviews: number;
   badge?: string;
   description?: string;
+  attributes: Record<string, string>;
   storeName?: string;
   categoryIds: number[];
   category?: string;
@@ -26,6 +27,7 @@ type ApiProduct = {
   sku: string;
   name: string;
   description: string;
+  attributes?: Record<string, string>;
   category: string;
   price: number;
   oldPrice?: number | string;
@@ -202,6 +204,7 @@ function mapApiProduct(product: ApiProduct): ClientProduct {
     reviews: product.reviews ?? 0,
     badge: "New",
     description: product.description,
+    attributes: product.attributes ?? {},
     storeName: product.storeName ?? "MarketAI Store",
     categoryIds: inferCategoryIds(product.category),
     category: product.category,

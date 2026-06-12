@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ImagePlus, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, ImagePlus, Upload } from "lucide-react";
 import type { Product, ProductImage } from "../types";
 
 type ProductImagesPageProps = {
@@ -10,32 +10,41 @@ type ProductImagesPageProps = {
 type ImageRow = {
   product: Product;
   image: ProductImage | null;
+  isAdditional: boolean;
 };
 
 export function ProductImagesPage({ products, onEditProduct }: ProductImagesPageProps) {
   const [query, setQuery] = useState("");
   const [imageStatus, setImageStatus] = useState<"" | "withImages" | "withoutImages">("");
-  const rows = useMemo(
-    () =>
-      products.reduce<ImageRow[]>((items, product) => {
-        if (!product.images.length) {
-          items.push({ product, image: null });
-          return items;
-        }
-
-        product.images.forEach((image) => {
-          items.push({ product, image });
-        });
-
-        return items;
-      }, []),
-    [products],
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<number>>(
+    () => new Set(),
   );
-  const filteredRows = useMemo(
-    () => filterImageRows(rows, query, imageStatus),
-    [imageStatus, query, rows],
+  const filteredProducts = useMemo(
+    () => filterImageProducts(products, query, imageStatus),
+    [imageStatus, products, query],
+  );
+  const visibleRows = useMemo(
+    () =>
+      filteredProducts.flatMap((product) =>
+        buildVisibleImageRows(product, expandedProductIds.has(product.id)),
+      ),
+    [expandedProductIds, filteredProducts],
   );
   const hasActiveFilters = Boolean(query || imageStatus);
+
+  function toggleProductImages(productId: number) {
+    setExpandedProductIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+
+      return next;
+    });
+  }
 
   return (
     <section className="panel">
@@ -83,7 +92,7 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
           </select>
         </label>
         <div className="product-filter-summary">
-          <span>{`Найдено ${filteredRows.length} из ${rows.length}`}</span>
+          <span>{`Найдено ${filteredProducts.length} из ${products.length}`}</span>
           <button
             type="button"
             className="table-button"
@@ -113,34 +122,57 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map(({ product, image }) => (
-              <tr key={`${product.id}-${image?.id ?? "empty"}`}>
-                <td>
-                  {image ? (
-                    <img className="product-thumbnail" src={image.url} alt="" loading="lazy" />
-                  ) : (
-                    <span className="product-thumbnail-placeholder" aria-label="Нет фото" />
-                  )}
-                </td>
-                <td>{image ? getFileName(image) : "—"}</td>
-                <td>{product.sku}</td>
-                <td>{product.name}</td>
-                <td>{image?.isMain ? "Главное фото" : image ? "Дополнительное фото" : "—"}</td>
-                <td>
-                  <span className="status-badge">
-                    {image ? "Привязано к товару" : "Ожидает загрузки"}
-                  </span>
-                </td>
-                <td>{image ? "—" : "Фото не загружено"}</td>
-                <td>
-                  <button className="table-button" onClick={() => onEditProduct(product)}>
-                    Изменить
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {visibleRows.map(({ product, image, isAdditional }) => {
+              const additionalImagesCount = getAdditionalImages(product).length;
+              const isExpanded = expandedProductIds.has(product.id);
 
-            {filteredRows.length === 0 && (
+              return (
+                <tr key={`${product.id}-${image?.id ?? "empty"}`}>
+                  <td>
+                    {image ? (
+                      <img className="product-thumbnail" src={image.url} alt="" loading="lazy" />
+                    ) : (
+                      <span className="product-thumbnail-placeholder" aria-label="Нет фото" />
+                    )}
+                  </td>
+                  <td>{image ? getFileName(image) : "—"}</td>
+                  <td>{product.sku}</td>
+                  <td>{product.name}</td>
+                  <td>{image?.isMain ? "Главное фото" : image ? "Дополнительное фото" : "—"}</td>
+                  <td>
+                    <span className="status-badge">
+                      {image ? "Привязано к товару" : "Ожидает загрузки"}
+                    </span>
+                  </td>
+                  <td>{image ? "—" : "Фото не загружено"}</td>
+                  <td>
+                    {!isAdditional && (
+                      <div className="table-actions">
+                        {additionalImagesCount > 0 && (
+                          <button
+                            className="table-button"
+                            type="button"
+                            onClick={() => toggleProductImages(product.id)}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown aria-hidden="true" />
+                            ) : (
+                              <ChevronRight aria-hidden="true" />
+                            )}
+                            {isExpanded ? "Скрыть доп." : `Доп. фото (${additionalImagesCount})`}
+                          </button>
+                        )}
+                        <button className="table-button" onClick={() => onEditProduct(product)}>
+                          Изменить
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+
+            {visibleRows.length === 0 && (
               <tr>
                 <td colSpan={8} className="empty-cell">
                   {products.length === 0 ? "Товары пока не добавлены" : "Товары не найдены"}
@@ -154,21 +186,47 @@ export function ProductImagesPage({ products, onEditProduct }: ProductImagesPage
   );
 }
 
-function filterImageRows(rows: ImageRow[], query: string, imageStatus: "" | "withImages" | "withoutImages") {
+function buildVisibleImageRows(product: Product, isExpanded: boolean): ImageRow[] {
+  const mainImage = getMainImage(product);
+  const rows: ImageRow[] = [{ product, image: mainImage, isAdditional: false }];
+
+  if (isExpanded) {
+    rows.push(
+      ...getAdditionalImages(product).map((image) => ({
+        product,
+        image,
+        isAdditional: true,
+      })),
+    );
+  }
+
+  return rows;
+}
+
+function filterImageProducts(
+  products: Product[],
+  query: string,
+  imageStatus: "" | "withImages" | "withoutImages",
+) {
   const normalizedQuery = normalizeSearch(query);
 
-  return rows.filter(({ product, image }) => {
-    if (imageStatus === "withImages" && !image) {
+  return products.filter((product) => {
+    if (imageStatus === "withImages" && product.images.length === 0) {
       return false;
     }
 
-    if (imageStatus === "withoutImages" && image) {
+    if (imageStatus === "withoutImages" && product.images.length > 0) {
       return false;
     }
 
     if (
       normalizedQuery &&
-      ![product.sku, product.name, product.category, image ? getFileName(image) : ""]
+      ![
+        product.sku,
+        product.name,
+        product.category,
+        ...product.images.map(getFileName),
+      ]
         .map(normalizeSearch)
         .some((value) => value.includes(normalizedQuery))
     ) {
@@ -177,6 +235,19 @@ function filterImageRows(rows: ImageRow[], query: string, imageStatus: "" | "wit
 
     return true;
   });
+}
+
+function getMainImage(product: Product) {
+  const images = [...product.images].sort((left, right) => left.sortOrder - right.sortOrder);
+  return images.find((image) => image.isMain) ?? images[0] ?? null;
+}
+
+function getAdditionalImages(product: Product) {
+  const mainImage = getMainImage(product);
+
+  return [...product.images]
+    .filter((image) => image.id !== mainImage?.id)
+    .sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
 function getFileName(image: ProductImage) {
