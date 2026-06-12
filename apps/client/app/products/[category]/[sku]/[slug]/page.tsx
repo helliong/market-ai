@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { ProductUnavailableState } from "@/components/not-found/ProductUnavailableState";
 import { ProductPage } from "@/components/product/ProductPage";
-import { getCatalogProductBySku } from "@/lib/catalog-products";
+import { getCatalogProductBySku, getCatalogProducts } from "@/lib/catalog-products";
 import { getProductPath } from "@/lib/product-url";
 
 type ProductSeoRouteProps = {
@@ -73,10 +73,12 @@ export default async function ProductSeoPage({
     redirect(productPath);
   }
 
+  const relatedProducts = await getCatalogProducts();
+
   return (
     <main>
       <Header />
-      <ProductPage product={product} />
+      <ProductPage product={product} relatedProducts={relatedProducts} />
     </main>
   );
 }

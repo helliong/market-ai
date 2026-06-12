@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Heart,
   Minus,
@@ -21,31 +21,14 @@ import { categories } from "@/data/categories";
 import { getMainProductImageUrl } from "@/lib/product-image";
 import { getPublicStoreProfile } from "@/lib/auth-api";
 import type { PublicStoreProfile } from "@/lib/auth-api";
+import type { ClientProduct } from "@/lib/catalog-products";
+import { buildProductOptionsMap } from "@/lib/product-options";
 
-type Product = {
-  id: number;
-  title: string;
-  price: string;
-  oldPrice?: string;
-  rating: number;
-  reviews: number;
-  badge?: string;
-  description?: string;
-  storeName?: string;
-  categoryIds?: number[];
-  category?: string;
-  images?: ProductImage[];
-};
+type Product = ClientProduct;
 
 type ProductPageProps = {
   product: Product;
-};
-
-type ProductImage = {
-  id: string;
-  url: string;
-  isMain: boolean;
-  sortOrder: number;
+  relatedProducts?: Product[];
 };
 
 const specs = [
@@ -55,7 +38,7 @@ const specs = [
   ["returnOption", "14days"],
 ];
 // Страница товара показывает фото, цену, характеристики и действия покупки.
-export function ProductPage({ product }: ProductPageProps) {
+export function ProductPage({ product, relatedProducts = [product] }: ProductPageProps) {
   const { t } = useLanguage();
   const dispatch = useAppDispatch();
   const galleryImages = product.images?.length ? product.images : [];
@@ -66,6 +49,13 @@ export function ProductPage({ product }: ProductPageProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(mainImageIndex);
   const [storeProfile, setStoreProfile] = useState<PublicStoreProfile | null>(
     null,
+  );
+  const productOptions = useMemo(
+    () => buildProductOptionsMap(relatedProducts).get(product.id),
+    [product.id, relatedProducts],
+  );
+  const [selectedSize, setSelectedSize] = useState(
+    productOptions?.sizes[0] ?? "",
   );
   const selectedImage =
     galleryImages[selectedImageIndex] ?? galleryImages[0] ?? null;
@@ -220,6 +210,84 @@ export function ProductPage({ product }: ProductPageProps) {
               </div>
             </Link>
           )}
+
+          {productOptions &&
+            (productOptions.sizes.length > 0 ||
+              productOptions.currentColor ||
+              productOptions.colorVariants.length > 0) && (
+              <div className="mt-4 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
+                <h2 className="text-xl font-black tracking-[-0.03em]">
+                  Варианты товара
+                </h2>
+
+                {productOptions.colorVariants.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-[#6B7280]">
+                      Цвет:{" "}
+                      <span className="font-black text-[#111827]">
+                        {productOptions.currentColor}
+                      </span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {productOptions.colorVariants.map((variant) => (
+                        <Link
+                          key={variant.id}
+                          href={variant.href}
+                          aria-label={`Цвет: ${variant.label}`}
+                          title={variant.label}
+                          className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border bg-white transition ${
+                            variant.isCurrent
+                              ? "border-[#6D4AFF] ring-2 ring-[#6D4AFF]/20"
+                              : "border-[#E5E7EB] hover:border-[#6D4AFF]"
+                          }`}
+                        >
+                          {variant.imageUrl ? (
+                            <img
+                              src={variant.imageUrl}
+                              alt={variant.label}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span
+                              className="h-8 w-8 rounded-full border border-black/10"
+                              style={{ backgroundColor: variant.color }}
+                            />
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {productOptions.sizes.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-[#6B7280]">
+                      Размер:{" "}
+                      <span className="font-black text-[#111827]">
+                        {selectedSize}
+                      </span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {productOptions.sizes.map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setSelectedSize(size)}
+                          className={`flex h-11 min-w-12 items-center justify-center rounded-2xl border px-3 text-sm font-black transition ${
+                            selectedSize === size
+                              ? "border-[#6D4AFF] bg-[#F1EDFF] text-[#6D4AFF]"
+                              : "border-[#E5E7EB] bg-white text-[#111827] hover:border-[#6D4AFF]"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           <div className="mt-4 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
             <h2 className="text-xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
