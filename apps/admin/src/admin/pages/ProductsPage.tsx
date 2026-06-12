@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Download, FileUp, Plus, X, XCircle } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatCurrency, productStatusLabel } from "../formatters";
+import { productStatusLabel } from "../formatters";
 import { productCategoriesTree, productMainCategories } from "../product-categories";
 import { useLanguage } from "../../hooks/useLanguage";
 import { searchSellerProducts } from "../../catalog-api";
@@ -75,6 +75,10 @@ export function ProductsPage({
     [filters, productsForFilters, usesServerSearch],
   );
   const hasActiveFilters = Object.values(filters).some(Boolean);
+  const attributeColumns = useMemo(
+    () => getCatalogAttributeColumns(filteredProducts),
+    [filteredProducts],
+  );
 
   useEffect(() => {
     if (!textSearchQuery) {
@@ -327,58 +331,60 @@ export function ProductsPage({
               <th>SKU</th>
               <th>{t("productListName")}</th>
               <th>{t("productListCategory")}</th>
-              <th>{t("productListPrice")}</th>
-              <th>Старая цена</th>
-              <th>{t("productListStock")}</th>
+              {attributeColumns.map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
               <th>{t("productListStatus")}</th>
               <th>{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  <ProductThumbnail product={product} />
-                </td>
-                <td>{product.sku}</td>
-                <td>{product.name}</td>
-                <td>{product.category}</td>
-                <td>{formatCurrency(product.price)}</td>
-                <td>
-                  {product.oldPrice ? (
-                    <span style={{ textDecoration: "line-through", color: "var(--text-secondary, #9ca3af)" }}>
-                      {formatCurrency(product.oldPrice)}
-                    </span>
-                  ) : (
-                    <span style={{ opacity: 0.5 }}>—</span>
-                  )}
-                </td>
-                <td>{product.stock}</td>
-                <td>
-                  <StatusBadge label={productStatusLabel(product.status)} />
-                </td>
-                <td>
-                  <div className="table-actions">
-                    <button
-                      className="table-button"
-                      onClick={() => onEditProduct(product)}
-                    >
-                      {t("edit")}
-                    </button>
-                    <button
-                      className="table-button danger"
-                      onClick={() => onDeleteProduct(product.id)}
-                    >
-                      {t("delete")}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filteredProducts.map((product) => {
+              const attributes = getProductAttributes(product);
+
+              return (
+                <tr key={product.id}>
+                  <td>
+                    <ProductThumbnail product={product} />
+                  </td>
+                  <td>{product.sku}</td>
+                  <td>{product.name}</td>
+                  <td>{product.category}</td>
+                  {attributeColumns.map((column) => (
+                    <td key={column.key}>{attributes[column.key] || "—"}</td>
+                  ))}
+                  <td>
+                    <StatusBadge
+                      label={
+                        product.stock === 0
+                          ? "Нет в наличии"
+                          : productStatusLabel(product.status)
+                      }
+                    />
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        className="table-button"
+                        onClick={() => onEditProduct(product)}
+                      >
+                        {t("edit")}
+                      </button>
+                      <button
+                        className="table-button danger"
+                        onClick={() => onDeleteProduct(product.id)}
+                      >
+                        {t("delete")}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
             {filteredProducts.length === 0 && (
               <tr>
-                <td colSpan={8} className="empty-cell">
+                <td colSpan={6 + attributeColumns.length} className="empty-cell">
                   {products.length === 0 ? t("noProducts") : "Товары не найдены"}
                 </td>
               </tr>
@@ -387,6 +393,128 @@ export function ProductsPage({
         </table>
       </div>
     </section>
+  );
+}
+
+type AttributeColumn = {
+  key: string;
+  label: string;
+};
+
+const commonAttributeColumns: AttributeColumn[] = [
+  { key: "Цвет", label: "Цвет" },
+  { key: "Бренд", label: "Бренд" },
+  { key: "Страна производства", label: "Страна производства" },
+  { key: "Штрихкод", label: "Штрихкод" },
+];
+
+const apparelAttributeColumns: AttributeColumn[] = [
+  { key: "Размер", label: "Размер" },
+  { key: "Материал", label: "Материал" },
+  { key: "Пол", label: "Пол" },
+  { key: "Сезон", label: "Сезон" },
+];
+
+const electronicsAttributeColumns: AttributeColumn[] = [
+  { key: "Память", label: "Память" },
+  { key: "Диагональ", label: "Диагональ" },
+  { key: "Процессор", label: "Процессор" },
+  { key: "Гарантия", label: "Гарантия" },
+];
+
+const homeAttributeColumns: AttributeColumn[] = [
+  { key: "Размер", label: "Размер" },
+  { key: "Материал", label: "Материал" },
+  { key: "Объем", label: "Объем" },
+  { key: "Комплектация", label: "Комплектация" },
+];
+
+function getCatalogAttributeColumns(products: Product[]) {
+  const categories = products.map((product) => normalizeSearch(product.category));
+  const hasApparel = categories.some(isApparelCategory);
+  const hasElectronics = categories.some(isElectronicsCategory);
+  const hasHome = categories.some(isHomeCategory);
+  const columns = [...commonAttributeColumns];
+
+  if (hasApparel) {
+    columns.push(...apparelAttributeColumns);
+  }
+
+  if (hasElectronics) {
+    columns.push(...electronicsAttributeColumns);
+  }
+
+  if (hasHome) {
+    columns.push(...homeAttributeColumns);
+  }
+
+  return uniqueColumns(columns);
+}
+
+function getProductAttributes(product: Product) {
+  const attributes: Record<string, string> = {};
+
+  for (const line of product.description.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    if (key && value) {
+      attributes[key] = value;
+    }
+  }
+
+  return attributes;
+}
+
+function uniqueColumns(columns: AttributeColumn[]) {
+  const seen = new Set<string>();
+  return columns.filter((column) => {
+    if (seen.has(column.key)) {
+      return false;
+    }
+
+    seen.add(column.key);
+    return true;
+  });
+}
+
+function isApparelCategory(category: string) {
+  return [
+    "одеж",
+    "обув",
+    "спорт",
+    "футбол",
+    "шорт",
+    "юбк",
+    "брюк",
+    "плать",
+    "кроссов",
+    "ботин",
+    "туфл",
+  ].some((word) => category.includes(word));
+}
+
+function isElectronicsCategory(category: string) {
+  return [
+    "элект",
+    "смартф",
+    "ноут",
+    "планш",
+    "монитор",
+    "телевиз",
+    "науш",
+    "час",
+    "компьют",
+  ].some((word) => category.includes(word));
+}
+
+function isHomeCategory(category: string) {
+  return ["дом", "быт", "посуда", "текстил", "декор"].some((word) =>
+    category.includes(word),
   );
 }
 

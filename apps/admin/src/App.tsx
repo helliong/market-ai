@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  ChevronRight,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -43,6 +44,9 @@ import { ProductModal } from "./admin/components/ProductModal";
 import { emptyProductForm } from "./admin/data";
 import { DashboardPage } from "./admin/pages/DashboardPage";
 import { OrdersPage } from "./admin/pages/OrdersPage";
+import { ProductImagesPage } from "./admin/pages/ProductImagesPage";
+import { ProductPricesPage } from "./admin/pages/ProductPricesPage";
+import { ProductStocksPage } from "./admin/pages/ProductStocksPage";
 import { PromotionPage } from "./admin/pages/PromotionPage";
 import { ProductsPage } from "./admin/pages/ProductsPage";
 import { SettingsPage } from "./admin/pages/SettingsPage";
@@ -67,6 +71,10 @@ type Page =
   | "welcome"
   | "dashboard"
   | "products"
+  | "productCatalog"
+  | "productPrices"
+  | "productStocks"
+  | "productImages"
   | "orders"
   | "promotion"
   | "users"
@@ -78,7 +86,11 @@ type Page =
 const pagePaths: Record<Page, string> = {
   welcome: "/",
   dashboard: "/dashboard",
-  products: "/products",
+  products: "/admin/products",
+  productCatalog: "/admin/products/catalog",
+  productPrices: "/admin/products/prices",
+  productStocks: "/admin/products/stocks",
+  productImages: "/admin/products/images",
   orders: "/orders",
   promotion: "/promotion",
   users: "/users",
@@ -89,11 +101,32 @@ const pagePaths: Record<Page, string> = {
 };
 type MenuPage = Exclude<
   Page,
-  "welcome" | "register" | "login" | "agreement" | "settings"
+  | "welcome"
+  | "register"
+  | "login"
+  | "agreement"
+  | "settings"
+  | "productCatalog"
+  | "productPrices"
+  | "productStocks"
+  | "productImages"
 >;
 type SidebarItem = MenuPage;
 
 const PUBLIC_PAGES: Page[] = ["welcome", "register", "login", "agreement"];
+const PRODUCT_PAGES: Page[] = [
+  "products",
+  "productCatalog",
+  "productPrices",
+  "productStocks",
+  "productImages",
+];
+const productSubpages: Array<{ page: Page; label: string }> = [
+  { page: "productCatalog", label: "Каталог" },
+  { page: "productPrices", label: "Цены" },
+  { page: "productStocks", label: "Остатки на складах" },
+  { page: "productImages", label: "Загрузка изображений" },
+];
 
 // Корневой компонент продавческой админки: маршрутизация, меню, seller-сессия и состояние ЛК.
 function App() {
@@ -104,7 +137,11 @@ function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
   const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
+  const [lastProductPage, setLastProductPage] = useState<Page>(
+    PRODUCT_PAGES.includes(page) && page !== "products" ? page : "productCatalog",
+  );
   const [storeName, setStoreName] = useState("MarketAI Store");
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(
     null,
@@ -172,7 +209,7 @@ function App() {
   }, [page]);
 
   useEffect(() => {
-    if (page !== "products") {
+    if (!PRODUCT_PAGES.includes(page)) {
       return;
     }
 
@@ -509,24 +546,43 @@ function App() {
   }
 
   function navigateToPage(nextPage: Page) {
-    setPage(nextPage);
-    window.history.pushState({}, "", pagePaths[nextPage]);
+    const targetPage = nextPage === "products" ? lastProductPage : nextPage;
+    if (PRODUCT_PAGES.includes(targetPage) && targetPage !== "products") {
+      setLastProductPage(targetPage);
+    }
+    setPage(targetPage);
+    window.history.pushState({}, "", pagePaths[targetPage]);
   }
 
   function handleMenuItemClick(nextPage: MenuPage) {
     if (!isMenuOpen) {
       setIsMenuOpen(true);
     }
+    if (nextPage === "products") {
+      openProductsMenu();
+      navigateToPage("products");
+      return;
+    }
+    setIsProductsMenuOpen(false);
+    setIsStoreMenuOpen(false);
     navigateToPage(nextPage);
+  }
+
+  function openProductsMenu() {
+    setIsMenuOpen(true);
+    setIsStoreMenuOpen(false);
+    setIsProductsMenuOpen(true);
   }
 
   function openStoreMenu() {
     setIsMenuOpen(true);
+    setIsProductsMenuOpen(false);
     setIsStoreMenuOpen(true);
   }
 
   function openSettingsPage() {
     setIsStoreMenuOpen(false);
+    setIsProductsMenuOpen(false);
     setIsMenuOpen(true);
     navigateToPage("settings");
   }
@@ -534,6 +590,10 @@ function App() {
   function toggleSidebar() {
     if (isStoreMenuOpen) {
       setIsStoreMenuOpen(false);
+      return;
+    }
+    if (isProductsMenuOpen) {
+      setIsProductsMenuOpen(false);
       return;
     }
     setIsMenuOpen((current) => !current);
@@ -574,6 +634,7 @@ function App() {
       await logoutSellerAccount();
     } finally {
       setIsStoreMenuOpen(false);
+      setIsProductsMenuOpen(false);
       setIsMenuOpen(false);
       navigateToPage("login");
     }
@@ -700,7 +761,7 @@ function App() {
             return (
               <button
                 key={item}
-                className={`${page === item ? "active" : ""} ${isPromotion ? "is-coming-soon" : ""}`}
+                className={`${item === "products" ? (PRODUCT_PAGES.includes(page) ? "active" : "") : page === item ? "active" : ""} ${isPromotion ? "is-coming-soon" : ""}`}
                 title={
                   isPromotion
                     ? "Фича в разработке: продвижение товаров"
@@ -713,12 +774,18 @@ function App() {
                 }
                 onClick={(event) => {
                   event.stopPropagation();
+                  if (item === "products") {
+                    openProductsMenu();
+                    navigateToPage("products");
+                    return;
+                  }
                   handleMenuItemClick(item);
                 }}
               >
                 <span className="menu-icon">{pageTitles[item].icon}</span>
                 <span className="menu-label">
                   {pageTitles[item].label}
+                  {item === "products" && <ChevronRight aria-hidden="true" />}
                   {isPromotion && (
                     <span className="menu-soon-badge">Скоро</span>
                   )}
@@ -727,6 +794,24 @@ function App() {
             );
           })}
         </nav>
+
+        {false && isMenuOpen && PRODUCT_PAGES.includes(page) && (
+          <nav className="sidebar-product-submenu" aria-label="Разделы товаров">
+            {productSubpages.map((subpage) => (
+              <button
+                key={subpage.page}
+                type="button"
+                className={page === subpage.page ? "active" : ""}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigateToPage(subpage.page);
+                }}
+              >
+                {subpage.label}
+              </button>
+            ))}
+          </nav>
+        )}
 
         <button
           type="button"
@@ -745,6 +830,21 @@ function App() {
         </button>
       </aside>
 
+      {isProductsMenuOpen && (
+        <div
+          className="store-menu-backdrop"
+          role="button"
+          tabIndex={0}
+          aria-label="Закрыть меню товаров"
+          onClick={() => setIsProductsMenuOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Enter") {
+              setIsProductsMenuOpen(false);
+            }
+          }}
+        />
+      )}
+
       {isStoreMenuOpen && (
         <div
           className="store-menu-backdrop"
@@ -759,6 +859,40 @@ function App() {
           }}
         />
       )}
+
+      <aside
+        className={`store-subsidebar product-subsidebar ${isProductsMenuOpen ? "is-open" : ""}`}
+        aria-hidden={!isProductsMenuOpen}
+      >
+        <div className="store-subsidebar-header">
+          <div>
+            <p>Раздел</p>
+            <h2>Товары</h2>
+          </div>
+          <button
+            type="button"
+            aria-label={t("close")}
+            onClick={() => setIsProductsMenuOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="store-subsidebar-nav product-subsidebar-nav">
+          {productSubpages.map((subpage) => (
+            <button
+              key={subpage.page}
+              type="button"
+              className={page === subpage.page ? "active" : ""}
+              onClick={() => {
+                navigateToPage(subpage.page);
+              }}
+            >
+              {subpage.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
 
       <aside
         className={`store-subsidebar ${isStoreMenuOpen ? "is-open" : ""}`}
@@ -863,7 +997,7 @@ function App() {
             onNavigate={navigateToPage}
           />
         )}
-        {page === "products" && (
+        {page === "productCatalog" && (
           <ProductsPage
             products={products}
             canAddProducts={sellerProfile?.status === "ACTIVATED"}
@@ -873,6 +1007,28 @@ function App() {
             onImportTemplate={handleImportProductTemplate}
             onEditProduct={openEditProductModal}
             onDeleteProduct={deleteProduct}
+          />
+        )}
+        {page === "productPrices" && (
+          <ProductPricesPage
+            products={products}
+            onDownloadTemplate={handleDownloadProductTemplate}
+            onImportTemplate={handleImportProductTemplate}
+            onEditProduct={openEditProductModal}
+          />
+        )}
+        {page === "productStocks" && (
+          <ProductStocksPage
+            products={products}
+            onDownloadTemplate={handleDownloadProductTemplate}
+            onImportTemplate={handleImportProductTemplate}
+            onEditProduct={openEditProductModal}
+          />
+        )}
+        {page === "productImages" && (
+          <ProductImagesPage
+            products={products}
+            onEditProduct={openEditProductModal}
           />
         )}
         {page === "orders" && (
@@ -923,6 +1079,10 @@ function getInitialPage(): Page {
   const path = window.location.pathname.replace(/\/$/, "");
   if (path === "/terms") {
     return "agreement";
+  }
+  if (path === "/products" || path === "/admin/products") {
+    window.history.replaceState({}, "", pagePaths.productCatalog);
+    return "productCatalog";
   }
   const matchedPage = (Object.keys(pagePaths) as Page[]).find(
     (item) =>

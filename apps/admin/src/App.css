@@ -442,6 +442,31 @@ input:disabled {
   color: var(--accent-strong);
 }
 
+.store-subsidebar-nav button.active {
+  background: var(--accent);
+  color: #111827;
+}
+
+.product-subsidebar {
+  width: 280px;
+}
+
+.product-subsidebar .store-subsidebar-header button {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.product-subsidebar-nav {
+  gap: 10px;
+}
+
+.product-subsidebar-nav button {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
 .store-subsidebar-actions {
   display: flex;
   align-items: center;
@@ -595,6 +620,36 @@ input:disabled {
 .sidebar nav button.is-coming-soon.active .menu-soon-badge {
   border-color: rgba(17, 24, 39, 0.34);
   color: #111827;
+}
+
+.sidebar-product-submenu {
+  display: grid;
+  gap: 6px;
+  width: 212px;
+  margin-top: 8px;
+  padding-left: 34px;
+}
+
+.sidebar-product-submenu button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sidebar-text);
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.sidebar-product-submenu button:hover,
+.sidebar-product-submenu button.active {
+  background: rgba(250, 204, 21, 0.14);
+  color: var(--accent);
+}
+
+.sidebar:not(.is-open) .sidebar-product-submenu {
+  display: none;
 }
 
 .content {
@@ -3556,6 +3611,46 @@ th {
 .product-thumbnail-placeholder {
   border: 1px dashed var(--border);
   background: var(--surface-muted);
+}
+
+.image-upload-info {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin: 18px 0;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  padding: 16px;
+}
+
+.image-upload-info > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.18);
+  color: var(--accent-strong);
+}
+
+.image-upload-info svg {
+  width: 23px;
+  height: 23px;
+}
+
+.image-upload-info h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+}
+
+.image-upload-info p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
 }
 
 

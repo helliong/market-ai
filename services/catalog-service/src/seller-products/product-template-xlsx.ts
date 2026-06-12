@@ -24,6 +24,14 @@ export type ProductTemplateAction = (typeof productTemplateActions)[number];
 
 export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
   const files = new Map<string, Buffer>();
+  const categoryTemplateSheets = productMainCategories.map((mainCategory, index) => ({
+    mainCategory,
+    name: sanitizeSheetName(mainCategory),
+    sheetId: index + 3,
+    relId: `rId${index + 3}`,
+    path: `xl/worksheets/sheet${index + 3}.xml`,
+    target: `worksheets/sheet${index + 3}.xml`,
+  }));
 
   files.set(
     '[Content_Types].xml',
@@ -36,6 +44,12 @@ export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+${categoryTemplateSheets
+  .map(
+    (sheet) =>
+      `  <Override PartName="/${sheet.path}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
+  )
+  .join('\n')}
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>`),
   );
@@ -72,6 +86,12 @@ export function buildProductTemplateWorkbook(products: ProductTemplateRow[]) {
   <sheets>
     <sheet name="Products" sheetId="1" r:id="rId1"/>
     <sheet name="Categories" sheetId="2" r:id="rId2"/>
+${categoryTemplateSheets
+  .map(
+    (sheet) =>
+      `    <sheet name="${encodeXml(sheet.name)}" sheetId="${sheet.sheetId}" r:id="${sheet.relId}"/>`,
+  )
+  .join('\n')}
   </sheets>
   <definedNames>
 ${productMainCategories
@@ -91,7 +111,13 @@ ${productMainCategories
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+${categoryTemplateSheets
+  .map(
+    (sheet) =>
+      `  <Relationship Id="${sheet.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="${sheet.target}"/>`,
+  )
+  .join('\n')}
+  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`),
   );
   files.set(
@@ -108,22 +134,31 @@ ${productMainCategories
   );
   files.set('xl/worksheets/sheet1.xml', text(buildProductsSheet(products)));
   files.set('xl/worksheets/sheet2.xml', text(buildCategoriesSheet()));
+  categoryTemplateSheets.forEach((sheet) => {
+    files.set(sheet.path, text(buildCategoryTemplateSheet(sheet.mainCategory)));
+  });
 
   return writeZip(files);
 }
 
 export function parseProductWorkbook(buffer: Buffer) {
   const files = readZip(buffer);
-  const sheet = files.get('xl/worksheets/sheet1.xml');
+  const sheets = [...files.entries()]
+    .filter(([name]) => /^xl\/worksheets\/sheet\d+\.xml$/.test(name))
+    .filter(([name]) => name !== 'xl/worksheets/sheet2.xml')
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, sheet]) => sheet);
 
-  if (!sheet) {
+  if (!sheets.length) {
     throw new Error('В файле не найден лист Products');
   }
 
   const sharedStrings = parseSharedStrings(files.get('xl/sharedStrings.xml'));
-  const rows = parseRows(sheet.toString('utf8'), sharedStrings);
+  const rows = sheets.flatMap((sheet) =>
+    parseRows(sheet.toString('utf8'), sharedStrings).slice(1),
+  );
 
-  return rows.slice(1).flatMap((row, index) => {
+  return rows.flatMap((row, index) => {
     const parsedRow = parseProductRow(row, index + 2);
 
     if (
@@ -163,6 +198,15 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
   }
 
   const oldPrice = parseNumber(row.F);
+  const description = buildDescriptionWithAttributes(stringValue(row.I).trim(), {
+    'Цвет': row.J,
+    'Размер': row.K,
+    'Память': row.L,
+    'Материал': row.M,
+    'Бренд': row.N,
+    'Страна производства': row.O,
+    'Штрихкод': row.P,
+  });
 
   return {
     rowNumber,
@@ -174,8 +218,8 @@ function parseProductRow(row: Record<string, string>, rowNumber: number) {
     oldPrice: oldPrice === 0 ? undefined : oldPrice,
     stock: parseNumber(row.G),
     status: stringValue(row.H).trim() || 'active',
-    description: stringValue(row.I).trim(),
-    action: stringValue(row.J).trim().toLowerCase(),
+    description,
+    action: (stringValue(row.Q).trim() || stringValue(row.J).trim()).toLowerCase(),
   };
 }
 
@@ -191,7 +235,16 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     'Статус',
     'Описание',
   ];
-  headers.push('Action');
+  headers.push(
+    'Цвет',
+    'Размер',
+    'Память',
+    'Материал',
+    'Бренд',
+    'Страна производства',
+    'Штрихкод',
+    'Action',
+  );
 
   const headerCells = headers
     .map((header, index) =>
@@ -218,16 +271,23 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
           2,
         ),
         inlineCell(`I${row}`, product.description, 2),
-        inlineCell(`J${row}`, product.action ?? '', 2),
+        inlineCell(`J${row}`, '', 2),
+        inlineCell(`K${row}`, '', 2),
+        inlineCell(`L${row}`, '', 2),
+        inlineCell(`M${row}`, '', 2),
+        inlineCell(`N${row}`, '', 2),
+        inlineCell(`O${row}`, '', 2),
+        inlineCell(`P${row}`, '', 2),
+        inlineCell(`Q${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:J500"/>
+  <dimension ref="A1:Q500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="10" width="16" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="16" width="18" customWidth="1"/><col min="17" max="17" width="16" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
   <dataValidations count="7">
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$${productMainCategories.length + 1}</formula1></dataValidation>
@@ -236,7 +296,7 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="F2:F500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>0</formula1></dataValidation>
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="H2:H500"><formula1>"active,draft,archived"</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="J2:J500"><formula1>"delete"</formula1></dataValidation>
+    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="Q2:Q500"><formula1>"delete"</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }
@@ -284,6 +344,90 @@ function buildCategoriesSheet() {
   <cols><col min="1" max="1" width="30" customWidth="1"/></cols>
   <sheetData>${rowsXml.join('')}</sheetData>
 </worksheet>`;
+}
+
+function buildCategoryTemplateSheet(mainCategory: string) {
+  const headers = [
+    'SKU',
+    'Название',
+    'Основная категория',
+    'Подкатегория',
+    'Цена',
+    'Старая цена',
+    'Остаток',
+    'Статус',
+    'Описание',
+    ...getCategoryAttributeHeaders(mainCategory),
+    'Action',
+  ];
+  const headerCells = headers
+    .map((header, index) =>
+      inlineCell(`${columnName(index + 1)}1`, header, 1),
+    )
+    .join('');
+  const lastColumn = columnName(headers.length);
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:${lastColumn}500"/>
+  <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+  <cols><col min="1" max="${headers.length}" width="18" customWidth="1"/></cols>
+  <sheetData><row r="1">${headerCells}</row></sheetData>
+</worksheet>`;
+}
+
+function getCategoryAttributeHeaders(mainCategory: string) {
+  const normalized = mainCategory.toLowerCase();
+
+  if (normalized.includes('одеж') || normalized.includes('обув') || normalized.includes('спорт')) {
+    return ['Цвет', 'Размер', 'Материал', 'Пол', 'Сезон', 'Бренд', 'Страна производства', 'Штрихкод'];
+  }
+
+  if (normalized.includes('элект') || normalized.includes('Р­')) {
+    return ['Цвет', 'Память', 'Диагональ', 'Процессор', 'Гарантия', 'Бренд', 'Страна производства', 'Штрихкод'];
+  }
+
+  if (normalized.includes('дом')) {
+    return ['Цвет', 'Размер', 'Материал', 'Объем', 'Комплектация', 'Бренд', 'Страна производства', 'Штрихкод'];
+  }
+
+  return ['Цвет', 'Размер', 'Материал', 'Бренд', 'Страна производства', 'Штрихкод'];
+}
+
+function buildDescriptionWithAttributes(
+  description: string,
+  attributes: Record<string, string | undefined>,
+) {
+  const rows = Object.entries(attributes)
+    .map(([label, value]) => [label, stringValue(value).trim()] as const)
+    .filter(([, value]) => value.length > 0);
+
+  if (!rows.length) {
+    return description;
+  }
+
+  const attributesText = rows.map(([label, value]) => `${label}: ${value}`).join('\n');
+  return [description, `Характеристики:\n${attributesText}`]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function sanitizeSheetName(value: string) {
+  const cleaned = value.replace(/[\[\]:*?/\\]/g, ' ').trim();
+  return (cleaned || 'Category').slice(0, 31);
+}
+
+function columnName(index: number) {
+  let current = index;
+  let name = '';
+
+  while (current > 0) {
+    const remainder = (current - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    current = Math.floor((current - 1) / 26);
+  }
+
+  return name;
 }
 
 function parseRows(sheetXml: string, sharedStrings: string[]) {
