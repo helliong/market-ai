@@ -65,7 +65,12 @@ export function AIWidget() {
     const normalizedMessage = message.trim();
     if (!normalizedMessage || isLoading) return;
 
-    const history = messages.map(({ role, content }) => ({ role, content }));
+    const history = messages.map(({ role, content, products }) => ({
+      role,
+      content: products?.length
+        ? `${content}\n\n${buildProductsContext(products)}`
+        : content,
+    }));
     const userMessage: WidgetMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -411,4 +416,13 @@ function ProductResult({ product }: { product: AiProduct }) {
       </div>
     </Link>
   );
+}
+
+function buildProductsContext(products: AiProduct[]) {
+  return `Контекст показанных товаров: ${products
+    .map(
+      (product, index) =>
+        `${index + 1}) ID ${product.id}, ${product.name}, цена ${product.price} ₽`,
+    )
+    .join('; ')}. Для подробного сравнения используй эти ID.`;
 }

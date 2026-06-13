@@ -8,6 +8,7 @@ export type SearchProductsArguments = {
   query: string;
   maxPrice?: number;
   category?: string;
+  excludeProductIds?: number[];
 };
 
 @Injectable()
@@ -27,15 +28,20 @@ export class CatalogClient {
     query,
     maxPrice,
     category,
+    excludeProductIds = [],
   }: SearchProductsArguments): Promise<Product[]> {
+    const normalizedQuery = normalizeProductQuery(query);
     const response = await firstValueFrom(
       this.httpService.get<Product[]>(`${this.baseUrl}/products/search`, {
-        params: { q: query },
+        params: { q: normalizedQuery },
       }),
     );
+    const excludedIds = new Set(excludeProductIds);
 
     const priceMatches = response.data.filter(
-      (product) => maxPrice === undefined || product.price <= maxPrice,
+      (product) =>
+        !excludedIds.has(product.id) &&
+        (maxPrice === undefined || product.price <= maxPrice),
     );
 
     if (!category) {
@@ -53,6 +59,46 @@ export class CatalogClient {
     );
   }
 
+  async findDiverseProductsUnderPrice(maxPrice: number): Promise<Product[]> {
+    const response = await firstValueFrom(
+      this.httpService.get<Product[]>(`${this.baseUrl}/products/search`, {
+        params: { q: '' },
+      }),
+    );
+    const priceMatches = response.data.filter(
+      (product) => product.price <= maxPrice,
+    );
+    const selected: Product[] = [];
+    const selectedIds = new Set<number>();
+    const categories = new Set<string>();
+
+    for (const product of priceMatches) {
+      const category = product.category.toLowerCase();
+
+      if (!categories.has(category)) {
+        selected.push(product);
+        selectedIds.add(product.id);
+        categories.add(category);
+      }
+
+      if (selected.length === 5) {
+        return selected;
+      }
+    }
+
+    for (const product of priceMatches) {
+      if (!selectedIds.has(product.id)) {
+        selected.push(product);
+      }
+
+      if (selected.length === 5) {
+        break;
+      }
+    }
+
+    return selected;
+  }
+
   async getProduct(productId: number): Promise<Product> {
     const response = await firstValueFrom(
       this.httpService.get<Product>(
@@ -62,4 +108,25 @@ export class CatalogClient {
 
     return response.data;
   }
+}
+
+function normalizeProductQuery(query: string) {
+  const normalizedTokens = query
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .split(/[\s,.;:!?()[\]{}"']+/)
+    .map((token) => {
+      if (/^мыш(ка|ки|ку|ке|кой|кою|ек|кам|ками|ках)$/.test(token)) {
+        return 'мышь';
+      }
+
+      return token;
+    })
+    .filter(
+      (token) =>
+        token &&
+        !/^компьютерн(ый|ая|ое|ые|ого|ой|ому|ым|ую|ых|ыми)$/.test(token),
+    );
+
+  return normalizedTokens.join(' ') || query.trim();
 }
