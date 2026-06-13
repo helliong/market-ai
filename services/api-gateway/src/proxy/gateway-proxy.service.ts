@@ -6,9 +6,19 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { createProxyMiddleware, type RequestHandler } from 'http-proxy-middleware';
+import {
+  createProxyMiddleware,
+  type RequestHandler,
+} from 'http-proxy-middleware';
 
-type ServiceKey = 'auth' | 'catalog' | 'cart' | 'order' | 'orders' | 'storage';
+type ServiceKey =
+  | 'auth'
+  | 'ai'
+  | 'catalog'
+  | 'cart'
+  | 'order'
+  | 'orders'
+  | 'storage';
 
 type ProxyRoute = {
   target: string;
@@ -28,6 +38,12 @@ export class GatewayProxyService {
           this.configService.get<string>('AUTH_SERVICE_URL') ??
           'http://auth-service:4001',
         rewrite: (path) => path.replace(/^\/api\/auth(?=\/|$)/, '/auth'),
+      },
+      ai: {
+        target:
+          this.configService.get<string>('AI_AGENT_SERVICE_URL') ??
+          'http://ai-agent-service:4006',
+        rewrite: (path) => path.replace(/^\/api\/ai(?=\/|$)/, '') || '/',
       },
       catalog: {
         target:

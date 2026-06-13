@@ -21,7 +21,6 @@ type JwtPayload = {
 
 export type GatewayRequest = Request & {
   user?: GatewayUser;
-  cookies?: Record<string, string | undefined>;
 };
 
 @Injectable()
@@ -35,6 +34,7 @@ export class GatewayAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<GatewayRequest>();
 
     if (isPublicGatewayRoute(request.method, request.path)) {
+      this.attachOptionalUser(request);
       return true;
     }
 
@@ -77,13 +77,58 @@ export class GatewayAuthGuard implements CanActivate {
     }
   }
 
-  private extractToken(request: GatewayRequest) {
+  private extractToken(request: GatewayRequest): string | undefined {
     const authHeader = request.headers.authorization;
 
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.slice('Bearer '.length).trim();
     }
 
-    return request.cookies?.accessToken ?? request.cookies?.sellerAccessToken;
+    const cookies: unknown = request.cookies;
+
+    if (!cookies || typeof cookies !== 'object') {
+      return undefined;
+    }
+
+    const cookieRecord = cookies as Record<string, unknown>;
+    const accessToken = cookieRecord.accessToken;
+    const sellerAccessToken = cookieRecord.sellerAccessToken;
+
+    if (typeof accessToken === 'string') {
+      return accessToken;
+    }
+
+    return typeof sellerAccessToken === 'string'
+      ? sellerAccessToken
+      : undefined;
+  }
+
+  private attachOptionalUser(request: GatewayRequest) {
+    const token = this.extractToken(request);
+    const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+
+    if (!token || !secret) {
+      return;
+    }
+
+    try {
+      const payload = this.jwtService.verify<JwtPayload>(token, { secret });
+
+      if (!payload.sub) {
+        return;
+      }
+
+      request.user = {
+        userId: payload.sub,
+        scope: payload.scope,
+      };
+      request.headers['x-user-id'] = payload.sub;
+
+      if (payload.scope) {
+        request.headers['x-user-scope'] = payload.scope;
+      }
+    } catch {
+      // Public routes remain available when an optional token is invalid.
+    }
   }
 }

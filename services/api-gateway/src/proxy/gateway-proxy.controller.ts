@@ -27,6 +27,13 @@ export class GatewayProxyController {
     return this.proxyService.proxy('catalog', request, response);
   }
 
+  @All('ai{/*path}')
+  @SkipThrottle({ auth: true, default: true, public: true })
+  @Throttle({ aiPublic: {} })
+  proxyAi(@Req() request: Request, @Res() response: Response) {
+    return this.proxyService.proxy('ai', request, response);
+  }
+
   @All('cart{/*path}')
   @SkipThrottle({ auth: true, public: true })
   proxyCart(@Req() request: Request, @Res() response: Response) {

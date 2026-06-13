@@ -19,6 +19,7 @@ const publicAuthRoutes = [
 
 const publicRoutes = [
   ...publicAuthRoutes,
+  /^\/api\/ai\/chat$/,
   /^\/api\/catalog\/products(?:\/.*)?$/,
   /^\/api\/storage$/,
   /^\/api\/order\/payments\/yookassa\/webhook$/,
