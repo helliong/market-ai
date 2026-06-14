@@ -1,6 +1,5 @@
 ﻿import { inflateRawSync } from 'node:zlib';
 import {
-  isProductCategory,
   productMainCategories,
   productCategoriesTree,
   getMainCategoryBySubcategory,
@@ -18,15 +17,11 @@ export type ProductTemplateRow = {
   oldPrice?: number;
   stock: number;
   status: ProductStatus | string;
-  action?: string;
 };
 
 type ParsedProductTemplateRow = ProductTemplateRow & {
   rowNumber: number;
 };
-
-export const productTemplateActions = ['delete'] as const;
-export type ProductTemplateAction = (typeof productTemplateActions)[number];
 
 const productAttributeHeaders = [
   'Цвет',
@@ -185,15 +180,24 @@ export function parseProductWorkbook(buffer: Buffer) {
   }
 
   const sharedStrings = parseSharedStrings(files.get('xl/sharedStrings.xml'));
-  const productRows = parseRows(productsSheet.toString('utf8'), sharedStrings)
+  const parsedProductRows = parseRows(
+    productsSheet.toString('utf8'),
+    sharedStrings,
+  );
+  const legacyFormat = isLegacyProductSheet(parsedProductRows[0] ?? {});
+  const productRows = parsedProductRows
     .slice(1)
     .flatMap((row, index) => {
-      const parsedRow = parseProductRow(row, index + 2);
+      const parsedRow = parseProductRow(row, index + 2, legacyFormat);
       return isEmptyTemplateRow(parsedRow) ? [] : [parsedRow];
     });
   const rowsBySku = new Map(
     productRows.map((row) => [row.sku.trim().toUpperCase(), row]),
   );
+
+  if (productRows.length) {
+    return [...rowsBySku.values()];
+  }
 
   productMainCategories.forEach((mainCategory, index) => {
     const sheet = files.get(`xl/worksheets/sheet${index + 3}.xml`);
@@ -226,8 +230,7 @@ function isEmptyTemplateRow(parsedRow: ParsedProductTemplateRow) {
     !parsedRow.name &&
     !parsedRow.category &&
     parsedRow.price === 0 &&
-    parsedRow.stock === 0 &&
-    !parsedRow.action
+    parsedRow.stock === 0
   );
 }
 
@@ -249,7 +252,6 @@ function mergeTemplateRows(
       ...(baseRow.attributes ?? {}),
       ...(categoryRow.attributes ?? {}),
     },
-    action: categoryRow.action || baseRow.action,
   };
 }
 
@@ -265,7 +267,6 @@ function parseCategoryProductRow(
       stringValue(row[columnName(10 + index)]).trim(),
     ]),
   );
-  const actionColumn = columnName(10 + attributeHeaders.length);
   const oldPrice = parseNumber(row.F);
 
   return {
@@ -280,17 +281,17 @@ function parseCategoryProductRow(
     status: stringValue(row.H).trim() || 'active',
     description: stringValue(row.I).trim(),
     attributes: filterEmptyAttributes(attributes),
-    action: stringValue(row[actionColumn]).trim().toLowerCase(),
   };
 }
 function parseProductRow(
   row: Record<string, string>,
   rowNumber: number,
+  legacyFormat: boolean,
 ): ParsedProductTemplateRow {
   const currentCategory = stringValue(row.D).trim();
   const legacyCategory = stringValue(row.C).trim();
 
-  if (!isProductCategory(currentCategory) && isProductCategory(legacyCategory)) {
+  if (legacyFormat) {
     const oldPrice = parseNumber(row.F);
 
     return {
@@ -303,7 +304,6 @@ function parseProductRow(
       stock: parseNumber(row.E),
       status: stringValue(row.F).trim() || 'active',
       description: stringValue(row.G).trim(),
-      action: stringValue(row.H).trim().toLowerCase(),
     };
   }
 
@@ -314,7 +314,6 @@ function parseProductRow(
       stringValue(row[columnName(10 + index)]).trim(),
     ]),
   );
-  const actionColumn = columnName(10 + productAttributeHeaders.length);
   const description = stringValue(row.I).trim();
 
   return {
@@ -329,8 +328,11 @@ function parseProductRow(
     status: stringValue(row.H).trim() || 'active',
     description,
     attributes: filterEmptyAttributes(attributes),
-    action: stringValue(row[actionColumn]).trim().toLowerCase(),
   };
+}
+
+function isLegacyProductSheet(header: Record<string, string>) {
+  return stringValue(header.D).trim().toLowerCase() === 'цена';
 }
 
 function buildProductsSheet(products: ProductTemplateRow[]) {
@@ -345,9 +347,8 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
     'Статус',
     'Описание',
     ...productAttributeHeaders,
-    'Action',
   ];
-  const actionColumn = columnName(headers.length);
+  const lastColumn = columnName(headers.length);
 
   const headerCells = headers
     .map((header, index) =>
@@ -388,25 +389,23 @@ function buildProductsSheet(products: ProductTemplateRow[]) {
         ),
         inlineCell(`I${row}`, parsedDescription.description, 2),
         ...attributeCells,
-        inlineCell(`${actionColumn}${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:${actionColumn}500"/>
+  <dimension ref="A1:${lastColumn}500"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="${headers.length - 1}" width="18" customWidth="1"/><col min="${headers.length}" max="${headers.length}" width="16" customWidth="1"/></cols>
+  <cols><col min="1" max="1" width="18" customWidth="1"/><col min="2" max="2" width="32" customWidth="1"/><col min="3" max="3" width="22" customWidth="1"/><col min="4" max="4" width="26" customWidth="1"/><col min="5" max="6" width="14" customWidth="1"/><col min="7" max="7" width="14" customWidth="1"/><col min="8" max="8" width="14" customWidth="1"/><col min="9" max="9" width="44" customWidth="1"/><col min="10" max="${headers.length}" width="18" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
-  <dataValidations count="7">
+  <dataValidations count="6">
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="C2:C500"><formula1>Categories!$A$2:$A$${productMainCategories.length + 1}</formula1></dataValidation>
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="D2:D500"><formula1>INDIRECT(SUBSTITUTE(SUBSTITUTE($C2, &quot; &quot;, &quot;_&quot;), &quot;-&quot;, &quot;_&quot;))</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="E2:E500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="1" showErrorMessage="1" sqref="F2:F500"><formula1>1</formula1></dataValidation>
     <dataValidation type="whole" operator="greaterThanOrEqual" allowBlank="0" showErrorMessage="1" sqref="G2:G500"><formula1>0</formula1></dataValidation>
     <dataValidation type="list" allowBlank="0" showErrorMessage="1" sqref="H2:H500"><formula1>&quot;active,draft,archived&quot;</formula1></dataValidation>
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="${actionColumn}2:${actionColumn}500"><formula1>&quot;delete&quot;</formula1></dataValidation>
   </dataValidations>
 </worksheet>`;
 }
@@ -471,7 +470,6 @@ function buildCategoryTemplateSheet(
     'Статус',
     'Описание',
     ...attributeHeaders,
-    'Action',
   ];
   const headerCells = headers
     .map((header, index) =>
@@ -479,7 +477,6 @@ function buildCategoryTemplateSheet(
     )
     .join('');
   const lastColumn = columnName(headers.length);
-  const actionColumn = columnName(headers.length);
   const rows = products
     .map((product, index) => {
       const row = index + 2;
@@ -514,7 +511,6 @@ function buildCategoryTemplateSheet(
         ),
         inlineCell(`I${row}`, parsedDescription.description, 2),
         ...attributeCells,
-        inlineCell(`${actionColumn}${row}`, product.action ?? '', 2),
       ].join('')}</row>`;
     })
     .join('');
@@ -525,9 +521,6 @@ function buildCategoryTemplateSheet(
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <cols><col min="1" max="${headers.length}" width="18" customWidth="1"/></cols>
   <sheetData><row r="1">${headerCells}</row>${rows}</sheetData>
-  <dataValidations count="1">
-    <dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="${actionColumn}2:${actionColumn}500"><formula1>&quot;delete&quot;</formula1></dataValidation>
-  </dataValidations>
 </worksheet>`;
 }
 function getCategoryAttributeHeaders(mainCategory: string) {
@@ -868,10 +861,4 @@ function formulaStrCell(
 
 export function isTemplateStatus(value: string): value is ProductStatus {
   return productStatuses.includes(value as ProductStatus);
-}
-
-export function isTemplateAction(
-  value: string,
-): value is ProductTemplateAction {
-  return productTemplateActions.includes(value as ProductTemplateAction);
 }

@@ -38,4 +38,38 @@ describe('product template xlsx', () => {
     expect(isProductCategory('Электроника')).toBe(true);
     expect(isProductCategory('ТВ и видеотехника')).toBe(true);
   });
+
+  it('does not include the legacy Action column', () => {
+    const workbook = buildProductTemplateWorkbook([]);
+
+    expect(workbook.includes(Buffer.from('Action'))).toBe(false);
+  });
+
+  it('keeps current columns for a custom subcategory', () => {
+    const workbook = buildProductTemplateWorkbook([
+      {
+        sku: 'CPU-001',
+        name: 'Процессор',
+        description: 'Описание',
+        mainCategory: 'Электроника',
+        category: 'Процессоры',
+        price: 12990,
+        oldPrice: 15330,
+        stock: 30,
+        status: 'active',
+      },
+    ]);
+
+    expect(parseProductWorkbook(workbook)).toEqual([
+      expect.objectContaining({
+        sku: 'CPU-001',
+        mainCategory: 'Электроника',
+        category: 'Процессоры',
+        price: 12990,
+        oldPrice: 15330,
+        stock: 30,
+        status: 'active',
+      }),
+    ]);
+  });
 });

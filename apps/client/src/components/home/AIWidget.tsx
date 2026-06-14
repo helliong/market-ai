@@ -121,7 +121,6 @@ export function AIWidget() {
     const container = suggestionsRef.current;
     if (!container) return;
 
-    event.currentTarget.setPointerCapture(event.pointerId);
     dragStartXRef.current = event.clientX;
     dragScrollLeftRef.current = container.scrollLeft;
     didDragRef.current = false;
@@ -142,10 +141,7 @@ export function AIWidget() {
     container.scrollLeft = dragScrollLeftRef.current - distance;
   }
 
-  function handleSuggestionsPointerUp(
-    event: React.PointerEvent<HTMLDivElement>,
-  ) {
-    event.currentTarget.releasePointerCapture(event.pointerId);
+  function handleSuggestionsPointerUp() {
     setIsDraggingSuggestions(false);
   }
 
@@ -169,7 +165,21 @@ export function AIWidget() {
           aria-label="ИИ-помощник MarketAI"
           className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[#0F172A] text-white shadow-[0_24px_80px_rgba(15,23,42,0.55)] sm:inset-y-[30px] sm:left-auto sm:right-2 sm:w-[545px] sm:rounded-[36px]"
         >
-          <div className="flex h-20 shrink-0 items-center justify-end gap-1 px-7">
+          <div className="flex h-20 shrink-0 items-center gap-3 px-7">
+            {hasConversation && (
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#6D4AFF] text-white">
+                  <Bot size={21} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate font-black text-white">Марк</h2>
+                  <p className="truncate text-xs text-[#94A3B8]">
+                    ИИ-помощник MarketAI
+                  </p>
+                </div>
+              </div>
+            )}
+            {!hasConversation && <div className="flex-1" />}
             {hasConversation && (
               <button
                 type="button"
@@ -198,7 +208,11 @@ export function AIWidget() {
             <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-7">
               <div className="flex flex-col gap-4">
                 {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} />
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    onProductClick={() => setIsOpen(false)}
+                  />
                 ))}
                 {isLoading && <TypingIndicator />}
                 <div ref={messagesEndRef} />
@@ -283,6 +297,9 @@ export function AIWidget() {
                 <Send size={21} />
               </button>
             </div>
+            <p className="mt-2 text-center text-[11px] text-[#64748B]">
+              Марк — ИИ-помощник. Ответы могут быть неточными.
+            </p>
           </form>
         </section>
       )}
@@ -317,7 +334,13 @@ function Suggestion({
   );
 }
 
-function ChatMessage({ message }: { message: WidgetMessage }) {
+function ChatMessage({
+  message,
+  onProductClick,
+}: {
+  message: WidgetMessage;
+  onProductClick: () => void;
+}) {
   const isUser = message.role === "user";
 
   return (
@@ -338,7 +361,11 @@ function ChatMessage({ message }: { message: WidgetMessage }) {
         {message.products && message.products.length > 0 && (
           <div className="mt-2 flex flex-col gap-2">
             {message.products.map((product) => (
-              <ProductResult key={product.id} product={product} />
+              <ProductResult
+                key={product.id}
+                product={product}
+                onClick={onProductClick}
+              />
             ))}
           </div>
         )}
@@ -372,7 +399,13 @@ function TypingIndicator() {
   );
 }
 
-function ProductResult({ product }: { product: AiProduct }) {
+function ProductResult({
+  product,
+  onClick,
+}: {
+  product: AiProduct;
+  onClick: () => void;
+}) {
   const imageUrl = getMainProductImageUrl(product.images);
   const href = getProductPath({
     sku: product.sku,
@@ -383,6 +416,7 @@ function ProductResult({ product }: { product: AiProduct }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className="flex gap-3 rounded-2xl border border-[#334155] bg-[#111C31] p-3 transition hover:border-[#6D4AFF]"
     >
       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#18243B]">

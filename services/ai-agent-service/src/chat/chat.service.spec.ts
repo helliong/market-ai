@@ -278,4 +278,63 @@ describe('ChatService', () => {
       category: undefined,
     });
   });
+
+  it('parses function_call arguments provided as a JSON string', async () => {
+    const product: Product = {
+      id: 10,
+      sku: 'LAPTOP-10',
+      name: 'Ноутбук',
+      description: '',
+      attributes: {},
+      category: 'Ноутбуки',
+      price: 85000,
+      rating: 4.6,
+      reviews: 30,
+      stock: 5,
+      images: [],
+    };
+    const gigaChatComplete = jest
+      .fn()
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: '',
+              function_call: {
+                name: 'searchProducts',
+                arguments: '{"query": "ноутбук", "maxPrice": 100000}',
+              },
+            },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: 'Вот ноутбуки до 100 000 ₽.',
+            },
+          },
+        ],
+      });
+    const searchProducts = jest.fn().mockResolvedValue([product]);
+    const service = new ChatService(
+      { complete: gigaChatComplete } as unknown as GigaChatProvider,
+      { searchProducts } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({ message: 'Ноутбук до 100000' }),
+    ).resolves.toEqual({
+      reply: 'Вот ноутбуки до 100 000 ₽.',
+      products: [product],
+    });
+    expect(searchProducts).toHaveBeenCalledWith({
+      query: 'ноутбук',
+      maxPrice: 100000,
+      category: undefined,
+    });
+  });
 });
