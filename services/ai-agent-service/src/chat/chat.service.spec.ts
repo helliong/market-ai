@@ -209,6 +209,114 @@ describe('ChatService', () => {
     expect(complete).not.toHaveBeenCalled();
   });
 
+  it('keeps the gift budget when the user refines the request to electronics', async () => {
+    const products = [
+      {
+        id: 262,
+        sku: 'HEADPHONES-1',
+        name: 'Наушники Baseus Bowie MA10',
+        description: '',
+        attributes: {},
+        category: 'Наушники',
+        price: 3990,
+        rating: 0,
+        reviews: 0,
+        stock: 5,
+        images: [],
+      },
+      {
+        id: 309,
+        sku: 'KEYBOARD-1',
+        name: 'Клавиатура Logitech K380',
+        description: '',
+        attributes: {},
+        category: 'Клавиатуры',
+        price: 3990,
+        rating: 0,
+        reviews: 0,
+        stock: 5,
+        images: [],
+      },
+    ] satisfies Product[];
+    const complete = jest.fn();
+    const findGiftProductsUnderPrice = jest.fn().mockResolvedValue(products);
+    const service = new ChatService(
+      { complete } as unknown as GigaChatProvider,
+      { findGiftProductsUnderPrice } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({
+        message: 'технику',
+        history: [
+          { role: 'user', content: 'Подарок до 11тыс' },
+          {
+            role: 'assistant',
+            content:
+              'Вот варианты.\n\nКонтекст показанных товаров: 1) ID 1, Футболка; 2) ID 2, Сетевой адаптер; 3) ID 3, Кулер; 4) ID 4, Клавиатура; 5) ID 5, Наушники.',
+          },
+          { role: 'user', content: 'ещё' },
+          {
+            role: 'assistant',
+            content: 'Уточните, что именно вы ищете в подарок?',
+          },
+        ],
+      }),
+    ).resolves.toEqual({
+      reply: 'Вот ещё 2 варианта до 11 000 ₽.',
+      products,
+    });
+    expect(findGiftProductsUnderPrice).toHaveBeenCalledWith({
+      maxPrice: 11000,
+      group: 'electronics',
+      excludeProductIds: [1, 2, 3, 4, 5],
+    });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it('returns the next gift products when the user asks for more', async () => {
+    const product = {
+      id: 10,
+      sku: 'GIFT-10',
+      name: 'Колонка JBL',
+      description: '',
+      attributes: {},
+      category: 'Портативные колонки',
+      price: 9990,
+      rating: 0,
+      reviews: 0,
+      stock: 5,
+      images: [],
+    } satisfies Product;
+    const findGiftProductsUnderPrice = jest.fn().mockResolvedValue([product]);
+    const service = new ChatService(
+      { complete: jest.fn() } as unknown as GigaChatProvider,
+      { findGiftProductsUnderPrice } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({
+        message: 'ещё',
+        history: [
+          { role: 'user', content: 'Подарок до 11 тыс' },
+          {
+            role: 'assistant',
+            content:
+              'Вот варианты.\n\nКонтекст показанных товаров: 1) ID 1, Футболка.',
+          },
+        ],
+      }),
+    ).resolves.toEqual({
+      reply: 'Вот ещё 1 вариант до 11 000 ₽.',
+      products: [product],
+    });
+    expect(findGiftProductsUnderPrice).toHaveBeenCalledWith({
+      maxPrice: 11000,
+      group: 'any',
+      excludeProductIds: [1],
+    });
+  });
+
   it('excludes previously shown products when the user asks for more', async () => {
     const nextProduct = {
       id: 6,
@@ -336,5 +444,146 @@ describe('ChatService', () => {
       maxPrice: 100000,
       category: undefined,
     });
+  });
+
+  it('searches with the proposed budget when the user confirms it', async () => {
+    const laptop = {
+      id: 228,
+      sku: 'ELEC-041',
+      name: 'Ноутбук Lenovo IdeaPad Slim 3 16/512GB',
+      description: '',
+      attributes: {},
+      category: 'Ноутбуки',
+      price: 49990,
+      rating: 0,
+      reviews: 0,
+      stock: 10,
+      images: [],
+    } satisfies Product;
+    const complete = jest.fn();
+    const searchProducts = jest.fn().mockResolvedValue([laptop]);
+    const service = new ChatService(
+      { complete } as unknown as GigaChatProvider,
+      { searchProducts } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({
+        message: 'да',
+        history: [
+          {
+            role: 'user',
+            content: 'Ноутбук для программирования',
+          },
+          {
+            role: 'assistant',
+            content:
+              'Уточните, важен ли для вас бюджет? Например, до 50 000 рублей?',
+          },
+        ],
+      }),
+    ).resolves.toEqual({
+      reply: 'Нашёл 1 товар до 50 000 ₽.',
+      products: [laptop],
+    });
+    expect(searchProducts).toHaveBeenCalledWith({
+      query: 'Ноутбук',
+      maxPrice: 50000,
+    });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it('returns product cards when the user rejects an already shown product type', async () => {
+    const gamepad = {
+      id: 320,
+      sku: 'GAMEPAD-1',
+      name: 'Геймпад Xbox Series X|S',
+      description: '',
+      attributes: {},
+      category: 'Геймпады',
+      price: 11990,
+      rating: 0,
+      reviews: 0,
+      stock: 10,
+      images: [],
+    } satisfies Product;
+    const keyboard = {
+      ...gamepad,
+      id: 321,
+      sku: 'KEYBOARD-1',
+      name: 'Клавиатура механическая SteelSeries Apex M500',
+      category: 'Клавиатуры',
+      price: 10990,
+    };
+    const complete = jest.fn();
+    const searchProducts = jest
+      .fn()
+      .mockResolvedValueOnce([gamepad])
+      .mockResolvedValueOnce([keyboard]);
+    const service = new ChatService(
+      { complete } as unknown as GigaChatProvider,
+      { searchProducts } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({
+        message: 'мышка уже есть',
+        history: [
+          { role: 'user', content: 'Покажи компьютерные мышки' },
+          {
+            role: 'assistant',
+            content:
+              'Вот мышки.\n\nКонтекст показанных товаров: 1) ID 313, Мышь Logitech; 2) ID 314, Мышь Razer.',
+          },
+        ],
+      }),
+    ).resolves.toEqual({
+      reply: 'Тогда вот несколько альтернатив из каталога.',
+      products: [gamepad, keyboard],
+    });
+    expect(searchProducts).toHaveBeenNthCalledWith(1, {
+      query: 'геймпад',
+      excludeProductIds: [313, 314],
+    });
+    expect(searchProducts).toHaveBeenNthCalledWith(2, {
+      query: 'клавиатура',
+      excludeProductIds: [313, 314],
+    });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it('searches smart watches directly without relying on a model tool call', async () => {
+    const watch = {
+      id: 368,
+      sku: 'WATCH-1',
+      name: 'Смарт-часы Samsung Galaxy Watch Ultra 47mm',
+      description: '',
+      attributes: {},
+      category: 'Смарт-часы',
+      price: 59990,
+      rating: 0,
+      reviews: 0,
+      stock: 10,
+      images: [],
+    } satisfies Product;
+    const complete = jest.fn();
+    const searchProducts = jest.fn().mockResolvedValue([watch]);
+    const service = new ChatService(
+      { complete } as unknown as GigaChatProvider,
+      { searchProducts } as unknown as CatalogClient,
+    );
+
+    await expect(
+      service.chat({
+        message: 'Умные часы для спорта',
+      }),
+    ).resolves.toEqual({
+      reply: 'Нашёл умные часы в каталоге. Вот доступные варианты.',
+      products: [watch],
+    });
+    expect(searchProducts).toHaveBeenCalledWith({
+      query: 'смарт-часы',
+    });
+    expect(complete).not.toHaveBeenCalled();
   });
 });

@@ -11,6 +11,8 @@ export type SearchProductsArguments = {
   excludeProductIds?: number[];
 };
 
+export type GiftProductGroup = 'any' | 'electronics' | 'clothing';
+
 @Injectable()
 export class CatalogClient {
   private readonly baseUrl: string;
@@ -60,13 +62,29 @@ export class CatalogClient {
   }
 
   async findDiverseProductsUnderPrice(maxPrice: number): Promise<Product[]> {
+    return this.findGiftProductsUnderPrice({ maxPrice });
+  }
+
+  async findGiftProductsUnderPrice({
+    maxPrice,
+    group = 'any',
+    excludeProductIds = [],
+  }: {
+    maxPrice: number;
+    group?: GiftProductGroup;
+    excludeProductIds?: number[];
+  }): Promise<Product[]> {
     const response = await firstValueFrom(
       this.httpService.get<Product[]>(`${this.baseUrl}/products/search`, {
         params: { q: '' },
       }),
     );
+    const excludedIds = new Set(excludeProductIds);
     const priceMatches = response.data.filter(
-      (product) => product.price <= maxPrice,
+      (product) =>
+        product.price <= maxPrice &&
+        !excludedIds.has(product.id) &&
+        matchesGiftProductGroup(product, group),
     );
     const selected: Product[] = [];
     const selectedIds = new Set<number>();
@@ -110,10 +128,36 @@ export class CatalogClient {
   }
 }
 
+const CLOTHING_CATEGORIES = new Set([
+  'футболки',
+  'брюки',
+  'шорты',
+  'верхняя одежда',
+  'платья',
+  'юбки',
+  'обувь',
+]);
+
+function matchesGiftProductGroup(product: Product, group: GiftProductGroup) {
+  if (group === 'any') {
+    return true;
+  }
+
+  const normalizedCategory = product.category.trim().toLowerCase();
+  const isClothing = CLOTHING_CATEGORIES.has(normalizedCategory);
+
+  return group === 'clothing' ? isClothing : !isClothing;
+}
+
 function normalizeProductQuery(query: string) {
-  const normalizedTokens = query
-    .toLowerCase()
-    .replace(/ё/g, 'е')
+  const normalizedValue = query.toLowerCase().replace(/ё/g, 'е');
+  const productType = getProductType(normalizedValue);
+
+  if (productType) {
+    return productType;
+  }
+
+  const normalizedTokens = normalizedValue
     .split(/[\s,.;:!?()[\]{}"']+/)
     .map((token) => {
       if (/^мыш(ка|ки|ку|ке|кой|кою|ек|кам|ками|ках)$/.test(token)) {
@@ -129,4 +173,25 @@ function normalizeProductQuery(query: string) {
     );
 
   return normalizedTokens.join(' ') || query.trim();
+}
+
+function getProductType(query: string) {
+  const productTypes: Array<[RegExp, string]> = [
+    [/ноутбук(?:и|а|ов|ом|ами|ах)?/i, 'ноутбук'],
+    [/смартфон(?:ы|а|ов|ом|ами|ах)?/i, 'смартфон'],
+    [/телефон(?:ы|а|ов|ом|ами|ах)?/i, 'телефон'],
+    [/наушник(?:и|а|ов|ом|ами|ах)?/i, 'наушники'],
+    [
+      /умн(?:ые|ых|ыми|ым|ого|ому)?(?:\s+наручн(?:ые|ых|ыми)?)?\s+час(?:ы|ов|ами|ах)?/i,
+      'смарт-часы',
+    ],
+    [/час(?:ы|ов|ами|ах)?\s+для\s+спорт/i, 'смарт-часы'],
+    [/смарт[-\s]?час(?:ы|ов|ами|ах)?/i, 'смарт-часы'],
+    [/планшет(?:ы|а|ов|ом|ами|ах)?/i, 'планшет'],
+    [/монитор(?:ы|а|ов|ом|ами|ах)?/i, 'монитор'],
+    [/клавиатур(?:а|ы|у|ой|ами|ах)/i, 'клавиатура'],
+    [/мыш(?:ь|и|ью|ей|ам|ами|ах|ка|ки|ку|ке|кой|кою|ек|кам)/i, 'мышь'],
+  ];
+
+  return productTypes.find(([pattern]) => pattern.test(query))?.[1];
 }

@@ -1,8 +1,7 @@
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { Header } from "@/components/layout/Header";
-import {
-  getCatalogTitleFromSlug,
-} from "@/lib/catalog-slug";
+import { getCatalogCategoryId } from "@/lib/catalog-data";
+import { getCatalogTitleFromSlug } from "@/lib/catalog-slug";
 import { getCatalogProducts } from "@/lib/catalog-products";
 
 type CatalogSubcategoryRouteProps = {
@@ -17,13 +16,14 @@ export default async function CatalogSubcategoryRoute({
 }: CatalogSubcategoryRouteProps) {
   const { slug } = await params;
   const subcategoryTitle = getCatalogTitleFromSlug(slug);
+  const categoryId = getCatalogCategoryId(subcategoryTitle);
   const products = await getCatalogProducts();
 
   return (
     <main>
       <Header />
       <CatalogPage
-        initialCategory={1}
+        initialCategory={categoryId}
         initialQuery=""
         initialSubcategory={subcategoryTitle}
         initialProducts={products}

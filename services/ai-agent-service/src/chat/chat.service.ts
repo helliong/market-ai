@@ -4,7 +4,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { CatalogClient } from './catalog-client.service';
+import { CatalogClient, type GiftProductGroup } from './catalog-client.service';
 import type { ChatRequestDto } from './dto/chat-request.dto';
 import type { ChatResponseDto } from './dto/chat-response.dto';
 import { GigaChatProvider } from './gigachat.provider';
@@ -58,6 +58,83 @@ export class ChatService {
       };
     }
 
+    const giftRefinement = getGiftRefinement(message, request.history ?? []);
+
+    if (giftRefinement) {
+      const products = await this.catalogClient.findGiftProductsUnderPrice({
+        maxPrice: giftRefinement.maxPrice,
+        group: giftRefinement.group,
+        excludeProductIds: [...extractShownProductIds(request.history ?? [])],
+      });
+
+      return {
+        reply: products.length
+          ? `Вот ещё ${products.length} ${getVariantWord(products.length)} до ${formatPrice(giftRefinement.maxPrice)}.`
+          : `Больше подходящих вариантов до ${formatPrice(giftRefinement.maxPrice)} не нашлось. Попробуйте другую категорию или бюджет.`,
+        products: products.length ? products : undefined,
+      };
+    }
+
+    const directSearch = getDirectCatalogSearch(message);
+
+    if (directSearch) {
+      const products = await this.catalogClient.searchProducts(directSearch);
+
+      return {
+        reply: products.length
+          ? 'Нашёл умные часы в каталоге. Вот доступные варианты.'
+          : 'Не нашёл умные часы по заданным условиям. Попробуйте изменить бюджет или критерии.',
+        products: products.length ? products : undefined,
+      };
+    }
+
+    const confirmedSearch = getConfirmedBudgetSearch(
+      message,
+      request.history ?? [],
+    );
+
+    if (confirmedSearch) {
+      const products = await this.catalogClient.searchProducts(confirmedSearch);
+
+      return {
+        reply: products.length
+          ? `Нашёл ${products.length} ${getProductWord(products.length)} до ${formatPrice(confirmedSearch.maxPrice)}.`
+          : `Не нашёл подходящие товары до ${formatPrice(confirmedSearch.maxPrice)}. Попробуйте увеличить бюджет.`,
+        products: products.length ? products : undefined,
+      };
+    }
+
+    const alternativeQueries = getAlternativeProductQueries(
+      message,
+      request.history ?? [],
+    );
+
+    if (alternativeQueries.length) {
+      const excludedProductIds = extractShownProductIds(request.history ?? []);
+      const foundProducts = await Promise.all(
+        alternativeQueries.map((query) =>
+          this.catalogClient.searchProducts({
+            query,
+            ...(excludedProductIds.size
+              ? { excludeProductIds: [...excludedProductIds] }
+              : {}),
+          }),
+        ),
+      );
+      const products = Array.from(
+        new Map(
+          foundProducts.flat().map((product) => [product.id, product] as const),
+        ).values(),
+      ).slice(0, 5);
+
+      return {
+        reply: products.length
+          ? 'Тогда вот несколько альтернатив из каталога.'
+          : 'Не нашёл подходящих альтернатив. Уточните, какой тип товара рассмотреть.',
+        products: products.length ? products : undefined,
+      };
+    }
+
     const messages: ChatMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...(request.history ?? [])
@@ -83,10 +160,9 @@ export class ChatService {
         `GigaChat response [step=${index}]: content=${JSON.stringify(assistantMessage.content)}, function_call=${JSON.stringify(assistantMessage.function_call)}`,
       );
 
-      const functionCall =
-        assistantMessage.function_call
-          ? normalizeFunctionCall(assistantMessage.function_call)
-          : extractLeakedFunctionCall(assistantMessage.content, message);
+      const functionCall = assistantMessage.function_call
+        ? normalizeFunctionCall(assistantMessage.function_call)
+        : extractLeakedFunctionCall(assistantMessage.content, message);
 
       if (!functionCall) {
         return {
@@ -205,7 +281,7 @@ export class ChatService {
 function parseArguments(args: unknown): Record<string, unknown> {
   if (typeof args === 'string') {
     try {
-      const parsed = JSON.parse(args);
+      const parsed: unknown = JSON.parse(args);
       return typeof parsed === 'object' && parsed !== null
         ? (parsed as Record<string, unknown>)
         : {};
@@ -293,6 +369,61 @@ function getGiftBudget(message: string) {
   return budget;
 }
 
+function getGiftRefinement(
+  message: string,
+  history: NonNullable<ChatRequestDto['history']>,
+) {
+  const maxPrice = getPreviousGiftBudget(history);
+
+  if (!maxPrice) {
+    return undefined;
+  }
+
+  const group = getGiftProductGroup(message);
+
+  if (!group) {
+    return undefined;
+  }
+
+  return { maxPrice, group };
+}
+
+function getPreviousGiftBudget(
+  history: NonNullable<ChatRequestDto['history']>,
+) {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const item = history[index];
+
+    if (item.role !== 'user' || !isGiftRequest(item.content)) {
+      continue;
+    }
+
+    const budget = extractBudget(item.content);
+
+    if (budget) {
+      return budget;
+    }
+  }
+
+  return undefined;
+}
+
+function getGiftProductGroup(message: string): GiftProductGroup | undefined {
+  if (/^(?:ещ[её]|покажи ещё|другие варианты)[.!?\s]*$/i.test(message)) {
+    return 'any';
+  }
+
+  if (/(?:техник|электроник|гаджет|девайс)/i.test(message)) {
+    return 'electronics';
+  }
+
+  if (/(?:одежд|гардероб|вещ)/i.test(message)) {
+    return 'clothing';
+  }
+
+  return undefined;
+}
+
 function isGiftRequest(message: string) {
   return /подар/i.test(message);
 }
@@ -321,6 +452,111 @@ function formatPrice(price: number) {
 
 function getVariantWord(count: number) {
   return count === 1 ? 'вариант' : count < 5 ? 'варианта' : 'вариантов';
+}
+
+function getProductWord(count: number) {
+  return count === 1 ? 'товар' : count < 5 ? 'товара' : 'товаров';
+}
+
+function getDirectCatalogSearch(message: string) {
+  if (
+    !/(?:умн(?:ые|ых|ыми|ым|ого|ому)?(?:\s+наручн(?:ые|ых|ыми)?)?\s+час(?:ы|ов|ами|ах)?|смарт[-\s]?час(?:ы|ов|ами|ах)?|час(?:ы|ов|ами|ах)?\s+для\s+спорт)/i.test(
+      message,
+    )
+  ) {
+    return undefined;
+  }
+
+  const maxPrice = extractBudget(message);
+
+  return {
+    query: 'смарт-часы',
+    ...(maxPrice ? { maxPrice } : {}),
+  };
+}
+
+function getConfirmedBudgetSearch(
+  message: string,
+  history: NonNullable<ChatRequestDto['history']>,
+) {
+  if (
+    !/^(?:да|давай|ок|хорошо|подходит|согласен|согласна)[.!?\s]*$/i.test(
+      message,
+    )
+  ) {
+    return undefined;
+  }
+
+  const previousAssistantMessage = [...history]
+    .reverse()
+    .find((item) => item.role === 'assistant')?.content;
+  const maxPrice = previousAssistantMessage
+    ? extractBudget(previousAssistantMessage)
+    : undefined;
+  const query = extractPreviousProductQuery(history);
+
+  if (!maxPrice || !query) {
+    return undefined;
+  }
+
+  return { query, maxPrice };
+}
+
+function extractPreviousProductQuery(
+  history: NonNullable<ChatRequestDto['history']>,
+) {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const item = history[index];
+
+    if (item.role !== 'user') {
+      continue;
+    }
+
+    const match = item.content.match(
+      /(ноутбук(?:и|а|ов|ом|ами|ах)?|смартфон(?:ы|а|ов|ом|ами|ах)?|телефон(?:ы|а|ов|ом|ами|ах)?|наушник(?:и|а|ов|ом|ами|ах)?|умн(?:ые|ых|ыми|ым|ого|ому)?(?:\s+наручн(?:ые|ых|ыми)?)?\s+час(?:ы|ов|ами|ах)?|смарт[-\s]?час(?:ы|ов|ами|ах)?|планшет(?:ы|а|ов|ом|ами|ах)?|монитор(?:ы|а|ов|ом|ами|ах)?|клавиатур(?:а|ы|у|ой|ами|ах)|мыш(?:ь|и|ью|ей|ам|ами|ах|ка|ки|ку|ке|кой|кою|ек|кам))/i,
+    );
+
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+}
+
+function getAlternativeProductQueries(
+  message: string,
+  history: NonNullable<ChatRequestDto['history']>,
+) {
+  if (!/(?:уже есть|не нуж(?:ен|на|но|ны)|не подходит|другое)/i.test(message)) {
+    return [];
+  }
+
+  const shownProductsContext = [...history]
+    .reverse()
+    .find(
+      (item) =>
+        item.role === 'assistant' &&
+        item.content.includes('Контекст показанных товаров:'),
+    )?.content;
+
+  if (!shownProductsContext) {
+    return [];
+  }
+
+  const alternatives: Array<[RegExp, string[]]> = [
+    [/мыш/i, ['геймпад', 'клавиатура']],
+    [/клавиатур/i, ['мышь', 'геймпад']],
+    [/геймпад/i, ['клавиатура', 'мышь']],
+    [/ноутбук/i, ['планшет']],
+    [/смартфон|телефон/i, ['наушники', 'смарт-часы']],
+    [/наушник/i, ['смарт-часы']],
+  ];
+
+  return (
+    alternatives.find(([pattern]) => pattern.test(shownProductsContext))?.[1] ??
+    []
+  );
 }
 
 function extractShownProductIds(history: ChatRequestDto['history']) {
