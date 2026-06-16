@@ -143,6 +143,7 @@ services:
       - "4004:4004"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - CLIENT_URL=${CLIENT_URL}
       - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL}
       - MODERATION_CLIENT_URL=${MODERATION_CLIENT_URL}
