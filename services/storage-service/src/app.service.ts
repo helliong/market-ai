@@ -30,6 +30,17 @@ export class AppService {
       secretAccessKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
     },
   });
+  private readonly presignS3 = new S3Client({
+    region: process.env.S3_REGION ?? 'us-east-1',
+    endpoint: this.publicEndpoint,
+    forcePathStyle: true,
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
+    credentials: {
+      accessKeyId: process.env.S3_ACCESS_KEY ?? 'minioadmin',
+      secretAccessKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
+    },
+  });
   private bucketReady: Promise<void> | null = null;
 
   getHello(): string {
@@ -46,7 +57,7 @@ export class AppService {
       ContentType: dto.contentType,
     });
 
-    const uploadUrl = await getSignedUrl(this.s3, command, {
+    const uploadUrl = await getSignedUrl(this.presignS3, command, {
       expiresIn: Number(process.env.S3_UPLOAD_URL_TTL_SECONDS ?? 300),
     });
 
