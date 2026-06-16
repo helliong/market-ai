@@ -32,6 +32,11 @@ type AdVariant = {
   badgeCorner?: BadgeCorner;
 };
 
+type BadgeCornerState = {
+  corner: BadgeCorner;
+  placement: number;
+};
+
 const AD_VARIANTS: AdVariant[] = [
   {
     brand: "SNICKERS",
@@ -117,24 +122,33 @@ export function AdPlaceholderCard({
   const ad = getAdVariant(placement);
   const brandTextColor = ad.brandBg === "#FFFFFF" ? "#DC2626" : "#FFFFFF";
   const isImageAd = Boolean(ad.imageSrc);
-  const defaultCorner: BadgeCorner = ad.badgeCorner ?? "top-right";
-  const [badgeCorner, setBadgeCorner] = useState<BadgeCorner>(defaultCorner);
+  const fallbackCorner: BadgeCorner = ad.badgeCorner ?? "top-right";
+  const [badgeCornerState, setBadgeCornerState] = useState<BadgeCornerState>({
+    corner: fallbackCorner,
+    placement,
+  });
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const badgeCorner =
+    badgeCornerState.placement === placement
+      ? badgeCornerState.corner
+      : fallbackCorner;
 
   const applyBadgePlacement = useCallback(
     (img: HTMLImageElement) => {
       try {
-        setBadgeCorner(findDarkestBadgeCorner(img));
+        setBadgeCornerState({
+          corner: findDarkestBadgeCorner(img),
+          placement,
+        });
       } catch {
-        setBadgeCorner(ad.badgeCorner ?? "top-right");
+        setBadgeCornerState({
+          corner: fallbackCorner,
+          placement,
+        });
       }
     },
-    [ad.badgeCorner],
+    [fallbackCorner, placement],
   );
-
-  useEffect(() => {
-    setBadgeCorner(ad.badgeCorner ?? "top-right");
-  }, [placement, ad.badgeCorner, ad.imageSrc]);
 
   useEffect(() => {
     const img = imageRef.current;
@@ -170,7 +184,6 @@ export function AdPlaceholderCard({
           sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
           className="object-cover transition duration-300 group-hover:scale-[1.02]"
           onLoad={(event) => applyBadgePlacement(event.currentTarget)}
-          onLoadingComplete={(img) => applyBadgePlacement(img)}
         />
       ) : (
         <>

@@ -3,6 +3,13 @@ export type AiChatMessage = {
   content: string;
 };
 
+export type AiConversationState = {
+  productType?: string;
+  maxPrice?: number;
+  shownProductIds?: number[];
+  lastQuery?: string;
+};
+
 export type AiProduct = {
   id: number;
   sku: string;
@@ -26,6 +33,38 @@ export type AiProduct = {
 export type AiChatResponse = {
   reply: string;
   products?: AiProduct[];
+  conversationState?: AiConversationState;
+  sessionId?: string;
+};
+
+export type AiChatSessionSummary = {
+  id: string;
+  title?: string | null;
+  state?: AiConversationState | null;
+  createdAt: string;
+  updatedAt: string;
+  lastMessage?: {
+    role: "user" | "assistant";
+    content: string;
+    createdAt: string;
+  };
+};
+
+export type AiChatPersistedMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  products?: AiProduct[];
+  createdAt: string;
+};
+
+export type AiChatPersistedSession = {
+  id: string;
+  title?: string | null;
+  state?: AiConversationState | null;
+  createdAt: string;
+  updatedAt: string;
+  messages: AiChatPersistedMessage[];
 };
 
 const API_GATEWAY_URL =
@@ -34,12 +73,26 @@ const API_GATEWAY_URL =
 export async function sendAiMessage(
   message: string,
   history: AiChatMessage[],
+  conversationState?: AiConversationState,
+  sessionId?: string,
+  guestId?: string,
 ): Promise<AiChatResponse> {
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+
+  if (guestId) {
+    headers["x-guest-id"] = guestId;
+  }
+
   const response = await fetch(`${API_GATEWAY_URL}/api/ai/chat`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    headers,
+    body: JSON.stringify({
+      message,
+      history,
+      conversationState,
+      sessionId,
+    }),
   });
   const data = (await response.json().catch(() => null)) as
     | (AiChatResponse & { message?: string })
@@ -56,4 +109,36 @@ export async function sendAiMessage(
   }
 
   return data as AiChatResponse;
+}
+
+export async function fetchAiChatSessions(guestId: string) {
+  const response = await fetch(
+    `${API_GATEWAY_URL}/api/ai/chat/sessions?guestId=${encodeURIComponent(guestId)}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    return [];
+  }
+
+  return (await response.json()) as AiChatSessionSummary[];
+}
+
+export async function fetchAiChatSession(sessionId: string, guestId: string) {
+  const response = await fetch(
+    `${API_GATEWAY_URL}/api/ai/chat/sessions/${encodeURIComponent(sessionId)}?guestId=${encodeURIComponent(guestId)}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as AiChatPersistedSession;
 }

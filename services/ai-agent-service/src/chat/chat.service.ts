@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { CatalogClient, type GiftProductGroup } from './catalog-client.service';
 import type { ChatRequestDto } from './dto/chat-request.dto';
-import type { ChatResponseDto } from './dto/chat-response.dto';
+import type {
+  ChatConversationState,
+  ChatResponseDto,
+} from './dto/chat-response.dto';
 import { GigaChatProvider } from './gigachat.provider';
 import type { ChatMessage, FunctionCall, Product } from './chat.types';
 import { GET_PRODUCT_DETAILS_TOOL } from './tools/get-product-details.tool';
@@ -55,6 +58,11 @@ export class ChatService {
           ? `Вот ${products.length} ${getVariantWord(products.length)} до ${formatPrice(giftBudget)}. Выберите понравившийся, и я помогу уточнить выбор.`
           : `Не нашёл товары до ${formatPrice(giftBudget)}. Попробуйте увеличить бюджет.`,
         products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+        ),
       };
     }
 
@@ -72,6 +80,63 @@ export class ChatService {
           ? `Вот ещё ${products.length} ${getVariantWord(products.length)} до ${formatPrice(giftRefinement.maxPrice)}.`
           : `Больше подходящих вариантов до ${formatPrice(giftRefinement.maxPrice)} не нашлось. Попробуйте другую категорию или бюджет.`,
         products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+        ),
+      };
+    }
+
+    const budgetedCatalogSearch = getBudgetedCatalogSearch(message);
+
+    if (budgetedCatalogSearch) {
+      const products = await this.catalogClient.searchProducts(
+        budgetedCatalogSearch,
+      );
+
+      return {
+        reply: products.length
+          ? `Нашёл ${products.length} ${getProductWord(products.length)} до ${formatPrice(budgetedCatalogSearch.maxPrice)}.`
+          : `Не нашёл товары по запросу «${budgetedCatalogSearch.query}» до ${formatPrice(budgetedCatalogSearch.maxPrice)}. Попробуйте увеличить бюджет или уточнить параметры.`,
+        products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+          {
+            productType: budgetedCatalogSearch.query,
+            maxPrice: budgetedCatalogSearch.maxPrice,
+          },
+        ),
+      };
+    }
+
+    const budgetRefinementSearch = getBudgetRefinementSearch(
+      message,
+      request.history ?? [],
+      request.conversationState,
+    );
+
+    if (budgetRefinementSearch) {
+      const products = await this.catalogClient.searchProducts(
+        budgetRefinementSearch,
+      );
+
+      return {
+        reply: products.length
+          ? `Нашёл ${products.length} ${getProductWord(products.length)} по запросу «${budgetRefinementSearch.query}» до ${formatPrice(budgetRefinementSearch.maxPrice)}.`
+          : `Не нашёл товары по запросу «${budgetRefinementSearch.query}» до ${formatPrice(budgetRefinementSearch.maxPrice)}. Попробуйте увеличить бюджет или уточнить параметры.`,
+        products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+          {
+            productType: budgetRefinementSearch.query,
+            maxPrice: budgetRefinementSearch.maxPrice,
+          },
+        ),
       };
     }
 
@@ -85,6 +150,15 @@ export class ChatService {
           ? 'Нашёл умные часы в каталоге. Вот доступные варианты.'
           : 'Не нашёл умные часы по заданным условиям. Попробуйте изменить бюджет или критерии.',
         products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+          {
+            productType: directSearch.query,
+            maxPrice: directSearch.maxPrice,
+          },
+        ),
       };
     }
 
@@ -101,6 +175,46 @@ export class ChatService {
           ? `Нашёл ${products.length} ${getProductWord(products.length)} до ${formatPrice(confirmedSearch.maxPrice)}.`
           : `Не нашёл подходящие товары до ${formatPrice(confirmedSearch.maxPrice)}. Попробуйте увеличить бюджет.`,
         products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+          {
+            productType: confirmedSearch.query,
+            maxPrice: confirmedSearch.maxPrice,
+          },
+        ),
+      };
+    }
+
+    const moreCatalogSearch = getMoreCatalogSearch(
+      message,
+      request.history ?? [],
+      request.conversationState,
+    );
+
+    if (moreCatalogSearch) {
+      const excludedProductIds = extractShownProductIds(request.history ?? []);
+      const products = await this.catalogClient.searchProducts({
+        query: moreCatalogSearch.query,
+        ...(excludedProductIds.size
+          ? { excludeProductIds: [...excludedProductIds] }
+          : {}),
+      });
+
+      return {
+        reply: products.length
+          ? `Вот ещё ${products.length} ${getProductWord(products.length)} по запросу «${moreCatalogSearch.query}».`
+          : `Больше товаров по запросу «${moreCatalogSearch.query}» не нашлось. Попробуйте уточнить бренд, цвет или бюджет.`,
+        products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+          {
+            productType: moreCatalogSearch.query,
+          },
+        ),
       };
     }
 
@@ -132,6 +246,11 @@ export class ChatService {
           ? 'Тогда вот несколько альтернатив из каталога.'
           : 'Не нашёл подходящих альтернатив. Уточните, какой тип товара рассмотреть.',
         products: products.length ? products : undefined,
+        conversationState: buildConversationState(
+          message,
+          products,
+          request.conversationState,
+        ),
       };
     }
 
@@ -165,13 +284,28 @@ export class ChatService {
         : extractLeakedFunctionCall(assistantMessage.content, message);
 
       if (!functionCall) {
+        const reply =
+          sanitizeAssistantReply(assistantMessage.content) ||
+          'Не удалось сформировать ответ. Попробуйте уточнить запрос.';
+        const referencedProducts = products.size
+          ? []
+          : await this.getProductsReferencedInReply(
+              reply,
+              request.history ?? [],
+            );
+
         return {
-          reply:
-            sanitizeAssistantReply(assistantMessage.content) ||
-            'Не удалось сформировать ответ. Попробуйте уточнить запрос.',
+          reply,
           products: products.size
             ? [...products.values()].slice(0, 5)
+            : referencedProducts.length
+              ? referencedProducts
             : undefined,
+          conversationState: buildConversationState(
+            message,
+            products.size ? [...products.values()] : referencedProducts,
+            request.conversationState,
+          ),
         };
       }
 
@@ -275,6 +409,36 @@ export class ChatService {
         products: [] as Product[],
       };
     }
+  }
+
+  private async getProductsReferencedInReply(
+    reply: string,
+    history: NonNullable<ChatRequestDto['history']>,
+  ) {
+    const referencedIds = extractReferencedProductIds(reply);
+
+    if (!referencedIds.length) {
+      return [];
+    }
+
+    const shownIds = extractShownProductIds(history);
+    const productIds = referencedIds.filter((productId) =>
+      shownIds.has(productId),
+    );
+
+    if (!productIds.length) {
+      return [];
+    }
+
+    const settledProducts = await Promise.allSettled(
+      productIds.slice(0, 5).map((productId) =>
+        this.catalogClient.getProduct(productId),
+      ),
+    );
+
+    return settledProducts.flatMap((result) =>
+      result.status === 'fulfilled' ? [result.value] : [],
+    );
   }
 }
 
@@ -430,7 +594,7 @@ function isGiftRequest(message: string) {
 
 function extractBudget(message: string) {
   const match = message.match(
-    /(?:до|бюджет(?:ом)?\s*)\s*(\d[\d\s]*)(?:\s*(тыс(?:яч)?))?/i,
+    /(?:до|бюджет(?:ом)?\s*)\s*(\d[\d\s]*)(?:\s*(к|k|тыс\.?|тыс(?:яч)?))?/i,
   );
 
   if (!match) {
@@ -475,6 +639,33 @@ function getDirectCatalogSearch(message: string) {
   };
 }
 
+function getBudgetedCatalogSearch(message: string) {
+  const query = extractProductQuery(message);
+  const maxPrice = extractBudget(message);
+
+  if (!query || !maxPrice) {
+    return undefined;
+  }
+
+  return { query, maxPrice };
+}
+
+function getBudgetRefinementSearch(
+  message: string,
+  history: NonNullable<ChatRequestDto['history']>,
+  conversationState?: ChatConversationState,
+) {
+  const maxPrice = extractBudget(message);
+
+  if (!maxPrice || extractProductQuery(message)) {
+    return undefined;
+  }
+
+  const query = conversationState?.productType ?? extractPreviousProductQuery(history);
+
+  return query ? { query, maxPrice } : undefined;
+}
+
 function getConfirmedBudgetSearch(
   message: string,
   history: NonNullable<ChatRequestDto['history']>,
@@ -502,6 +693,23 @@ function getConfirmedBudgetSearch(
   return { query, maxPrice };
 }
 
+function getMoreCatalogSearch(
+  message: string,
+  history: NonNullable<ChatRequestDto['history']>,
+  conversationState?: ChatConversationState,
+) {
+  if (!/(?:ещ[её]|другие|больше|покажи)/i.test(message)) {
+    return undefined;
+  }
+
+  const query =
+    extractProductQuery(message) ??
+    conversationState?.productType ??
+    extractPreviousProductQuery(history);
+
+  return query ? { query } : undefined;
+}
+
 function extractPreviousProductQuery(
   history: NonNullable<ChatRequestDto['history']>,
 ) {
@@ -512,16 +720,41 @@ function extractPreviousProductQuery(
       continue;
     }
 
-    const match = item.content.match(
-      /(ноутбук(?:и|а|ов|ом|ами|ах)?|смартфон(?:ы|а|ов|ом|ами|ах)?|телефон(?:ы|а|ов|ом|ами|ах)?|наушник(?:и|а|ов|ом|ами|ах)?|умн(?:ые|ых|ыми|ым|ого|ому)?(?:\s+наручн(?:ые|ых|ыми)?)?\s+час(?:ы|ов|ами|ах)?|смарт[-\s]?час(?:ы|ов|ами|ах)?|планшет(?:ы|а|ов|ом|ами|ах)?|монитор(?:ы|а|ов|ом|ами|ах)?|клавиатур(?:а|ы|у|ой|ами|ах)|мыш(?:ь|и|ью|ей|ам|ами|ах|ка|ки|ку|ке|кой|кою|ек|кам))/i,
-    );
+    const query = extractProductQuery(item.content);
 
-    if (match) {
-      return match[1];
+    if (query) {
+      return query;
     }
   }
 
   return undefined;
+}
+
+function extractProductQuery(content: string) {
+  const match = content.match(
+    /(шорт(?:ы|ов|ам|ами|ах)?|ноутбук(?:и|а|ов|ом|ами|ах)?|смартфон(?:ы|а|ов|ом|ами|ах)?|телефон(?:ы|а|ов|ом|ами|ах)?|наушник(?:и|а|ов|ом|ами|ах)?|умн(?:ые|ых|ыми|ым|ого|ому)?(?:\s+наручн(?:ые|ых|ыми)?)?\s+час(?:ы|ов|ами|ах)?|смарт[-\s]?час(?:ы|ов|ами|ах)?|планшет(?:ы|а|ов|ом|ами|ах)?|монитор(?:ы|а|ов|ом|ами|ах)?|клавиатур(?:а|ы|у|ой|ами|ах)|мыш(?:ь|и|ью|ей|ам|ами|ах|ка|ки|ку|ке|кой|кою|ек|кам))/i,
+  );
+
+  if (!match) {
+    return undefined;
+  }
+
+  return normalizeProductQuery(match[1]);
+}
+
+function normalizeProductQuery(query: string) {
+  if (/^шорт/i.test(query)) return 'шорты';
+  if (/^ноутбук/i.test(query)) return 'ноутбук';
+  if (/^смартфон/i.test(query)) return 'смартфон';
+  if (/^телефон/i.test(query)) return 'телефон';
+  if (/^наушник/i.test(query)) return 'наушники';
+  if (/час/i.test(query)) return 'смарт-часы';
+  if (/^планшет/i.test(query)) return 'планшет';
+  if (/^монитор/i.test(query)) return 'монитор';
+  if (/^клавиатур/i.test(query)) return 'клавиатура';
+  if (/^мыш/i.test(query)) return 'мышь';
+
+  return query;
 }
 
 function getAlternativeProductQueries(
@@ -576,4 +809,44 @@ function extractShownProductIds(history: ChatRequestDto['history']) {
   }
 
   return productIds;
+}
+
+function extractReferencedProductIds(content: string) {
+  const productIds: number[] = [];
+  const seenProductIds = new Set<number>();
+
+  for (const match of content.matchAll(/\bID\s+(\d+)\b/gi)) {
+    const productId = Number(match[1]);
+
+    if (Number.isInteger(productId) && !seenProductIds.has(productId)) {
+      productIds.push(productId);
+      seenProductIds.add(productId);
+    }
+  }
+
+  return productIds;
+}
+
+function buildConversationState(
+  message: string,
+  products: Product[] | undefined,
+  previousState?: ChatConversationState,
+  override?: Pick<ChatConversationState, 'productType' | 'maxPrice'>,
+): ChatConversationState {
+  const productType =
+    override?.productType ??
+    extractProductQuery(message) ??
+    previousState?.productType;
+  const maxPrice =
+    override?.maxPrice ?? extractBudget(message) ?? previousState?.maxPrice;
+  const shownProductIds = products?.length
+    ? products.map((product) => product.id)
+    : previousState?.shownProductIds;
+
+  return {
+    ...(productType ? { productType } : {}),
+    ...(maxPrice ? { maxPrice } : {}),
+    ...(shownProductIds?.length ? { shownProductIds } : {}),
+    lastQuery: message,
+  };
 }

@@ -1,13 +1,25 @@
 "use client";
 
-import { Bot, MessageCircle, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import {
+  Bot,
+  History,
+  MessageCircle,
+  RotateCcw,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import {
+  fetchAiChatSession,
+  fetchAiChatSessions,
   sendAiMessage,
   type AiChatMessage,
+  type AiChatSessionSummary,
+  type AiConversationState,
   type AiProduct,
 } from "@/lib/ai-api";
 import { getMainProductImageUrl } from "@/lib/product-image";
@@ -28,14 +40,23 @@ const SUGGESTIONS = [
   "Кофемашина для дома",
 ];
 
+const AI_GUEST_ID_STORAGE_KEY = "marketai-ai-guest-id";
+
 export function AIWidget() {
   const pathname = usePathname();
+  const [guestId] = useState(() => getOrCreateGuestId());
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
+  const [conversationState, setConversationState] =
+    useState<AiConversationState>();
+  const [sessionId, setSessionId] = useState<string>();
+  const [chatSessions, setChatSessions] = useState<AiChatSessionSummary[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const hasRestoredHistoryRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragScrollLeftRef = useRef(0);
   const didDragRef = useRef(false);
@@ -61,6 +82,50 @@ export function AIWidget() {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || hasRestoredHistoryRef.current || messages.length > 0) {
+      return;
+    }
+
+    hasRestoredHistoryRef.current = true;
+    fetchAiChatSessions(guestId)
+      .then((sessions) => {
+        setChatSessions(sessions);
+        const latestSession = sessions[0];
+
+        if (!latestSession) {
+          return null;
+        }
+
+        return fetchAiChatSession(latestSession.id, guestId);
+      })
+      .then((session) => {
+        if (!session) {
+          return;
+        }
+
+        setSessionId(session.id);
+        setConversationState(session.state ?? undefined);
+        setMessages(
+          session.messages.map((message) => ({
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            products: message.products,
+          })),
+        );
+      })
+      .catch(() => undefined);
+  }, [guestId, isOpen, messages.length]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetchAiChatSessions(guestId)
+      .then(setChatSessions)
+      .catch(() => undefined);
+  }, [guestId, isOpen, sessionId]);
+
   async function submitMessage(message: string) {
     const normalizedMessage = message.trim();
     if (!normalizedMessage || isLoading) return;
@@ -82,7 +147,20 @@ export function AIWidget() {
     setIsLoading(true);
 
     try {
-      const response = await sendAiMessage(normalizedMessage, history);
+      const response = await sendAiMessage(
+        normalizedMessage,
+        history,
+        conversationState,
+        sessionId,
+        guestId,
+      );
+      setConversationState(response.conversationState);
+      setSessionId(response.sessionId);
+      if (response.sessionId) {
+        void fetchAiChatSessions(guestId)
+          .then(setChatSessions)
+          .catch(() => undefined);
+      }
       setMessages((current) => [
         ...current,
         {
@@ -113,6 +191,27 @@ export function AIWidget() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void submitMessage(input);
+  }
+
+  async function openSession(nextSessionId: string) {
+    const session = await fetchAiChatSession(nextSessionId, guestId);
+
+    if (!session) {
+      return;
+    }
+
+    setSessionId(session.id);
+    setConversationState(session.state ?? undefined);
+    setMessages(
+      session.messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        products: message.products,
+      })),
+    );
+    hasRestoredHistoryRef.current = true;
+    setIsHistoryOpen(false);
   }
 
   function handleSuggestionsPointerDown(
@@ -180,11 +279,26 @@ export function AIWidget() {
               </div>
             )}
             {!hasConversation && <div className="flex-1" />}
+            {chatSessions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen((current) => !current)}
+                className="rounded-full p-2 text-[#94A3B8] transition hover:bg-white/5 hover:text-white"
+                aria-label="История чатов"
+                title="История чатов"
+              >
+                <History size={19} />
+              </button>
+            )}
             {hasConversation && (
               <button
                 type="button"
                 onClick={() => {
                   setMessages([]);
+                  setConversationState(undefined);
+                  setSessionId(undefined);
+                  hasRestoredHistoryRef.current = true;
+                  setIsHistoryOpen(false);
                   setInput("");
                 }}
                 className="rounded-full p-2 text-[#94A3B8] transition hover:bg-white/5 hover:text-white"
@@ -203,6 +317,28 @@ export function AIWidget() {
               <X size={24} />
             </button>
           </div>
+
+          {isHistoryOpen && (
+            <div className="mx-5 mb-3 max-h-56 shrink-0 overflow-y-auto rounded-2xl border border-[#26344A] bg-[#111C31] p-2 sm:mx-7">
+              {chatSessions.map((session) => (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => void openSession(session.id)}
+                  className={`flex w-full min-w-0 flex-col rounded-xl px-3 py-2.5 text-left transition hover:bg-white/5 ${
+                    session.id === sessionId ? "bg-[#6D4AFF]/15" : ""
+                  }`}
+                >
+                  <span className="truncate text-sm font-bold text-white">
+                    {session.title || "Новый чат"}
+                  </span>
+                  <span className="mt-1 line-clamp-1 text-xs text-[#94A3B8]">
+                    {session.lastMessage?.content || formatSessionDate(session.updatedAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {hasConversation ? (
             <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-7">
@@ -419,20 +555,18 @@ function ProductResult({
       onClick={onClick}
       className="flex gap-3 rounded-2xl border border-[#334155] bg-[#111C31] p-3 transition hover:border-[#6D4AFF]"
     >
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#18243B]">
+      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl bg-white">
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={product.name}
             fill
             unoptimized
-            sizes="64px"
-            className="object-contain"
+            sizes="72px"
+            className="object-cover object-center"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[#94A3B8]">
-            <Sparkles size={20} />
-          </div>
+          <ProductImageFallback product={product} />
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -450,6 +584,60 @@ function ProductResult({
       </div>
     </Link>
   );
+}
+
+function ProductImageFallback({ product }: { product: AiProduct }) {
+  const color = getProductColor(product);
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-[#18243B] px-2 text-center">
+      <span
+        className="h-5 w-9 rounded-b-xl rounded-t-sm shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+        style={{ backgroundColor: color }}
+      />
+      <span className="line-clamp-2 text-[10px] font-black leading-3 text-[#CBD5E1]">
+        {product.category || "Товар"}
+      </span>
+    </div>
+  );
+}
+
+function getProductColor(product: AiProduct) {
+  const value = `${product.name} ${Object.values(product.attributes).join(" ")}`.toLowerCase();
+
+  if (value.includes("красн")) return "#DC2626";
+  if (value.includes("коричн")) return "#8B5E3C";
+  if (value.includes("син")) return "#2563EB";
+  if (value.includes("черн") || value.includes("чёрн")) return "#111827";
+  if (value.includes("зелен")) return "#16A34A";
+  if (value.includes("сер")) return "#6B7280";
+
+  return "#6D4AFF";
+}
+
+function formatSessionDate(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function getOrCreateGuestId() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const currentGuestId = window.localStorage.getItem(AI_GUEST_ID_STORAGE_KEY);
+
+  if (currentGuestId) {
+    return currentGuestId;
+  }
+
+  const nextGuestId = crypto.randomUUID();
+  window.localStorage.setItem(AI_GUEST_ID_STORAGE_KEY, nextGuestId);
+  return nextGuestId;
 }
 
 function buildProductsContext(products: AiProduct[]) {

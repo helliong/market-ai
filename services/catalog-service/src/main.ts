@@ -1,6 +1,10 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  type OpenAPIObject,
+  SwaggerModule,
+} from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
@@ -41,8 +45,10 @@ async function bootstrap() {
     .setVersion('1.0')
     .addServer('http://127.0.0.1:4003', 'Local development')
     .addServer('http://localhost:4003', 'Local development (localhost)')
-    .addTag('Products', 'Public product catalog')
+    .addTag('Public products', 'Public product catalog')
     .addTag('Seller products', 'Seller product management')
+    .addTag('Internal', 'Internal service-to-service catalog operations')
+    .addTag('Health', 'Service health check')
     .addCookieAuth(
       'sellerAccessToken',
       {
@@ -57,6 +63,8 @@ async function bootstrap() {
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  groupCatalogSwaggerTags(swaggerDocument);
+
   SwaggerModule.setup('docs', app, swaggerDocument, {
     customSiteTitle: 'MarketAI Catalog API',
     swaggerOptions: {
@@ -71,4 +79,47 @@ async function bootstrap() {
 
   await app.listen(process.env.CATALOG_SERVICE_PORT ?? 4003);
 }
+
+function groupCatalogSwaggerTags(document: OpenAPIObject) {
+  const tagDescriptions = new Map(
+    (document.tags ?? []).map((tag) => [tag.name, tag.description]),
+  );
+
+  for (const [path, pathItem] of Object.entries(document.paths)) {
+    for (const operation of Object.values(pathItem ?? {})) {
+      if (!operation || typeof operation !== 'object' || !('tags' in operation)) {
+        continue;
+      }
+
+      operation.tags = [getCatalogSwaggerTag(path)];
+    }
+  }
+
+  document.tags = [
+    'Public products',
+    'Seller products',
+    'Internal',
+    'Health',
+  ].map((name) => ({
+    name,
+    description: tagDescriptions.get(name),
+  }));
+}
+
+function getCatalogSwaggerTag(path: string) {
+  if (path.startsWith('/seller/products')) {
+    return 'Seller products';
+  }
+
+  if (path.startsWith('/internal/')) {
+    return 'Internal';
+  }
+
+  if (path.startsWith('/products')) {
+    return 'Public products';
+  }
+
+  return 'Health';
+}
+
 bootstrap();
