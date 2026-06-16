@@ -137,7 +137,7 @@ export function AIWidget() {
         : content,
     }));
     const userMessage: WidgetMessage = {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
       role: "user",
       content: normalizedMessage,
     };
@@ -164,7 +164,7 @@ export function AIWidget() {
       setMessages((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
           role: "assistant",
           content: response.reply,
           products: response.products,
@@ -174,7 +174,7 @@ export function AIWidget() {
       setMessages((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
           role: "assistant",
           content:
             error instanceof Error
@@ -635,7 +635,7 @@ function getOrCreateGuestId() {
     return currentGuestId;
   }
 
-  const nextGuestId = crypto.randomUUID();
+  const nextGuestId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
   window.localStorage.setItem(AI_GUEST_ID_STORAGE_KEY, nextGuestId);
   return nextGuestId;
 }
