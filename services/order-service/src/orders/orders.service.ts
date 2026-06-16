@@ -530,6 +530,9 @@ export class OrdersService {
       throw new BadRequestException('YooKassa notification has no payment id');
     }
 
+    console.log('[Webhook Debug] Received YooKassa webhook for payment:', providerPaymentId);
+    console.log('[Webhook Debug] Full payload:', JSON.stringify(payload, null, 2));
+
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       const orderPayment = await tx.orderPayment.findUnique({
         where: {
