@@ -409,12 +409,12 @@ export function CheckoutPage() {
 
               return (
               <div key={item.id} className="flex gap-3">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#F6F7FB] to-[#F1EDFF]">
+                <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white">
                   {imageUrl ? (
                     <img
                       src={imageUrl}
                       alt={item.title}
-                      className="h-full w-full object-contain p-1.5"
+                      className="h-full w-full object-cover object-center"
                       loading="lazy"
                     />
                   ) : (

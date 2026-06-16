@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   SlidersHorizontal,
@@ -44,6 +45,11 @@ export function CatalogPage({
   const [sort, setSort] = useState<SortMode>("popular");
   const [onlyDiscounts, setOnlyDiscounts] = useState(false);
   const [fastDelivery, setFastDelivery] = useState(false);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedStores, setSelectedStores] = useState<string[]>([]);
   const [searchProducts, setSearchProducts] =
     useState<ClientProduct[]>(initialProducts);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
@@ -68,10 +74,71 @@ export function CatalogPage({
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const activeSections = getCatalogSections(activeCategoryId);
   const quickPicks = getCatalogQuickPicks(initialSubcategory);
+  const availableStores = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          visibleProducts
+            .filter(
+              (product) =>
+                (!isSubcategoryPage ||
+                  product.category?.toLowerCase() ===
+                    initialSubcategory.toLowerCase()) &&
+                (selectedCategory === "all" ||
+                  product.categoryIds.includes(selectedCategory)),
+            )
+            .map((product) => product.storeName)
+            .filter((store): store is string => Boolean(store)),
+        ),
+      ).sort((left, right) => left.localeCompare(right, "ru")),
+    [
+      initialSubcategory,
+      isSubcategoryPage,
+      selectedCategory,
+      visibleProducts,
+    ],
+  );
+  const availableBrands = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          visibleProducts
+            .filter(
+              (product) =>
+                (!isSubcategoryPage ||
+                  product.category?.toLowerCase() ===
+                    initialSubcategory.toLowerCase()) &&
+                (selectedCategory === "all" ||
+                  product.categoryIds.includes(selectedCategory)),
+            )
+            .map(getProductBrand)
+            .filter((brand): brand is string => Boolean(brand)),
+        ),
+      ).sort((left, right) => left.localeCompare(right, "ru")),
+    [
+      initialSubcategory,
+      isSubcategoryPage,
+      selectedCategory,
+      visibleProducts,
+    ],
+  );
+  const visibleBrands = useMemo(() => {
+    const normalizedSearch = brandSearch.trim().toLowerCase();
+
+    return availableBrands
+      .filter(
+        (brand) =>
+          !normalizedSearch || brand.toLowerCase().includes(normalizedSearch),
+      )
+      .slice(0, 8);
+  }, [availableBrands, brandSearch]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedMinPrice = parseFilterPrice(minPrice);
+    const normalizedMaxPrice = parseFilterPrice(maxPrice);
     const filtered = visibleProducts.filter((product) => {
+      const productPrice = parseProductPrice(product.price);
       const matchesCategory =
         selectedCategory === "all" ||
         product.categoryIds.includes(selectedCategory);
@@ -86,9 +153,30 @@ export function CatalogPage({
         product.badge?.toLowerCase().includes(normalizedQuery) ||
         product.category?.toLowerCase().includes(normalizedQuery);
       const matchesDiscount = !onlyDiscounts || Boolean(product.oldPrice);
-      const matchesDelivery = !fastDelivery || product.rating >= 4.7;
+      const matchesDelivery = !fastDelivery || hasFastDelivery(product);
+      const matchesMinPrice =
+        normalizedMinPrice === null || productPrice >= normalizedMinPrice;
+      const matchesMaxPrice =
+        normalizedMaxPrice === null || productPrice <= normalizedMaxPrice;
+      const matchesStore =
+        selectedStores.length === 0 ||
+        (product.storeName ? selectedStores.includes(product.storeName) : false);
+      const productBrand = getProductBrand(product);
+      const matchesBrand =
+        selectedBrands.length === 0 ||
+        (productBrand ? selectedBrands.includes(productBrand) : false);
 
-      return matchesCategory && matchesSubcategory && matchesSearch && matchesDiscount && matchesDelivery;
+      return (
+        matchesCategory &&
+        matchesSubcategory &&
+        matchesSearch &&
+        matchesDiscount &&
+        matchesDelivery &&
+        matchesMinPrice &&
+        matchesMaxPrice &&
+        matchesBrand &&
+        matchesStore
+      );
     });
 
     return [...filtered].sort((left, right) => {
@@ -97,7 +185,59 @@ export function CatalogPage({
       if (sort === "priceDesc") return parseProductPrice(right.price) - parseProductPrice(left.price);
       return right.reviews - left.reviews;
     });
-  }, [fastDelivery, onlyDiscounts, searchQuery, selectedCategory, sort, visibleProducts, initialSubcategory, isSubcategoryPage, usesServerSearch]);
+  }, [
+    fastDelivery,
+    initialSubcategory,
+    isSubcategoryPage,
+    maxPrice,
+    minPrice,
+    onlyDiscounts,
+    searchQuery,
+    selectedCategory,
+    selectedBrands,
+    selectedStores,
+    sort,
+    usesServerSearch,
+    visibleProducts,
+  ]);
+
+  function handleQuickPick(pick: string) {
+    const priceLimit = getQuickPickPriceLimit(pick);
+
+    if (priceLimit !== null) {
+      setMaxPrice(String(priceLimit));
+      return;
+    }
+
+    setSearchQuery(pick === "Все подборки" ? "" : pick);
+  }
+
+  function resetFilters() {
+    setOnlyDiscounts(false);
+    setFastDelivery(false);
+    setMinPrice("");
+    setMaxPrice("");
+    setBrandSearch("");
+    setSelectedBrands([]);
+    setSelectedStores([]);
+    setSort("popular");
+  }
+
+  function toggleStore(store: string) {
+    setSelectedStores((currentStores) =>
+      currentStores.includes(store)
+        ? currentStores.filter((currentStore) => currentStore !== store)
+        : [...currentStores, store],
+    );
+  }
+
+  function toggleBrand(brand: string) {
+    setSelectedBrands((currentBrands) =>
+      currentBrands.includes(brand)
+        ? currentBrands.filter((currentBrand) => currentBrand !== brand)
+        : [...currentBrands, brand],
+    );
+  }
 
   useEffect(() => {
     const normalizedQuery = searchQuery.trim();
@@ -140,8 +280,11 @@ export function CatalogPage({
               Каталог
             </Link>
             <span>•</span>
-            <Link href="/catalog?category=1" className="transition hover:text-[#6D4AFF]">
-              Электроника
+            <Link
+              href={`/catalog?category=${activeCategoryId ?? 1}`}
+              className="transition hover:text-[#6D4AFF]"
+            >
+              {activeCategory ? t(activeCategory.title) : "Категории"}
             </Link>
             {isSubcategoryPage && (
               <>
@@ -160,7 +303,7 @@ export function CatalogPage({
               <button
                 key={pick}
                 type="button"
-                onClick={() => setSearchQuery(pick === "Все подборки" ? "" : pick)}
+                onClick={() => handleQuickPick(pick)}
                 className="rounded-lg bg-[#EEF2F7] px-2.5 py-1.5 text-xs font-black text-[#111827] transition hover:bg-[#F1EDFF] hover:text-[#6D4AFF] dark:bg-[#1E293B] dark:text-[#F8FAFC] dark:hover:bg-[#201A3F] dark:hover:text-[#A78BFA]"
               >
                 {pick}
@@ -205,38 +348,75 @@ export function CatalogPage({
               <div>
                 <p className="text-sm font-black text-[var(--text-main)]">Цена</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <span className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm font-semibold text-[#64748B]">
-                    от 0
-                  </span>
-                  <span className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm font-semibold text-[#64748B]">
-                    до 100 000
-                  </span>
+                  <PriceInput
+                    value={minPrice}
+                    onChange={setMinPrice}
+                    placeholder="от 0"
+                    ariaLabel="Минимальная цена"
+                  />
+                  <PriceInput
+                    value={maxPrice}
+                    onChange={setMaxPrice}
+                    placeholder="до 100 000"
+                    ariaLabel="Максимальная цена"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-black text-[var(--text-main)]">
+                  Бренд
+                </p>
+                <input
+                  type="search"
+                  value={brandSearch}
+                  onChange={(event) => setBrandSearch(event.target.value)}
+                  placeholder="Найти бренд"
+                  aria-label="Поиск по бренду"
+                  className="mt-3 w-full rounded-xl border border-[#E5E7EB] bg-transparent px-3 py-2 text-sm font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[#64748B] focus:border-[#6D4AFF] dark:border-[#334155]"
+                />
+                <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
+                  {visibleBrands.map((brand) => (
+                    <FilterCheckbox
+                      key={brand}
+                      label={brand}
+                      checked={selectedBrands.includes(brand)}
+                      onChange={() => toggleBrand(brand)}
+                    />
+                  ))}
+                  {visibleBrands.length === 0 && (
+                    <p className="text-xs font-semibold text-[#64748B]">
+                      Бренды не найдены
+                    </p>
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-sm font-black text-[var(--text-main)]">Магазин</p>
                 <div className="mt-3 space-y-2">
-                  {Array.from(
-                    new Set(
-                      products
-                        .map((product) => product.storeName)
-                        .filter((store): store is string => Boolean(store)),
-                    ),
-                  )
-                    .slice(0, 4)
-                    .map((store) => (
-                      <button
-                        key={store}
-                        type="button"
-                        onClick={() => setSearchQuery(store)}
-                        className="flex w-full items-center gap-2 text-left text-sm font-semibold text-[#64748B] transition hover:text-[#6D4AFF]"
-                      >
-                        <span className="h-4 w-4 rounded-full border border-[#CBD5E1]" />
-                        {store}
-                      </button>
-                    ))}
+                  {availableStores.slice(0, 6).map((store) => (
+                    <FilterCheckbox
+                      key={store}
+                      label={store}
+                      checked={selectedStores.includes(store)}
+                      onChange={() => toggleStore(store)}
+                    />
+                  ))}
                 </div>
               </div>
+              {(onlyDiscounts ||
+                fastDelivery ||
+                minPrice ||
+                maxPrice ||
+                selectedBrands.length > 0 ||
+                selectedStores.length > 0) && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="w-full rounded-xl border border-[#6D4AFF] px-3 py-2 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
+                >
+                  Сбросить фильтры
+                </button>
+              )}
             </div>
           </aside>
 
@@ -277,11 +457,7 @@ export function CatalogPage({
               </p>
               <button
                 type="button"
-                onClick={() => {
-                  setOnlyDiscounts(false);
-                  setFastDelivery(false);
-                  setSort("popular");
-                }}
+                onClick={resetFilters}
                 className="mt-6 rounded-2xl bg-[#6D4AFF] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#4F32D9]"
               >
                 Сбросить фильтры
@@ -539,7 +715,113 @@ function ToggleRow({
   );
 }
 
+function FilterCheckbox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label className="group flex cursor-pointer items-center gap-2.5 text-sm font-semibold text-[#64748B] transition hover:text-[#6D4AFF]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 border-[#CBD5E1] bg-white text-white transition group-hover:border-[#8B73FF] peer-checked:border-[#6D4AFF] peer-checked:bg-[#6D4AFF] peer-focus-visible:ring-2 peer-focus-visible:ring-[#6D4AFF]/30 peer-focus-visible:ring-offset-2 dark:border-[#475569] dark:bg-[#0F172A] dark:peer-checked:border-[#7C5CFF] dark:peer-checked:bg-[#7C5CFF] dark:peer-focus-visible:ring-offset-[#0F172A]">
+        <Check
+          size={13}
+          strokeWidth={3}
+          className="scale-50 opacity-0 transition group-has-[:checked]:scale-100 group-has-[:checked]:opacity-100"
+        />
+      </span>
+      <span className="min-w-0 truncate">{label}</span>
+    </label>
+  );
+}
+
+function PriceInput({
+  value,
+  onChange,
+  placeholder,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={formatPriceInput(value)}
+      onChange={(event) => onChange(event.target.value.replace(/\D/g, ""))}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      className="min-w-0 rounded-xl border border-[#E5E7EB] bg-transparent px-3 py-2 text-sm font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[#64748B] focus:border-[#6D4AFF]"
+    />
+  );
+}
+
 // Преобразует цену товара из строки в число для сортировки по стоимости.
 function parseProductPrice(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
+}
+
+function parseFilterPrice(price: string) {
+  const normalizedPrice = price.replace(/[^\d]/g, "");
+  return normalizedPrice ? Number(normalizedPrice) : null;
+}
+
+function formatPriceInput(price: string) {
+  const numericPrice = parseFilterPrice(price);
+  return numericPrice === null
+    ? ""
+    : new Intl.NumberFormat("ru-RU").format(numericPrice);
+}
+
+function getQuickPickPriceLimit(pick: string) {
+  if (!/^до\s/i.test(pick)) {
+    return null;
+  }
+
+  return parseFilterPrice(pick);
+}
+
+function hasFastDelivery(product: ClientProduct) {
+  return Object.entries(product.attributes).some(([key, value]) => {
+    const normalizedAttribute = `${key} ${value}`.toLowerCase();
+
+    return (
+      normalizedAttribute.includes("быстрая доставка") ||
+      normalizedAttribute.includes("экспресс-доставка") ||
+      normalizedAttribute.includes("доставка за 1 день") ||
+      normalizedAttribute.includes("fast delivery") ||
+      normalizedAttribute.includes("express delivery")
+    );
+  });
+}
+
+function getProductBrand(product: ClientProduct) {
+  const brandAttribute = Object.entries(product.attributes).find(([key]) => {
+    const normalizedKey = key.trim().toLowerCase();
+    return normalizedKey === "бренд" || normalizedKey === "brand";
+  })?.[1];
+
+  if (brandAttribute?.trim() && brandAttribute.trim() !== "—") {
+    return brandAttribute.trim();
+  }
+
+  const titleWithoutType = product.title.replace(
+    /^(?:смарт-часы|смартфон|телефон|ноутбук|планшет|монитор|наушники|мышь|клавиатура|футболка|брюки|шорты|худи|куртка|платье)\s+/i,
+    "",
+  );
+  const inferredBrand = titleWithoutType.split(/\s+/)[0]?.replace(/[,:;]+$/, "");
+
+  return inferredBrand && inferredBrand.length > 1 ? inferredBrand : undefined;
 }

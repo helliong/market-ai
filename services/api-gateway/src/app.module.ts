@@ -37,6 +37,15 @@ import { RedisThrottlerStorage } from './rate-limit/redis-throttler.storage';
             ),
           },
           {
+            name: 'aiPublic',
+            ttl: Number(config.get('RATE_LIMIT_AI_TTL_MS') ?? 60000),
+            limit: Number(config.get('RATE_LIMIT_AI_LIMIT') ?? 20),
+            skipIf: (context) =>
+              Boolean(
+                context.switchToHttp().getRequest<{ user?: unknown }>().user,
+              ),
+          },
+          {
             name: 'default',
             ttl: Number(config.get('RATE_LIMIT_DEFAULT_TTL_MS') ?? 60000),
             limit: Number(config.get('RATE_LIMIT_DEFAULT_LIMIT') ?? 300),

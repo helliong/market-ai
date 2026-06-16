@@ -16,7 +16,6 @@ import {
 } from './product-categories';
 import {
   buildProductTemplateWorkbook,
-  isTemplateAction,
   isTemplateStatus,
   parseProductWorkbook,
   type ProductTemplateRow,
@@ -280,8 +279,6 @@ export class SellerProductsService {
       row.category = row.category.trim();
       row.name = row.name.trim();
       row.description = row.description.trim();
-      row.action = row.action?.trim().toLowerCase() ?? '';
-      const shouldDelete = row.action === 'delete';
 
       if (!row.sku) {
         errors.push(`Строка ${row.rowNumber}: заполните SKU`);
@@ -293,33 +290,32 @@ export class SellerProductsService {
         );
       }
 
-      if (row.action && !isTemplateAction(row.action)) {
-        errors.push(`Row ${row.rowNumber}: action must be delete or empty`);
-      }
-
-      if (!shouldDelete && !row.name) {
+      if (!row.name) {
         errors.push(`Строка ${row.rowNumber}: заполните название`);
       }
 
-      if (!shouldDelete && !isProductCategory(row.category)) {
+      if (
+        !isProductCategory(row.category) &&
+        !isProductCategory(row.mainCategory ?? '')
+      ) {
         errors.push(`Строка ${row.rowNumber}: выберите категорию из шаблона`);
       }
 
-      if (!shouldDelete && row.price <= 0) {
+      if (row.price <= 0) {
         errors.push(`Строка ${row.rowNumber}: цена должна быть больше 0`);
       }
 
-      if (!shouldDelete && row.oldPrice !== undefined && row.oldPrice <= 0) {
+      if (row.oldPrice !== undefined && row.oldPrice <= 0) {
         errors.push(`Строка ${row.rowNumber}: старая цена должна быть больше 0`);
       }
 
-      if (!shouldDelete && (!Number.isInteger(row.stock) || row.stock < 0)) {
+      if (!Number.isInteger(row.stock) || row.stock < 0) {
         errors.push(
           `Строка ${row.rowNumber}: остаток должен быть целым числом от 0`,
         );
       }
 
-      if (!shouldDelete && !isTemplateStatus(row.status)) {
+      if (!isTemplateStatus(row.status)) {
         errors.push(
           `Строка ${row.rowNumber}: статус должен быть active, draft или archived`,
         );
@@ -328,8 +324,11 @@ export class SellerProductsService {
       rowsBySku.set(row.sku, row);
     }
 
+    const importedSkus = [...rowsBySku.keys()];
     const existingProducts = await this.prisma.product.findMany({
-      where: { sku: { in: [...rowsBySku.keys()] } },
+      where: {
+        OR: [{ sellerId }, { sku: { in: importedSkus } }],
+      },
       include: { images: true },
     });
 
@@ -349,28 +348,19 @@ export class SellerProductsService {
     const existingBySku = new Map(
       existingProducts.map((product) => [product.sku, product]),
     );
+    const productsToDelete = existingProducts.filter(
+      (product) => product.sellerId === sellerId && !rowsBySku.has(product.sku),
+    );
     let created = 0;
     let updated = 0;
-    let deleted = 0;
-    const urlsToDeleteFromStorage: string[] = [];
+    const deleted = productsToDelete.length;
+    const urlsToDeleteFromStorage = productsToDelete.flatMap((product) =>
+      product.images.map((image) => image.url),
+    );
 
-    await this.prisma.$transaction(
-      [...rowsBySku.values()].map((row) => {
+    await this.prisma.$transaction([
+      ...[...rowsBySku.values()].map((row) => {
         const existingProduct = existingBySku.get(row.sku);
-
-        if (row.action === 'delete') {
-          if (!existingProduct) {
-            return this.prisma.product.count({ where: { sku: row.sku } });
-          }
-
-          deleted += 1;
-          if (existingProduct.images?.length) {
-            urlsToDeleteFromStorage.push(...existingProduct.images.map((img) => img.url));
-          }
-          return this.prisma.product.delete({
-            where: { id: existingProduct.id },
-          });
-        }
 
         const data = {
           sellerId,
@@ -398,7 +388,10 @@ export class SellerProductsService {
         created += 1;
         return this.prisma.product.create({ data });
       }),
-    );
+      ...productsToDelete.map((product) =>
+        this.prisma.product.delete({ where: { id: product.id } }),
+      ),
+    ]);
 
     if (urlsToDeleteFromStorage.length > 0) {
       this.deleteImagesFromStorage(urlsToDeleteFromStorage);

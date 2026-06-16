@@ -57,6 +57,7 @@ services:
       - CATALOG_SERVICE_URL=http://catalog-service:4003
       - ORDER_SERVICE_URL=http://order-service:4004
       - STORAGE_SERVICE_URL=http://storage-service:4005
+      - AI_AGENT_SERVICE_URL=http://ai-agent-service:4006
       - NODE_ENV=production
     depends_on:
       - redis
@@ -65,6 +66,7 @@ services:
       - catalog-service
       - order-service
       - storage-service
+      - ai-agent-service
     networks:
       - market-ai-network
 
@@ -166,6 +168,59 @@ services:
       - NODE_ENV=production
     depends_on:
       - minio
+    networks:
+      - market-ai-network
+
+  ai-agent-service:
+    build: ./services/ai-agent-service
+    container_name: market-ai-agent
+    restart: always
+    ports:
+      - "4006:4006"
+    environment:
+      - AI_AGENT_PORT=4006
+      - CATALOG_SERVICE_URL=http://catalog-service:4003
+      - GIGACHAT_AUTH_KEY=${GIGACHAT_AUTH_KEY}
+      - GIGACHAT_SCOPE=${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}
+      - GIGACHAT_MODEL=${GIGACHAT_MODEL:-GigaChat-2}
+      - GIGACHAT_TLS_REJECT_UNAUTHORIZED=${GIGACHAT_TLS_REJECT_UNAUTHORIZED:-true}
+      - NODE_ENV=production
+    depends_on:
+      - catalog-service
+    networks:
+      - market-ai-network
+
+  client:
+    build: ./apps/client
+    container_name: market-ai-client
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL}
+      - NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
+      - NEXT_PUBLIC_SHOPPING_API_URL=${NEXT_PUBLIC_SHOPPING_API_URL}
+      - NEXT_PUBLIC_CATALOG_API_URL=${NEXT_PUBLIC_CATALOG_API_URL}
+    depends_on:
+      - api-gateway
+    networks:
+      - market-ai-network
+
+  admin:
+    build: ./apps/admin
+    container_name: market-ai-admin
+    restart: always
+    ports:
+      - "5173:80"
+    networks:
+      - market-ai-network
+
+  moderation:
+    build: ./apps/moderation
+    container_name: market-ai-moderation
+    restart: always
+    ports:
+      - "5174:80"
     networks:
       - market-ai-network
 

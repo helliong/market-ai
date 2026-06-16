@@ -31,12 +31,7 @@ type ProductPageProps = {
   relatedProducts?: Product[];
 };
 
-const defaultSpecs = [
-  ["warranty", "12months"],
-  ["deliveryOption", "todayOrTomorrow"],
-  ["paymentOption", "cardOnDelivery"],
-  ["returnOption", "14days"],
-];
+const defaultSpecs: string[][] = [];
 // Страница товара показывает фото, цену, характеристики и действия покупки.
 export function ProductPage({ product, relatedProducts = [product] }: ProductPageProps) {
   const { t } = useLanguage();
@@ -57,6 +52,7 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
   const [selectedSize, setSelectedSize] = useState(
     productOptions?.sizes[0] ?? "",
   );
+
   const selectedImage =
     galleryImages[selectedImageIndex] ?? galleryImages[0] ?? null;
   const cartImageUrl = getMainProductImageUrl(galleryImages);
@@ -83,6 +79,16 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
     ],
     [product.attributes],
   );
+  const fullSpecs = useMemo(() => {
+    const specs: { label: string; value: string }[] = [
+      { label: "Артикул", value: product.sku || "—" },
+      { label: "Категория", value: product.category || "—" },
+    ];
+    for (const [key, val] of Object.entries(product.attributes)) {
+      specs.push({ label: key, value: val || "—" });
+    }
+    return specs;
+  }, [product.sku, product.category, product.attributes]);
 
   useEffect(() => {
     if (!product.storeName) {
@@ -139,7 +145,7 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
         </span>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-8">
-        <div className="rounded-[32px] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:p-4">
+        <div className="self-start rounded-[32px] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:p-4">
           <div className="grid gap-3 md:grid-cols-[74px_minmax(0,1fr)]">
             <div className="order-2 flex gap-2 overflow-x-auto pb-1 md:order-1 md:max-h-[640px] md:flex-col md:overflow-y-auto md:overflow-x-hidden md:pb-0">
               {galleryImages.length > 0 ? (
@@ -305,9 +311,19 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
             )}
 
           <div className="mt-4 rounded-[24px] border border-[#E5E7EB] bg-white p-5">
-            <h2 className="text-xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
+              {productSpecs.length > 5 && (
+                <a
+                  href="#all-specifications"
+                  className="text-sm font-bold text-[#6D4AFF] transition hover:text-[#4F32D9]"
+                >
+                  Посмотреть все
+                </a>
+              )}
+            </div>
             <div className="mt-5 space-y-3">
-              {productSpecs.map((spec) => (
+              {productSpecs.slice(0, 5).map((spec) => (
                 <div key={spec.label} className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] pb-3 text-sm last:border-b-0 last:pb-0">
                   <span className="text-[#6B7280]">
                     {spec.translate ? t(spec.label) : spec.label}
@@ -325,9 +341,32 @@ export function ProductPage({ product, relatedProducts = [product] }: ProductPag
         <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
           <h2 className="text-2xl font-black tracking-[-0.03em]">{t("aboutProduct")}</h2>
           <p className="mt-4 max-w-none whitespace-pre-wrap break-words leading-7 text-[#6B7280] [overflow-wrap:break-word]">
-            {product.description ||
+            {(product.description?.split(/Характеристики\s*:/i)[0]?.trim()) ||
               `${product.title} подойдет для повседневных задач, работы и покупок без лишней суеты.`}
           </p>
+        </div>
+      </div>
+      <div id="all-specifications" className="mt-8 scroll-mt-24">
+        <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+          <h2 className="text-2xl font-black tracking-[-0.03em]">{t("specifications")}</h2>
+          <div className="mt-6 grid grid-cols-1 gap-x-12 md:grid-cols-2">
+            <div>
+              {fullSpecs.slice(0, Math.ceil(fullSpecs.length / 2)).map((spec) => (
+                <div key={spec.label} className="flex items-baseline justify-between gap-2 border-b border-[#E5E7EB] py-3 text-sm">
+                  <span className="shrink-0 text-[#6B7280]">{spec.label}</span>
+                  <span className="text-right font-bold text-[#111827]">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              {fullSpecs.slice(Math.ceil(fullSpecs.length / 2)).map((spec) => (
+                <div key={spec.label} className="flex items-baseline justify-between gap-2 border-b border-[#E5E7EB] py-3 text-sm">
+                  <span className="shrink-0 text-[#6B7280]">{spec.label}</span>
+                  <span className="text-right font-bold text-[#111827]">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

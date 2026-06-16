@@ -37,10 +37,33 @@ export class ProductsService {
             ${Prisma.join(
               queryTokens.map(
                 (token) =>
-                  Prisma.sql`("name" ILIKE ${`%${token}%`} OR "sku" ILIKE ${`%${token}%`})`,
+                  Prisma.sql`(
+                    "name" ILIKE ${`%${token}%`}
+                    OR "sku" ILIKE ${`%${token}%`}
+                    OR "category" ILIKE ${`%${token}%`}
+                    OR "description" ILIKE ${`%${token}%`}
+                    OR word_similarity(${token}, "name") >= 0.25
+                    OR word_similarity(${token}, "category") >= 0.25
+                    OR word_similarity(${token}, "description") >= 0.25
+                  )`,
               ),
               ' AND ',
             )}
+            AND (
+              ${Prisma.join(
+                queryTokens.map(
+                  (token) => Prisma.sql`
+                    (
+                      "name" ILIKE ${`%${token}%`}
+                      OR "category" ILIKE ${`%${token}%`}
+                      OR word_similarity(${token}, "name") >= 0.25
+                      OR word_similarity(${token}, "category") >= 0.25
+                    )
+                  `,
+                ),
+                ' OR ',
+              )}
+            )
           )
         )
       `
@@ -67,7 +90,26 @@ export class ProductsService {
           similarity("category", ${normalizedQuery}) * 2.0,
           similarity("storeName", ${normalizedQuery}) * 1.8,
           similarity("description", ${normalizedQuery})
-        ) AS score
+        )
+        + ${
+          queryTokens.length
+            ? Prisma.join(
+                queryTokens.map(
+                  (token) => Prisma.sql`
+                    GREATEST(
+                      word_similarity(${token}, "name") * 5.0,
+                      word_similarity(${token}, "category") * 4.0,
+                      CASE
+                        WHEN "description" ILIKE ${`%${token}%`} THEN 0.5
+                        ELSE word_similarity(${token}, "description") * 0.25
+                      END
+                    )
+                  `,
+                ),
+                ' + ',
+              )
+            : Prisma.sql`0`
+        } AS score
       FROM "Product"
       WHERE "status" = 'active'
         AND "storeStatus" = 'ACTIVATED'
@@ -209,7 +251,10 @@ export class ProductsService {
       ...product,
       price: product.price.toNumber(),
       rating: product.rating.toNumber(),
-      attributes: normalizeProductAttributes(product.attributes, product.description),
+      attributes: normalizeProductAttributes(
+        product.attributes,
+        product.description,
+      ),
       images: product.images ?? [],
     };
   }
@@ -254,7 +299,10 @@ function normalizeProductAttributes(
   }
 
   const attributes = Object.entries(value)
-    .map(([key, attrValue]) => [key.trim(), String(attrValue ?? '').trim()] as const)
+    .map(
+      ([key, attrValue]) =>
+        [key.trim(), String(attrValue ?? '').trim()] as const,
+    )
     .filter(([key, attrValue]) => key.length > 0 && attrValue.length > 0);
 
   return {
@@ -263,7 +311,9 @@ function normalizeProductAttributes(
   };
 }
 
-function parseDescriptionAttributes(description: string): Record<string, string> {
+function parseDescriptionAttributes(
+  description: string,
+): Record<string, string> {
   const header = 'Характеристики:';
   const headerIndex = description.indexOf(header);
 

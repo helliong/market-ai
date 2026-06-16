@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { categories } from "@/data/categories";
 import { getCatalogProducts } from "@/lib/catalog-products";
-import { electronicsSections, genericCatalogSections } from "@/lib/catalog-data";
+import { catalogSectionsByCategory } from "@/lib/catalog-data";
 import { getCatalogSlug } from "@/lib/catalog-slug";
 import { getProductPath } from "@/lib/product-url";
 import { absoluteUrl } from "@/lib/site-url";
@@ -28,11 +28,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const catalogRoutes = Array.from(
     new Set([
       ...categories.map((category) => `/catalog?category=${category.id}`),
-      ...electronicsSections.flatMap((section) =>
-        section.items.map((item) => `/catalog/${getCatalogSlug(item)}`),
-      ),
-      ...genericCatalogSections.flatMap((section) =>
-        section.items.map((item) => `/catalog/${getCatalogSlug(item)}`),
+      ...Object.values(catalogSectionsByCategory).flatMap((sections) =>
+        sections.flatMap((section) =>
+          section.items.map((item) => `/catalog/${getCatalogSlug(item)}`),
+        ),
       ),
     ]),
   ).map((path) => ({

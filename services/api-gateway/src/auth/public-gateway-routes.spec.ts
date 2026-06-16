@@ -7,6 +7,7 @@ import {
 describe('public gateway routes', () => {
   it('allows public auth and catalog routes without gateway auth', () => {
     expect(isPublicGatewayRoute('POST', '/api/auth/login')).toBe(true);
+    expect(isPublicGatewayRoute('POST', '/api/ai/chat')).toBe(true);
     expect(isPublicGatewayRoute('GET', '/api/catalog/products')).toBe(true);
   });
 
