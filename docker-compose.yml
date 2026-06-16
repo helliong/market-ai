@@ -87,6 +87,10 @@ services:
       - CLIENT_URL=${CLIENT_URL}
       - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL}
       - MODERATION_CLIENT_URL=${MODERATION_CLIENT_URL}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - MODERATION_ADMIN_EMAIL=${MODERATION_ADMIN_EMAIL}
+      - MODERATION_ADMIN_PASSWORD=${MODERATION_ADMIN_PASSWORD}
+      - MODERATION_ADMIN_KEY=${MODERATION_ADMIN_KEY}
     depends_on:
       - postgres
       - redis
@@ -140,6 +144,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - CLIENT_URL=${CLIENT_URL}
+      - ADMIN_CLIENT_URL=${ADMIN_CLIENT_URL}
+      - MODERATION_CLIENT_URL=${MODERATION_CLIENT_URL}
       - ORDER_SERVICE_PORT=4004
       - CATALOG_SERVICE_URL=http://catalog-service:4003
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
@@ -182,6 +188,8 @@ services:
       - "4006:4006"
     environment:
       - AI_AGENT_PORT=4006
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - CATALOG_SERVICE_URL=http://catalog-service:4003
       - GIGACHAT_AUTH_KEY=${GIGACHAT_AUTH_KEY}
       - GIGACHAT_SCOPE=${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}
