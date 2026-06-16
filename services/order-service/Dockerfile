@@ -5,7 +5,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN rm -f prisma.config.ts
+ENV DATABASE_URL=postgresql://marketai:password@localhost:5432/market_ai_db?schema=public
 RUN npx prisma generate
 RUN npm run build
 
@@ -14,5 +14,6 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
