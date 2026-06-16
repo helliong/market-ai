@@ -23,8 +23,7 @@ const publicRoutes = [
   /^\/api\/ai\/chat\/sessions(?:\/.*)?$/,
   /^\/api\/catalog\/products(?:\/.*)?$/,
   /^\/api\/storage$/,
-  /^\/api\/order\/payments\/yookassa\/webhook$/,
-  /^\/api\/orders\/payments\/yookassa\/webhook$/,
+  /^\/api\/payments\/yookassa\/webhook$/,
 ];
 
 export function isPublicGatewayRoute(method: string, path: string) {

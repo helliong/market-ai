@@ -18,7 +18,8 @@ type ServiceKey =
   | 'cart'
   | 'order'
   | 'orders'
-  | 'storage';
+  | 'storage'
+  | 'payments';
 
 type ProxyRoute = {
   target: string;
@@ -67,7 +68,7 @@ export class GatewayProxyService {
         target:
           this.configService.get<string>('ORDER_SERVICE_URL') ??
           'http://order-service:4004',
-        rewrite: (path) => path,
+        rewrite: (path) => path.replace(/^\/api\/payments(?=\/|$)/, '/payments'),
       },
       orders: {
         target:
