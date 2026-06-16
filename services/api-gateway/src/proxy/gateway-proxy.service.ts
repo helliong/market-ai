@@ -63,6 +63,12 @@ export class GatewayProxyService {
           'http://order-service:4004',
         rewrite: (path) => path.replace(/^\/api\/order(?=\/|$)/, '') || '/',
       },
+      payments: {
+        target:
+          this.configService.get<string>('ORDER_SERVICE_URL') ??
+          'http://order-service:4004',
+        rewrite: (path) => path,
+      },
       orders: {
         target:
           this.configService.get<string>('ORDER_SERVICE_URL') ??

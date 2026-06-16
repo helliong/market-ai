@@ -68,6 +68,14 @@ export class GatewayProxyController {
     return this.proxyService.proxy('order', request, response);
   }
 
+  @All('payments{/*path}')
+  @SkipThrottle({ public: true })
+  @ApiTags('Payments proxy')
+  @ApiOperation({ summary: 'Proxy payment webhooks' })
+  proxyPayments(@Req() request: Request, @Res() response: Response) {
+    return this.proxyService.proxy('payments', request, response);
+  }
+
   @All('orders{/*path}')
   @SkipThrottle({ auth: true, public: true })
   @ApiTags('Order proxy')
