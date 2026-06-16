@@ -195,7 +195,14 @@ services:
       - market-ai-network
 
   client:
-    build: ./apps/client
+    build:
+      context: ./apps/client
+      args:
+        NEXT_PUBLIC_API_GATEWAY_URL: ${NEXT_PUBLIC_API_GATEWAY_URL}
+        NEXT_PUBLIC_AUTH_API_URL: ${NEXT_PUBLIC_AUTH_API_URL}
+        NEXT_PUBLIC_SHOPPING_API_URL: ${NEXT_PUBLIC_SHOPPING_API_URL}
+        NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL}
+        NEXT_PUBLIC_ADMIN_URL: ${ADMIN_CLIENT_URL}
     container_name: market-ai-client
     restart: always
     ports:
@@ -205,13 +212,20 @@ services:
       - NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
       - NEXT_PUBLIC_SHOPPING_API_URL=${NEXT_PUBLIC_SHOPPING_API_URL}
       - NEXT_PUBLIC_CATALOG_API_URL=${NEXT_PUBLIC_CATALOG_API_URL}
+      - NEXT_PUBLIC_ADMIN_URL=${ADMIN_CLIENT_URL}
     depends_on:
       - api-gateway
     networks:
       - market-ai-network
 
   admin:
-    build: ./apps/admin
+    build:
+      context: ./apps/admin
+      args:
+        VITE_AUTH_API_URL: ${NEXT_PUBLIC_AUTH_API_URL}
+        VITE_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL}
+        VITE_ORDER_API_URL: ${NEXT_PUBLIC_API_GATEWAY_URL}
+        VITE_STORAGE_API_URL: ${VITE_STORAGE_API_URL}
     container_name: market-ai-admin
     restart: always
     ports:
@@ -220,7 +234,10 @@ services:
       - market-ai-network
 
   moderation:
-    build: ./apps/moderation
+    build:
+      context: ./apps/moderation
+      args:
+        VITE_AUTH_API_URL: ${NEXT_PUBLIC_AUTH_API_URL}
     container_name: market-ai-moderation
     restart: always
     ports:
