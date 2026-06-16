@@ -5,7 +5,9 @@ const AUTH_API_URL =
 
 const ORDER_API_URL =
   process.env.NEXT_PUBLIC_ORDER_API_URL ??
-  AUTH_API_URL.replace(/:4001$/, ":4004");
+  (process.env.NEXT_PUBLIC_API_GATEWAY_URL
+    ? `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api`
+    : "http://127.0.0.1:4000/api");
 
 export type CheckoutOrderItem = {
   productId: number;
