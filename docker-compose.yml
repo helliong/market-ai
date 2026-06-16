@@ -190,6 +190,40 @@ services:
     networks:
       - market-ai-network
 
+  client:
+    build: ./apps/client
+    container_name: market-ai-client
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL}
+      - NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
+      - NEXT_PUBLIC_SHOPPING_API_URL=${NEXT_PUBLIC_SHOPPING_API_URL}
+      - NEXT_PUBLIC_CATALOG_API_URL=${NEXT_PUBLIC_CATALOG_API_URL}
+    depends_on:
+      - api-gateway
+    networks:
+      - market-ai-network
+
+  admin:
+    build: ./apps/admin
+    container_name: market-ai-admin
+    restart: always
+    ports:
+      - "5173:80"
+    networks:
+      - market-ai-network
+
+  moderation:
+    build: ./apps/moderation
+    container_name: market-ai-moderation
+    restart: always
+    ports:
+      - "5174:80"
+    networks:
+      - market-ai-network
+
 volumes:
   postgres_data:
   minio_data:
