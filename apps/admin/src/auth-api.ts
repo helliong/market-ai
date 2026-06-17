@@ -1,6 +1,5 @@
-const AUTH_API_URL =
-  import.meta.env.VITE_AUTH_API_URL ?? "http://127.0.0.1:4001";
-
+const _rawAuthUrl = import.meta.env.VITE_AUTH_API_URL ?? "http://127.0.0.1:4001";
+const AUTH_API_URL = _rawAuthUrl.trim().replace(/\/?auth\/?$/i, "").replace(/\/+$/, "");
 type SellerRegisterPayload = {
   email: string;
   password: string;
