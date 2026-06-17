@@ -1,0 +1,15 @@
+marketai.helliong.space {
+  reverse_proxy client:3000
+}
+
+marketai-seller.helliong.space {
+  reverse_proxy admin:80
+}
+
+marketai-mod.helliong.space {
+  reverse_proxy moderation:80
+}
+
+marketai-api.helliong.space {
+  reverse_proxy api-gateway:4000
+}

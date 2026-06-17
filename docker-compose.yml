@@ -1,4 +1,24 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: market-ai-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - client
+      - admin
+      - moderation
+      - api-gateway
+    networks:
+      - market-ai-network
+
+
   postgres:
     image: postgres:16
     container_name: market-ai-postgres
@@ -43,8 +63,6 @@ services:
     build: ./services/api-gateway
     container_name: market-ai-api-gateway
     restart: always
-    ports:
-      - "4000:4000"
     environment:
       - API_GATEWAY_PORT=4000
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
@@ -214,8 +232,6 @@ services:
         NEXT_PUBLIC_ADMIN_URL: ${ADMIN_CLIENT_URL}
     container_name: market-ai-client
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL}
       - NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
@@ -237,8 +253,6 @@ services:
         VITE_STORAGE_API_URL: ${VITE_STORAGE_API_URL}
     container_name: market-ai-admin
     restart: always
-    ports:
-      - "5173:80"
     networks:
       - market-ai-network
 
@@ -249,14 +263,14 @@ services:
         VITE_AUTH_API_URL: ${NEXT_PUBLIC_AUTH_API_URL}
     container_name: market-ai-moderation
     restart: always
-    ports:
-      - "5174:80"
     networks:
       - market-ai-network
 
 volumes:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   market-ai-network:
