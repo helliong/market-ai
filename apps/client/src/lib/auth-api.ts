@@ -87,7 +87,7 @@ export type BuyerProfile = {
 
 // Регистрирует покупателя и запускает отправку кода подтверждения email.
 export function registerClient(payload: RegisterPayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/register`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/register`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -95,7 +95,7 @@ export function registerClient(payload: RegisterPayload) {
 
 // Подтверждает email покупателя по шестизначному коду из письма.
 export function verifyClientEmail(payload: VerifyEmailPayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/verify-email`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/verify-email`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -103,7 +103,7 @@ export function verifyClientEmail(payload: VerifyEmailPayload) {
 
 // Авторизует покупателя и получает auth cookies от backend.
 export function loginClient(payload: LoginPayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/login`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/login`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -111,19 +111,19 @@ export function loginClient(payload: LoginPayload) {
 
 // Завершает buyer-сессию и очищает auth cookies на backend.
 export function logoutClient() {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/logout`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/logout`, {
     method: "POST",
   });
 }
 
 // Загружает текущего пользователя по активной buyer-сессии.
 export function getCurrentUser() {
-  return fetchWithAuth<CurrentUser>(`${BASE_AUTH_URL}/auth/me`);
+  return fetchWithAuth<CurrentUser>(`${getAuthBaseUrl()}/auth/me`);
 }
 
 // Обновляет buyer-профиль текущего пользователя.
 export function updateClientProfile(payload: UpdateClientProfilePayload) {
-  return fetchWithAuth<BuyerProfile>(`${BASE_AUTH_URL}/auth/user/me`, {
+  return fetchWithAuth<BuyerProfile>(`${getAuthBaseUrl()}/auth/user/me`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -131,7 +131,7 @@ export function updateClientProfile(payload: UpdateClientProfilePayload) {
 
 // Запрашивает письмо с кодом восстановления пароля покупателя.
 export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/forgot-password`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/forgot-password`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -139,7 +139,7 @@ export function requestClientPasswordReset(payload: ForgotPasswordPayload) {
 
 // Проверяет код восстановления до перехода к вводу нового пароля.
 export function verifyClientPasswordResetCode(payload: ResetPasswordCodePayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/reset-password/verify-code`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/reset-password/verify-code`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -147,7 +147,7 @@ export function verifyClientPasswordResetCode(payload: ResetPasswordCodePayload)
 
 // Меняет пароль покупателя по валидному коду восстановления.
 export function resetClientPassword(payload: ResetPasswordPayload) {
-  return fetchWithAuth<{ message: string }>(`${BASE_AUTH_URL}/auth/reset-password`, {
+  return fetchWithAuth<{ message: string }>(`${getAuthBaseUrl()}/auth/reset-password`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -164,5 +164,5 @@ export type PublicStoreProfile = {
 
 // Возвращает публичную информацию о магазине.
 export function getPublicStoreProfile(storeName: string) {
-  return fetchWithAuth<PublicStoreProfile>(`${BASE_AUTH_URL}/auth/store/${encodeURIComponent(storeName)}`);
+  return fetchWithAuth<PublicStoreProfile>(`${getAuthBaseUrl()}/auth/store/${encodeURIComponent(storeName)}`);
 }
