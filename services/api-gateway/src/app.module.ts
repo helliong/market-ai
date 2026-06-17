@@ -26,7 +26,7 @@ import { RedisThrottlerStorage } from './rate-limit/redis-throttler.storage';
           {
             name: 'public',
             ttl: Number(config.get('RATE_LIMIT_PUBLIC_TTL_MS') ?? 60000),
-            limit: Number(config.get('RATE_LIMIT_PUBLIC_LIMIT') ?? 120),
+            limit: Number(config.get('RATE_LIMIT_PUBLIC_LIMIT') ?? 5000),
           },
           {
             name: 'auth',
