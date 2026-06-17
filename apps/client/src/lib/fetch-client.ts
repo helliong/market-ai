@@ -1,4 +1,5 @@
 const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
+const BASE_AUTH_URL = AUTH_API_URL.endsWith("/auth") ? AUTH_API_URL.slice(0, -5) : AUTH_API_URL;
 
 let isRefreshing = false;
 let failedQueue: { resolve: (value: void | PromiseLike<void>) => void; reject: (reason?: any) => void }[] = [];
@@ -48,7 +49,7 @@ export async function fetchWithAuth<T>(
     isRefreshing = true;
 
     try {
-      const refreshResponse = await fetch(`${AUTH_API_URL}/auth/refresh`, {
+      const refreshResponse = await fetch(`${BASE_AUTH_URL}/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
