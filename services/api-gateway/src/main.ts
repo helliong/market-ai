@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   const logger = new Logger('API Gateway');
 
   app.use(cookieParser());
