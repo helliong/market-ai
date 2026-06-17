@@ -2,9 +2,11 @@ import { fetchWithAuth } from "./fetch-client";
 
 const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
+const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL?.replace(/\/+$/, "");
 
 const SHOPPING_API_URL =
   process.env.NEXT_PUBLIC_SHOPPING_API_URL ??
+  (API_GATEWAY_URL ? `${API_GATEWAY_URL}/api/cart` : undefined) ??
   AUTH_API_URL.replace(/:4001$/, ":4002");
 
 export type ServerCartItem = {

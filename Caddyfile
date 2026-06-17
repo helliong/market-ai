@@ -13,3 +13,7 @@ marketai-mod.helliong.space {
 marketai-api.helliong.space {
   reverse_proxy api-gateway:4000
 }
+
+marketai-storage.helliong.space {
+  reverse_proxy minio:9000
+}

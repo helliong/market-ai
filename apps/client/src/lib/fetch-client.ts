@@ -1,8 +1,10 @@
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
-const BASE_AUTH_URL = AUTH_API_URL.endsWith("/auth") ? AUTH_API_URL.slice(0, -5) : AUTH_API_URL;
+import { getAuthUrl } from "./auth-url";
 
 let isRefreshing = false;
-let failedQueue: { resolve: (value: void | PromiseLike<void>) => void; reject: (reason?: any) => void }[] = [];
+let failedQueue: {
+  resolve: (value: void | PromiseLike<void>) => void;
+  reject: (reason?: unknown) => void;
+}[] = [];
 
 function processQueue(error: Error | null) {
   failedQueue.forEach((prom) => {
@@ -49,7 +51,7 @@ export async function fetchWithAuth<T>(
     isRefreshing = true;
 
     try {
-      const refreshResponse = await fetch(`${BASE_AUTH_URL}/auth/refresh`, {
+      const refreshResponse = await fetch(getAuthUrl("/auth/refresh"), {
         method: "POST",
         credentials: "include",
       });

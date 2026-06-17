@@ -41,6 +41,9 @@ type ApiProduct = {
 
 const CATALOG_API_URL =
   process.env.NEXT_PUBLIC_CATALOG_API_URL ?? "http://127.0.0.1:4003";
+const STORAGE_PUBLIC_URL =
+  process.env.NEXT_PUBLIC_STORAGE_PUBLIC_URL ?? "https://marketai-storage.helliong.space";
+const LEGACY_STORAGE_HOSTS = new Set(["127.0.0.1:9000", "2.56.241.30:9000"]);
 
 export async function getCatalogProducts(): Promise<ClientProduct[]> {
   const apiProducts = await fetchApiProducts();
@@ -208,8 +211,34 @@ function mapApiProduct(product: ApiProduct): ClientProduct {
     storeName: product.storeName ?? "MarketAI Store",
     categoryIds: inferCategoryIds(product.category),
     category: product.category,
-    images: product.images ?? [],
+    images: (product.images ?? []).map(normalizeProductImage),
   };
+}
+
+function normalizeProductImage(image: ClientProductImage): ClientProductImage {
+  return {
+    ...image,
+    url: normalizeStorageUrl(image.url),
+  };
+}
+
+function normalizeStorageUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (!LEGACY_STORAGE_HOSTS.has(parsedUrl.host)) {
+      return url;
+    }
+
+    const publicStorageUrl = new URL(STORAGE_PUBLIC_URL);
+    publicStorageUrl.pathname = parsedUrl.pathname;
+    publicStorageUrl.search = parsedUrl.search;
+    publicStorageUrl.hash = parsedUrl.hash;
+
+    return publicStorageUrl.toString();
+  } catch {
+    return url;
+  }
 }
 
 function inferCategoryIds(category: string) {

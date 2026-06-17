@@ -2,7 +2,7 @@ import { fetchWithAuth } from "./fetch-client";
 
 const AUTH_API_URL =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
-const BASE_AUTH_URL = AUTH_API_URL.endsWith("/auth") ? AUTH_API_URL.slice(0, -5) : AUTH_API_URL;
+const BASE_AUTH_URL = AUTH_API_URL.replace(/\/?auth\/?$/, "");
 
 type RegisterPayload = {
   name: string;
