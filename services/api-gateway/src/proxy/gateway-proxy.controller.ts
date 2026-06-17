@@ -14,7 +14,7 @@ export class GatewayProxyController {
   constructor(private readonly proxyService: GatewayProxyService) {}
 
   @All('auth{/*path}')
-  @SkipThrottle({ default: true, public: true })
+  @SkipThrottle({ default: true, public: true, aiPublic: true })
   @Throttle({ auth: {} })
   @ApiTags('Auth proxy')
   @ApiOperation({ summary: 'Proxy auth-service requests' })
@@ -32,7 +32,7 @@ export class GatewayProxyController {
   }
 
   @All('catalog{/*path}')
-  @SkipThrottle({ auth: true, default: true })
+  @SkipThrottle({ auth: true, default: true, aiPublic: true })
   @Throttle({ public: {} })
   @ApiTags('Catalog proxy')
   @ApiOperation({ summary: 'Proxy public catalog requests' })
