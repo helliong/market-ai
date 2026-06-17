@@ -1,8 +1,5 @@
 import { fetchWithAuth } from "./fetch-client";
-
-const AUTH_API_URL =
-  process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:4001";
-const BASE_AUTH_URL = AUTH_API_URL.replace(/\/?auth\/?$/, "");
+import { getAuthBaseUrl } from "./auth-url";
 
 type RegisterPayload = {
   name: string;
