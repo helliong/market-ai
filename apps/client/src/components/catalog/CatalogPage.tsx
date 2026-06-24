@@ -19,6 +19,12 @@ import {
   searchCatalogProducts,
   type ClientProduct,
 } from "@/lib/catalog-products";
+import {
+  type FilterState,
+  DEFAULT_FILTERS,
+  getFilteredProducts,
+  extractDynamicFilters,
+} from "./useSmartFilters";
 
 type CatalogPageProps = {
   initialCategory?: number | "all";
@@ -30,6 +36,24 @@ type CatalogPageProps = {
 type SortMode = "popular" | "rating" | "priceAsc" | "priceDesc";
 
 // Экран каталога управляет категориями, поиском, фильтрами, сортировкой и списком товаров.
+
+function FilterAccordion({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-[#E5E7EB] py-4 last:border-0 dark:border-[#334155]">
+      <button 
+        type="button" 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="flex w-full items-center justify-between text-sm font-black text-[var(--text-main)]"
+      >
+        {title}
+        <ChevronDown size={16} className={`transition-transform text-[#64748B] ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && <div className="mt-4">{children}</div>}
+    </div>
+  );
+}
+
 export function CatalogPage({
   initialCategory = "all",
   initialQuery = "",
@@ -43,13 +67,12 @@ export function CatalogPage({
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sort, setSort] = useState<SortMode>("popular");
-  const [onlyDiscounts, setOnlyDiscounts] = useState(false);
-  const [fastDelivery, setFastDelivery] = useState(false);
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+
+  const [draftFilters, setDraftFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
   const [brandSearch, setBrandSearch] = useState("");
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedStores, setSelectedStores] = useState<string[]>([]);
+
   const [searchProducts, setSearchProducts] =
     useState<ClientProduct[]>(initialProducts);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
@@ -81,9 +104,7 @@ export function CatalogPage({
           visibleProducts
             .filter(
               (product) =>
-                (!isSubcategoryPage ||
-                  product.category?.toLowerCase() ===
-                    initialSubcategory.toLowerCase()) &&
+                checkSmartSubcategory(product, initialSubcategory, isSubcategoryPage) &&
                 (selectedCategory === "all" ||
                   product.categoryIds.includes(selectedCategory)),
             )
@@ -105,9 +126,7 @@ export function CatalogPage({
           visibleProducts
             .filter(
               (product) =>
-                (!isSubcategoryPage ||
-                  product.category?.toLowerCase() ===
-                    initialSubcategory.toLowerCase()) &&
+                checkSmartSubcategory(product, initialSubcategory, isSubcategoryPage) &&
                 (selectedCategory === "all" ||
                   product.categoryIds.includes(selectedCategory)),
             )
@@ -133,52 +152,27 @@ export function CatalogPage({
       .slice(0, 8);
   }, [availableBrands, brandSearch]);
 
-  const filteredProducts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const normalizedMinPrice = parseFilterPrice(minPrice);
-    const normalizedMaxPrice = parseFilterPrice(maxPrice);
-    const filtered = visibleProducts.filter((product) => {
-      const productPrice = parseProductPrice(product.price);
-      const matchesCategory =
-        selectedCategory === "all" ||
-        product.categoryIds.includes(selectedCategory);
-      const matchesSubcategory = 
-        !isSubcategoryPage || 
-        product.category?.toLowerCase() === initialSubcategory.toLowerCase();
-      const matchesSearch =
-        usesServerSearch ||
-        !normalizedQuery ||
-        product.title.toLowerCase().includes(normalizedQuery) ||
-        product.storeName?.toLowerCase().includes(normalizedQuery) ||
-        product.badge?.toLowerCase().includes(normalizedQuery) ||
-        product.category?.toLowerCase().includes(normalizedQuery);
-      const matchesDiscount = !onlyDiscounts || Boolean(product.oldPrice);
-      const matchesDelivery = !fastDelivery || hasFastDelivery(product);
-      const matchesMinPrice =
-        normalizedMinPrice === null || productPrice >= normalizedMinPrice;
-      const matchesMaxPrice =
-        normalizedMaxPrice === null || productPrice <= normalizedMaxPrice;
-      const matchesStore =
-        selectedStores.length === 0 ||
-        (product.storeName ? selectedStores.includes(product.storeName) : false);
-      const productBrand = getProductBrand(product);
-      const matchesBrand =
-        selectedBrands.length === 0 ||
-        (productBrand ? selectedBrands.includes(productBrand) : false);
+  const dynamicFilters = useMemo(
+    () => extractDynamicFilters(visibleProducts),
+    [visibleProducts]
+  );
 
-      return (
-        matchesCategory &&
-        matchesSubcategory &&
-        matchesSearch &&
-        matchesDiscount &&
-        matchesDelivery &&
-        matchesMinPrice &&
-        matchesMaxPrice &&
-        matchesBrand &&
-        matchesStore
-      );
-    });
+  const hasDraftChanges = useMemo(() => {
+    return JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+  }, [draftFilters, appliedFilters]);
 
+  const draftFilteredProducts = useMemo(() => {
+    const filtered = getFilteredProducts(
+      visibleProducts,
+      draftFilters,
+      searchQuery,
+      selectedCategory,
+      initialSubcategory,
+      isSubcategoryPage,
+      usesServerSearch,
+      checkSmartSubcategory,
+      getProductBrand
+    );
     return [...filtered].sort((left, right) => {
       if (sort === "rating") return right.rating - left.rating;
       if (sort === "priceAsc") return parseProductPrice(left.price) - parseProductPrice(right.price);
@@ -186,26 +180,52 @@ export function CatalogPage({
       return right.reviews - left.reviews;
     });
   }, [
-    fastDelivery,
-    initialSubcategory,
-    isSubcategoryPage,
-    maxPrice,
-    minPrice,
-    onlyDiscounts,
+    visibleProducts,
+    draftFilters,
     searchQuery,
     selectedCategory,
-    selectedBrands,
-    selectedStores,
-    sort,
+    initialSubcategory,
+    isSubcategoryPage,
     usesServerSearch,
+    sort,
+  ]);
+
+  const filteredProducts = useMemo(() => {
+    const filtered = getFilteredProducts(
+      visibleProducts,
+      appliedFilters,
+      searchQuery,
+      selectedCategory,
+      initialSubcategory,
+      isSubcategoryPage,
+      usesServerSearch,
+      checkSmartSubcategory,
+      getProductBrand
+    );
+    return [...filtered].sort((left, right) => {
+      if (sort === "rating") return right.rating - left.rating;
+      if (sort === "priceAsc") return parseProductPrice(left.price) - parseProductPrice(right.price);
+      if (sort === "priceDesc") return parseProductPrice(right.price) - parseProductPrice(left.price);
+      return right.reviews - left.reviews;
+    });
+  }, [
     visibleProducts,
+    appliedFilters,
+    searchQuery,
+    selectedCategory,
+    initialSubcategory,
+    isSubcategoryPage,
+    usesServerSearch,
+    sort,
   ]);
 
   function handleQuickPick(pick: string) {
     const priceLimit = getQuickPickPriceLimit(pick);
 
     if (priceLimit !== null) {
-      setMaxPrice(String(priceLimit));
+      const newFilters = { ...draftFilters, maxPrice: String(priceLimit) };
+      setDraftFilters(newFilters);
+      setAppliedFilters(newFilters);
       return;
     }
 
@@ -213,30 +233,49 @@ export function CatalogPage({
   }
 
   function resetFilters() {
-    setOnlyDiscounts(false);
-    setFastDelivery(false);
-    setMinPrice("");
-    setMaxPrice("");
+    setDraftFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
     setBrandSearch("");
-    setSelectedBrands([]);
-    setSelectedStores([]);
     setSort("popular");
   }
 
+  function applyFilters() {
+    setAppliedFilters(draftFilters);
+  }
+
   function toggleStore(store: string) {
-    setSelectedStores((currentStores) =>
-      currentStores.includes(store)
-        ? currentStores.filter((currentStore) => currentStore !== store)
-        : [...currentStores, store],
-    );
+    setDraftFilters((prev) => ({
+      ...prev,
+      selectedStores: prev.selectedStores.includes(store)
+        ? prev.selectedStores.filter((s) => s !== store)
+        : [...prev.selectedStores, store],
+    }));
   }
 
   function toggleBrand(brand: string) {
-    setSelectedBrands((currentBrands) =>
-      currentBrands.includes(brand)
-        ? currentBrands.filter((currentBrand) => currentBrand !== brand)
-        : [...currentBrands, brand],
-    );
+    setDraftFilters((prev) => ({
+      ...prev,
+      selectedBrands: prev.selectedBrands.includes(brand)
+        ? prev.selectedBrands.filter((b) => b !== brand)
+        : [...prev.selectedBrands, brand],
+    }));
+  }
+  
+  function toggleDynamicFilter(attrKey: string, value: string) {
+    setDraftFilters((prev) => {
+      const currentValues = prev.dynamicAttributes[attrKey] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+      
+      return {
+        ...prev,
+        dynamicAttributes: {
+          ...prev.dynamicAttributes,
+          [attrKey]: newValues,
+        }
+      };
+    });
   }
 
   useEffect(() => {
@@ -312,74 +351,53 @@ export function CatalogPage({
         </div>
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[250px_1fr]">
-          <aside className="h-fit rounded-[24px] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] xl:sticky xl:top-[92px]">
+          <aside className="h-fit rounded-[24px] bg-white dark:bg-[#0F172A] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] xl:sticky xl:top-[92px]">
             <h2 className="text-base font-black text-[var(--text-main)]">
               Фильтры
             </h2>
             <div className="mt-5 space-y-5">
-              <div>
-                <p className="text-sm font-black text-[var(--text-main)]">
-                  Категория
-                </p>
-                <div className="mt-3 space-y-2">
-                  <Link
-                    href="/catalog?category=1"
-                    className="flex items-center gap-2 text-sm font-bold text-[#64748B] transition hover:text-[#6D4AFF]"
-                  >
-                    <ChevronRight size={15} className="rotate-180" />
-                    Электроника
-                  </Link>
-                  <div className="rounded-2xl bg-[#F6F7FB] px-3 py-2 text-sm font-black text-[var(--text-main)]">
-                    {isSubcategoryPage ? initialSubcategory : "Поиск"}
-                  </div>
-                </div>
-              </div>
-
               <ToggleRow
                 label="Скидки недели"
-                checked={onlyDiscounts}
-                onChange={setOnlyDiscounts}
+                checked={draftFilters.onlyDiscounts}
+                onChange={(checked) => setDraftFilters(prev => ({ ...prev, onlyDiscounts: checked }))}
               />
               <ToggleRow
                 label="Быстрая доставка"
-                checked={fastDelivery}
-                onChange={setFastDelivery}
+                checked={draftFilters.fastDelivery}
+                onChange={(checked) => setDraftFilters(prev => ({ ...prev, fastDelivery: checked }))}
               />
-              <div>
-                <p className="text-sm font-black text-[var(--text-main)]">Цена</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+              <FilterAccordion title="Цена" defaultOpen>
+                <div className="grid grid-cols-2 gap-2">
                   <PriceInput
-                    value={minPrice}
-                    onChange={setMinPrice}
+                    value={draftFilters.minPrice}
+                    onChange={(val) => setDraftFilters(prev => ({ ...prev, minPrice: val }))}
                     placeholder="от 0"
                     ariaLabel="Минимальная цена"
                   />
                   <PriceInput
-                    value={maxPrice}
-                    onChange={setMaxPrice}
+                    value={draftFilters.maxPrice}
+                    onChange={(val) => setDraftFilters(prev => ({ ...prev, maxPrice: val }))}
                     placeholder="до 100 000"
                     ariaLabel="Максимальная цена"
                   />
                 </div>
-              </div>
-              <div>
-                <p className="text-sm font-black text-[var(--text-main)]">
-                  Бренд
-                </p>
+              </FilterAccordion>
+              
+              <FilterAccordion title="Бренд" defaultOpen>
                 <input
                   type="search"
                   value={brandSearch}
                   onChange={(event) => setBrandSearch(event.target.value)}
                   placeholder="Найти бренд"
                   aria-label="Поиск по бренду"
-                  className="mt-3 w-full rounded-xl border border-[#E5E7EB] bg-transparent px-3 py-2 text-sm font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[#64748B] focus:border-[#6D4AFF] dark:border-[#334155]"
+                  className="w-full rounded-xl border border-[#E5E7EB] bg-transparent px-3 py-2 text-sm font-semibold text-[var(--text-main)] outline-none transition placeholder:text-[#64748B] focus:border-[#6D4AFF] dark:border-[#334155]"
                 />
                 <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
                   {visibleBrands.map((brand) => (
                     <FilterCheckbox
                       key={brand}
                       label={brand}
-                      checked={selectedBrands.includes(brand)}
+                      checked={draftFilters.selectedBrands.includes(brand)}
                       onChange={() => toggleBrand(brand)}
                     />
                   ))}
@@ -389,34 +407,82 @@ export function CatalogPage({
                     </p>
                   )}
                 </div>
-              </div>
-              <div>
-                <p className="text-sm font-black text-[var(--text-main)]">Магазин</p>
-                <div className="mt-3 space-y-2">
+              </FilterAccordion>
+              
+              <FilterAccordion title="Магазин">
+                <div className="space-y-2">
                   {availableStores.slice(0, 6).map((store) => (
                     <FilterCheckbox
                       key={store}
                       label={store}
-                      checked={selectedStores.includes(store)}
+                      checked={draftFilters.selectedStores.includes(store)}
                       onChange={() => toggleStore(store)}
                     />
                   ))}
                 </div>
+              </FilterAccordion>
+              
+              {dynamicFilters.map((filter) => (
+                <FilterAccordion key={filter.key} title={filter.key}>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {filter.values.map((value) => (
+                      <FilterCheckbox
+                        key={value}
+                        label={value}
+                        checked={(draftFilters.dynamicAttributes[filter.key] || []).includes(value)}
+                        onChange={() => toggleDynamicFilter(filter.key, value)}
+                      />
+                    ))}
+                  </div>
+                </FilterAccordion>
+              ))}
+              
+              <FilterAccordion title="Рейтинг товара">
+                <div className="space-y-2">
+                  {[0, 4, 4.5].map((rating) => (
+                    <label key={rating} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="rating"
+                        className="h-4 w-4 accent-[#6D4AFF]"
+                        checked={draftFilters.rating === rating}
+                        onChange={() => setDraftFilters(prev => ({ ...prev, rating }))}
+                      />
+                      <span className="text-sm font-semibold text-[var(--text-main)]">
+                        {rating === 0 ? "Любой" : rating === 4 ? "4.0 и выше" : "4.5 и выше"}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </FilterAccordion>
+
+              <div className="sticky bottom-0 pb-2 bg-white dark:bg-[#0F172A] z-10 flex flex-col gap-2">
+                {hasDraftChanges && (
+                  <button
+                    type="button"
+                    onClick={applyFilters}
+                    className="w-full rounded-xl bg-[#6D4AFF] px-3 py-3 text-sm font-black text-white transition hover:bg-[#4F32D9] shadow-lg shadow-[#6D4AFF]/30"
+                  >
+                    Показать ({draftFilteredProducts.length})
+                  </button>
+                )}
+                {(draftFilters.onlyDiscounts ||
+                  draftFilters.fastDelivery ||
+                  draftFilters.minPrice ||
+                  draftFilters.maxPrice ||
+                  draftFilters.selectedBrands.length > 0 ||
+                  draftFilters.selectedStores.length > 0 ||
+                  draftFilters.rating > 0 ||
+                  Object.values(draftFilters.dynamicAttributes).some(arr => arr.length > 0)) && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="w-full rounded-xl border border-[#6D4AFF] px-3 py-2 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
+                  >
+                    Сбросить фильтры
+                  </button>
+                )}
               </div>
-              {(onlyDiscounts ||
-                fastDelivery ||
-                minPrice ||
-                maxPrice ||
-                selectedBrands.length > 0 ||
-                selectedStores.length > 0) && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="w-full rounded-xl border border-[#6D4AFF] px-3 py-2 text-sm font-black text-[#6D4AFF] transition hover:bg-[#F1EDFF]"
-                >
-                  Сбросить фильтры
-                </button>
-              )}
             </div>
           </aside>
 
@@ -824,4 +890,33 @@ function getProductBrand(product: ClientProduct) {
   const inferredBrand = titleWithoutType.split(/\s+/)[0]?.replace(/[,:;]+$/, "");
 
   return inferredBrand && inferredBrand.length > 1 ? inferredBrand : undefined;
+}
+
+function checkSmartSubcategory(product: ClientProduct, subcategory: string, isSubcategoryPage: boolean) {
+  if (!isSubcategoryPage) return true;
+  
+  const normalizedSubcategory = subcategory.trim().toLowerCase();
+  const productCategory = product.category?.toLowerCase() || "";
+
+  if (normalizedSubcategory === "игровые ноутбуки") {
+    if (productCategory.includes("ноутбук")) {
+      const attrs = JSON.stringify(product.attributes).toLowerCase();
+      const title = product.title.toLowerCase();
+      if (attrs.includes("игров") || title.includes("игров") || attrs.includes("gaming") || title.includes("gaming") || title.includes("legion") || title.includes("rog") || title.includes("tuf") || title.includes("nitro")) {
+        return true;
+      }
+    }
+  }
+
+  if (normalizedSubcategory === "беспроводные наушники" || normalizedSubcategory === "беспроводные") {
+    if (productCategory.includes("наушник")) {
+      const attrs = JSON.stringify(product.attributes).toLowerCase();
+      const title = product.title.toLowerCase();
+      if (attrs.includes("беспроводн") || attrs.includes("bluetooth") || attrs.includes("tws") || title.includes("tws") || title.includes("wireless") || title.includes("bluetooth") || title.includes("беспроводн")) {
+        return true;
+      }
+    }
+  }
+
+  return productCategory === normalizedSubcategory;
 }
