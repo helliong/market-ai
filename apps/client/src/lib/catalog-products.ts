@@ -22,6 +22,11 @@ export type ClientProductImage = {
   sortOrder: number;
 };
 
+export type PaginatedProducts = {
+  items: ClientProduct[];
+  nextCursor: number | null;
+};
+
 type ApiProduct = {
   id: number;
   sku: string;
@@ -46,8 +51,17 @@ const STORAGE_PUBLIC_URL =
 const LEGACY_STORAGE_HOSTS = new Set(["127.0.0.1:9000", "2.56.241.30:9000"]);
 
 export async function getCatalogProducts(): Promise<ClientProduct[]> {
-  const apiProducts = await fetchApiProducts();
-  return apiProducts.map(mapApiProduct);
+  // Fetch a large limit so that client-side category filtering works with all products
+  const result = await fetchApiProducts(undefined, 1000);
+  return result.items.map(mapApiProduct);
+}
+
+export async function getCatalogFeed(cursor?: number, limit: number = 24): Promise<PaginatedProducts> {
+  const result = await fetchApiProducts(cursor, limit);
+  return {
+    items: result.items.map(mapApiProduct),
+    nextCursor: result.nextCursor,
+  };
 }
 
 export async function searchCatalogProducts(
@@ -97,19 +111,23 @@ export async function getCatalogProductBySku(
   return null;
 }
 
-async function fetchApiProducts() {
+async function fetchApiProducts(cursor?: number, limit?: number) {
   try {
-    const response = await fetch(`${CATALOG_API_URL}/products`, {
+    const url = new URL(`${CATALOG_API_URL}/products`);
+    if (cursor) url.searchParams.set("cursor", cursor.toString());
+    if (limit) url.searchParams.set("limit", limit.toString());
+
+    const response = await fetch(url.toString(), {
       cache: "no-store",
     });
 
     if (!response.ok) {
-      return [];
+      return { items: [], nextCursor: null };
     }
 
-    return (await response.json()) as ApiProduct[];
+    return (await response.json()) as { items: ApiProduct[]; nextCursor: number | null };
   } catch {
-    return [];
+    return { items: [], nextCursor: null };
   }
 }
 

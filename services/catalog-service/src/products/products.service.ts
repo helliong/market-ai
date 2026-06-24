@@ -6,17 +6,27 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findProducts() {
+  async findProducts(cursor?: number, limit = 24) {
     const products = await this.prisma.product.findMany({
       where: {
         status: 'active',
         storeStatus: 'ACTIVATED',
         stock: { gt: 0 },
       },
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { id: 'desc' },
       include: productWithImages,
     });
 
-    return shuffleProducts(products).map((product) => this.toResponse(product));
+    const nextCursor =
+      products.length === limit ? products[products.length - 1].id : null;
+
+    return {
+      items: products.map((product) => this.toResponse(product)),
+      nextCursor,
+    };
   }
 
   async searchProducts(query: string) {

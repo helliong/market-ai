@@ -10,8 +10,13 @@ export class ProductsController {
   @Get()
   @ApiOperation({ summary: 'List public active products' })
   @ApiOkResponse({ description: 'Public product catalog.' })
-  findProducts() {
-    return this.productsService.findProducts();
+  findProducts(
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const cursorNum = cursor ? parseInt(cursor, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : 24;
+    return this.productsService.findProducts(cursorNum, limitNum);
   }
 
   @Get('search')
