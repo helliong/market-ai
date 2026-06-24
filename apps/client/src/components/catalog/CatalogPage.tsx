@@ -660,13 +660,13 @@ export function CatalogPage({
                   <div className="mt-5 space-y-5">
                     <ToggleRow
                       label="Скидки недели"
-                      checked={onlyDiscounts}
-                      onChange={setOnlyDiscounts}
+                      checked={draftFilters.onlyDiscounts}
+                      onChange={(checked) => setDraftFilters(prev => ({ ...prev, onlyDiscounts: checked }))}
                     />
                     <ToggleRow
                       label="Быстрая доставка"
-                      checked={fastDelivery}
-                      onChange={setFastDelivery}
+                      checked={draftFilters.fastDelivery}
+                      onChange={(checked) => setDraftFilters(prev => ({ ...prev, fastDelivery: checked }))}
                     />
                     <div>
                       <p className="text-sm font-black text-[var(--text-main)]">Цена</p>
@@ -728,9 +728,7 @@ export function CatalogPage({
                       onClick={() => {
                         setSelectedCategory("all");
                         setSearchQuery("");
-                        setOnlyDiscounts(false);
-                        setFastDelivery(false);
-                        setSort("popular");
+                        resetFilters();
                       }}
                       className="mt-6 rounded-2xl bg-[#6D4AFF] px-6 py-4 text-sm font-bold text-white transition hover:bg-[#4F32D9]"
                     >
@@ -873,7 +871,7 @@ function hasFastDelivery(product: ClientProduct) {
   });
 }
 
-function getProductBrand(product: ClientProduct) {
+export function getProductBrand(product: ClientProduct) {
   const brandAttribute = Object.entries(product.attributes).find(([key]) => {
     const normalizedKey = key.trim().toLowerCase();
     return normalizedKey === "бренд" || normalizedKey === "brand";
