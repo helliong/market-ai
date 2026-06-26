@@ -6,6 +6,7 @@ generated
 coverage
 .next
 sql-backup
+outputs/
 
 # Local database backups
 /backup*.sql

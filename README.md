@@ -11,11 +11,13 @@ MarketAI - маркетплейс с клиентской витриной, ка
 | Клиентская витрина | `apps/client` | `3000` | Публичный marketplace frontend на Next.js |
 | Кабинет продавца | `apps/admin` | `5173` | Seller admin на React + Vite |
 | Панель модерации | `apps/moderation` | `5174` | Отдельная панель ручной модерации |
+| API Gateway | `services/api-gateway` | `4000` | Единая входная точка к backend-сервисам, маршрутизация, CORS и rate limiting |
 | Auth service | `services/auth-service` | `4001` | Авторизация, регистрация продавца, Legal data, moderation API |
 | Cart service | `services/cart-service` | `4002` | Сервис корзины / ранняя реализация |
 | Catalog service | `services/catalog-service` | `4003` | Каталог товаров, управление продуктами и категориями |
 | Order service | `services/order-service` | `4004` | Обработка заказов |
 | Storage service | `services/storage-service` | `4005` | Хранилище (MinIO), выдача presigned URL, управление файлами |
+| AI Agent service | `services/ai-agent-service` | `4006` | AI-контур для ассистента и будущих умных функций |
 
 Локальные ссылки:
 
@@ -23,12 +25,14 @@ MarketAI - маркетплейс с клиентской витриной, ка
 Client:      http://127.0.0.1:3000
 Seller:      http://127.0.0.1:5173
 Moderation:  http://127.0.0.1:5174
+API Gateway: http://127.0.0.1:4000
 Auth API:    http://127.0.0.1:4001
 Swagger:     http://127.0.0.1:4001/docs
 Cart API:    http://127.0.0.1:4002
 Catalog API: http://127.0.0.1:4003
 Order API:   http://127.0.0.1:4004
 Storage API: http://127.0.0.1:4005
+AI Agent API: http://127.0.0.1:4006
 ```
 
 ## Технологический стек
@@ -78,10 +82,12 @@ marketplace-ai/
 |   |       |-- email/
 |   |       `-- prisma/
 |   |
+|   |-- api-gateway/            # Единая backend-точка входа и маршрутизация
 |   |-- cart-service/           # Cart API service
 |   |-- catalog-service/        # Catalog API (товары, категории)
 |   |-- order-service/          # Order API (заказы)
-|   `-- storage-service/        # Storage API (MinIO, presigned urls)
+|   |-- storage-service/        # Storage API (MinIO, presigned urls)
+|   `-- ai-agent-service/       # AI assistant / smart features API
 |
 |-- scripts/
 |   `-- print-dev-links.cjs     # Печатает локальные dev-ссылки
@@ -285,6 +291,8 @@ npm install --prefix services/cart-service
 npm install --prefix services/catalog-service
 npm install --prefix services/order-service
 npm install --prefix services/storage-service
+npm install --prefix services/api-gateway
+npm install --prefix services/ai-agent-service
 ```
 
 Поднять инфраструктуру:
@@ -312,8 +320,19 @@ npm run start:dev
 npm run dev:client
 npm run dev:admin
 npm run dev:moderation
+npm run dev:gateway
 npm run dev:auth
 npm run dev:cart
+npm run dev:catalog
+npm run dev:order
+npm run dev:storage
+npm run dev:ai
+```
+
+Запустить только backend-сервисы:
+
+```bash
+npm run start:dev:backend
 ```
 
 ## Как пользоваться модерацией
